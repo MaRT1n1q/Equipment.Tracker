@@ -4,7 +4,10 @@
   "version": "1.0.1",
   "type": "module",
   "main": "dist-electron/main.js",
-  "author": "Equipment Tracker",
+  "author": {
+    "name": "Equipment Tracker",
+    "email": "support@equipment-tracker.app"
+  },
   "description": "Desktop application for tracking equipment requests",
   "scripts": {
     "dev": "vite",
@@ -112,7 +115,8 @@
         }
       ],
       "category": "Utility",
-      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
+      "maintainer": "Equipment Tracker <support@equipment-tracker.app>"
     },
     "win": {
       "target": [
