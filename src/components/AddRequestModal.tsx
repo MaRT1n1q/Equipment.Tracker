@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { Input } from './ui/input'
@@ -18,11 +18,41 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
     serial_number: ''
   })
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({
+    employee_name: false,
+    equipment_name: false,
+    serial_number: false
+  })
+  
+  const firstInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus first field when modal opens
+  useEffect(() => {
+    if (open) {
+      // Clear form when opening
+      setFormData({ employee_name: '', equipment_name: '', serial_number: '' })
+      setErrors({ employee_name: false, equipment_name: false, serial_number: false })
+      
+      // Focus first field after a small delay to ensure modal is rendered
+      setTimeout(() => {
+        firstInputRef.current?.focus()
+      }, 100)
+    }
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.employee_name || !formData.equipment_name || !formData.serial_number) {
+    // Validate fields
+    const newErrors = {
+      employee_name: !formData.employee_name.trim(),
+      equipment_name: !formData.equipment_name.trim(),
+      serial_number: !formData.serial_number.trim()
+    }
+    
+    setErrors(newErrors)
+    
+    if (newErrors.employee_name || newErrors.equipment_name || newErrors.serial_number) {
       toast.error('Заполните все поля')
       return
     }
@@ -34,6 +64,7 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
       if (result.success) {
         toast.success('Заявка успешно создана')
         setFormData({ employee_name: '', equipment_name: '', serial_number: '' })
+        setErrors({ employee_name: false, equipment_name: false, serial_number: false })
         onOpenChange(false)
         onRequestAdded()
       } else {
@@ -62,12 +93,20 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
             <div className="space-y-2">
               <Label htmlFor="employee_name">ФИО сотрудника</Label>
               <Input
+                ref={firstInputRef}
                 id="employee_name"
                 placeholder="Иванов Иван Иванович"
                 value={formData.employee_name}
-                onChange={(e) => setFormData({ ...formData, employee_name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, employee_name: e.target.value })
+                  setErrors({ ...errors, employee_name: false })
+                }}
                 disabled={loading}
+                className={errors.employee_name ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
+              {errors.employee_name && (
+                <p className="text-xs text-red-500">Это поле обязательно</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -76,9 +115,16 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
                 id="equipment_name"
                 placeholder="Ноутбук Dell Latitude"
                 value={formData.equipment_name}
-                onChange={(e) => setFormData({ ...formData, equipment_name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, equipment_name: e.target.value })
+                  setErrors({ ...errors, equipment_name: false })
+                }}
                 disabled={loading}
+                className={errors.equipment_name ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
+              {errors.equipment_name && (
+                <p className="text-xs text-red-500">Это поле обязательно</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -87,9 +133,16 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
                 id="serial_number"
                 placeholder="SN123456789"
                 value={formData.serial_number}
-                onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, serial_number: e.target.value })
+                  setErrors({ ...errors, serial_number: false })
+                }}
                 disabled={loading}
+                className={errors.serial_number ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
+              {errors.serial_number && (
+                <p className="text-xs text-red-500">Это поле обязательно</p>
+              )}
             </div>
           </div>
           

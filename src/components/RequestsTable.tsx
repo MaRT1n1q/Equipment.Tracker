@@ -1,7 +1,7 @@
 import { Request } from '../types/electron.d'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Package, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface RequestsTableProps {
@@ -59,9 +59,25 @@ export function RequestsTable({ requests, onUpdate }: RequestsTableProps) {
 
   if (requests.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p className="text-lg">Заявок пока нет</p>
-        <p className="text-sm mt-2">Создайте первую заявку, нажав кнопку выше</p>
+      <div className="text-center py-16 px-4">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
+          <Package className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">Заявок пока нет</h3>
+        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          Создайте первую заявку на выдачу оборудования, нажав кнопку "Добавить заявку" выше
+          или используя сочетание клавиш <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">Ctrl+N</kbd>
+        </p>
+        <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>Учёт заявок</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            <span>Контроль выдачи</span>
+          </div>
+        </div>
       </div>
     )
   }
