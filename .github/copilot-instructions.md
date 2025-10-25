@@ -1,11 +1,13 @@
 # Electron Equipment Tracker - Copilot Instructions
 
 ## Project Overview
+
 Desktop application for tracking equipment requests using Electron + React + Vite + TypeScript + SQLite.
 
 ## Technologies
+
 - **Electron 33** - Desktop application framework
-- **React 18** - UI library  
+- **React 18** - UI library
 - **Vite 5** - Build tool and dev server
 - **TypeScript 5** - Type safety
 - **SQLite** (better-sqlite3) - Local database
@@ -15,6 +17,7 @@ Desktop application for tracking equipment requests using Electron + React + Vit
 - **Lucide React** - Icons
 
 ## Project Structure
+
 ```
 equipment-tracker/
 ├── electron/          # Electron main and preload processes
@@ -38,15 +41,18 @@ equipment-tracker/
 ```
 
 ## Development Commands
+
 - `npm run electron:dev` - Run app in development mode
 - `npm run dev` - Run Vite dev server only
 - `npm run build` - Build for production
 - `npm run electron` - Run production build
 
 ## Database Schema
+
 SQLite database is created automatically at first launch in user's app data folder.
 
 Table: `requests`
+
 - id (INTEGER PRIMARY KEY AUTOINCREMENT)
 - employee_name (TEXT)
 - equipment_name (TEXT)
@@ -55,6 +61,7 @@ Table: `requests`
 - is_issued (INTEGER, 0 or 1)
 
 ## Features Implemented
+
 ✅ Create requests with auto-generated ID
 ✅ Store employee name, equipment name, serial number, date
 ✅ Table view of all requests
@@ -66,6 +73,7 @@ Table: `requests`
 ✅ Modern Windows 11 Fluent Design style
 
 ## Progress Tracking
+
 - [x] Create copilot-instructions.md file
 - [x] Get project setup information
 - [x] Create project structure
@@ -78,6 +86,7 @@ Table: `requests`
 - [x] Test and launch application
 
 ## Status
+
 ✅ **Project is complete and ready to use!**
 
 The application successfully runs in development mode and is ready for building and distribution.

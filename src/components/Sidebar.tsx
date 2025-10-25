@@ -1,4 +1,11 @@
-import { LayoutDashboard, Package, Settings, ChevronLeft, ChevronRight, UserMinus } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Package,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  UserMinus,
+} from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
 import { SettingsModal } from './SettingsModal'
@@ -10,7 +17,12 @@ interface SidebarProps {
   onToggleCollapse: () => void
 }
 
-export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({
+  currentView,
+  onViewChange,
+  isCollapsed,
+  onToggleCollapse,
+}: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const menuItems = [
@@ -18,20 +30,20 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
       id: 'dashboard' as const,
       label: 'Дашборд',
       icon: LayoutDashboard,
-      gradient: 'from-blue-500 to-cyan-500'
+      gradient: 'from-blue-500 to-cyan-500',
     },
     {
       id: 'requests' as const,
       label: 'Заявки',
       icon: Package,
-      gradient: 'from-purple-500 to-pink-500'
+      gradient: 'from-purple-500 to-pink-500',
     },
     {
       id: 'employee-exit' as const,
       label: 'Выход сотрудников',
       icon: UserMinus,
-      gradient: 'from-orange-500 to-red-500'
-    }
+      gradient: 'from-orange-500 to-red-500',
+    },
   ]
 
   return (
@@ -61,11 +73,7 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
           onClick={onToggleCollapse}
           className="ml-auto hover:bg-accent"
         >
-          {isCollapsed ? (
-            <ChevronRight className="w-5 h-5" />
-          ) : (
-            <ChevronLeft className="w-5 h-5" />
-          )}
+          {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
         </Button>
       </div>
 
@@ -80,9 +88,10 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
               className={`
                 relative w-full flex items-center gap-3 px-4 py-3 rounded-lg
                 transition-all duration-200 group overflow-hidden
-                ${isActive 
-                  ? 'bg-primary text-primary-foreground shadow-lg' 
-                  : 'hover:bg-accent text-foreground'
+                ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-lg'
+                    : 'hover:bg-accent text-foreground'
                 }
                 ${isCollapsed ? 'justify-center' : ''}
               `}
@@ -91,7 +100,7 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
               {isActive && (
                 <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-100`} />
               )}
-              
+
               {/* Icon */}
               <item.icon
                 className={`
@@ -99,12 +108,10 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
                   ${isActive ? 'scale-110' : 'group-hover:scale-110'}
                 `}
               />
-              
+
               {/* Label */}
-              {!isCollapsed && (
-                <span className="relative z-10 font-medium">{item.label}</span>
-              )}
-              
+              {!isCollapsed && <span className="relative z-10 font-medium">{item.label}</span>}
+
               {/* Active indicator */}
               {isActive && (
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-l-full" />
@@ -130,11 +137,7 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
       </div>
 
       {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
-
   )
 }

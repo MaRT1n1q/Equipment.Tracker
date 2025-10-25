@@ -10,17 +10,12 @@ interface EmployeeExitViewProps {
 }
 
 export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExitViewProps) {
-  const {
-    data: exits = [],
-    isLoading,
-    isError,
-    refetch: refetchExits
-  } = useEmployeeExitsQuery()
+  const { data: exits = [], isLoading, isError, refetch: refetchExits } = useEmployeeExitsQuery()
 
   // Statistics
   const totalExits = exits.length
-  const completedExits = exits.filter(e => e.is_completed === 1).length
-  const pendingExits = exits.filter(e => e.is_completed === 0).length
+  const completedExits = exits.filter((e) => e.is_completed === 1).length
+  const pendingExits = exits.filter((e) => e.is_completed === 0).length
 
   const cards = [
     {
@@ -30,7 +25,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
       gradient: 'from-orange-500 to-red-500',
       bgLight: 'bg-orange-50',
       bgDark: 'dark:bg-orange-950/20',
-      iconColor: 'text-orange-600 dark:text-orange-400'
+      iconColor: 'text-orange-600 dark:text-orange-400',
     },
     {
       title: 'Завершено выдач',
@@ -39,7 +34,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
       gradient: 'from-green-500 to-emerald-500',
       bgLight: 'bg-green-50',
       bgDark: 'dark:bg-green-950/20',
-      iconColor: 'text-green-600 dark:text-green-400'
+      iconColor: 'text-green-600 dark:text-green-400',
     },
     {
       title: 'Ожидает выдачи',
@@ -48,8 +43,8 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
       gradient: 'from-amber-500 to-orange-500',
       bgLight: 'bg-amber-50',
       bgDark: 'dark:bg-amber-950/20',
-      iconColor: 'text-amber-600 dark:text-amber-400'
-    }
+      iconColor: 'text-amber-600 dark:text-amber-400',
+    },
   ] as const
 
   return (
@@ -62,23 +57,29 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
             className="group relative overflow-hidden rounded-xl bg-card border border-border hover-lift transition-all duration-300 animate-scale-in"
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+            <div
+              className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
+            />
             <div className="relative p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${card.bgLight} ${card.bgDark} transition-transform duration-300 group-hover:scale-110`}>
+                <div
+                  className={`p-3 rounded-lg ${card.bgLight} ${card.bgDark} transition-transform duration-300 group-hover:scale-110`}
+                >
                   <card.icon className={`w-6 h-6 ${card.iconColor}`} />
                 </div>
                 <div className="text-right">
-                  <div className={`text-3xl font-bold bg-gradient-to-br ${card.gradient} bg-clip-text text-transparent`}>
+                  <div
+                    className={`text-3xl font-bold bg-gradient-to-br ${card.gradient} bg-clip-text text-transparent`}
+                  >
                     {card.value}
                   </div>
                 </div>
               </div>
-              <div className="text-sm font-medium text-muted-foreground">
-                {card.title}
-              </div>
+              <div className="text-sm font-medium text-muted-foreground">{card.title}</div>
             </div>
-            <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`} />
+            <div
+              className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`}
+            />
           </div>
         ))}
       </div>

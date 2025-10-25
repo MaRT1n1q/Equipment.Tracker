@@ -1,5 +1,5 @@
-import * as React from "react"
-import { cn } from "../../lib/utils"
+import * as React from 'react'
+import { cn } from '../../lib/utils'
 
 interface DialogProps {
   open: boolean
@@ -14,7 +14,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         onOpenChange(false)
       }
     }
-    
+
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [open, onOpenChange])
@@ -23,13 +23,11 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50 w-full max-w-lg mx-4">
-        {children}
-      </div>
+      <div className="relative z-50 w-full max-w-lg mx-4">{children}</div>
     </div>
   )
 }
@@ -41,11 +39,13 @@ interface DialogContentProps {
 
 export function DialogContent({ children, className }: DialogContentProps) {
   return (
-    <div className={cn(
-      "bg-card text-card-foreground rounded-lg shadow-lg border p-6",
-      "animate-in fade-in-0 zoom-in-95",
-      className
-    )}>
+    <div
+      className={cn(
+        'bg-card text-card-foreground rounded-lg shadow-lg border p-6',
+        'animate-in fade-in-0 zoom-in-95',
+        className
+      )}
+    >
       {children}
     </div>
   )
@@ -58,7 +58,7 @@ interface DialogHeaderProps {
 
 export function DialogHeader({ children, className }: DialogHeaderProps) {
   return (
-    <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left mb-4", className)}>
+    <div className={cn('flex flex-col space-y-1.5 text-center sm:text-left mb-4', className)}>
       {children}
     </div>
   )
@@ -71,7 +71,7 @@ interface DialogTitleProps {
 
 export function DialogTitle({ children, className }: DialogTitleProps) {
   return (
-    <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)}>
+    <h2 className={cn('text-lg font-semibold leading-none tracking-tight', className)}>
       {children}
     </h2>
   )
@@ -83,11 +83,7 @@ interface DialogDescriptionProps {
 }
 
 export function DialogDescription({ children, className }: DialogDescriptionProps) {
-  return (
-    <p className={cn("text-sm text-muted-foreground", className)}>
-      {children}
-    </p>
-  )
+  return <p className={cn('text-sm text-muted-foreground', className)}>{children}</p>
 }
 
 interface DialogFooterProps {
@@ -97,7 +93,12 @@ interface DialogFooterProps {
 
 export function DialogFooter({ children, className }: DialogFooterProps) {
   return (
-    <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6", className)}>
+    <div
+      className={cn(
+        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6',
+        className
+      )}
+    >
       {children}
     </div>
   )

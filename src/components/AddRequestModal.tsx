@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from './ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
@@ -18,11 +25,11 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
   const [employeeName, setEmployeeName] = useState('')
   const [notes, setNotes] = useState('')
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([
-    { equipment_name: '', serial_number: '', quantity: 1 }
+    { equipment_name: '', serial_number: '', quantity: 1 },
   ])
   const [loading, setLoading] = useState(false)
   const [employeeNameError, setEmployeeNameError] = useState(false)
-  
+
   const firstInputRef = useRef<HTMLInputElement>(null)
   const { createRequest } = useRequestActions()
 
@@ -34,7 +41,7 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
       setNotes('')
       setEquipmentItems([{ equipment_name: '', serial_number: '', quantity: 1 }])
       setEmployeeNameError(false)
-      
+
       // Focus first field after a small delay
       setTimeout(() => {
         firstInputRef.current?.focus()
@@ -52,7 +59,11 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
     }
   }
 
-  const updateEquipmentItem = (index: number, field: keyof EquipmentItem, value: string | number) => {
+  const updateEquipmentItem = (
+    index: number,
+    field: keyof EquipmentItem,
+    value: string | number
+  ) => {
     const updated = [...equipmentItems]
     updated[index] = { ...updated[index], [field]: value }
     setEquipmentItems(updated)
@@ -60,7 +71,7 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validate employee name
     if (!employeeName.trim()) {
       setEmployeeNameError(true)
@@ -70,7 +81,7 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
 
     // Validate equipment items
     const hasEmptyFields = equipmentItems.some(
-      item => !item.equipment_name.trim() || !item.serial_number.trim()
+      (item) => !item.equipment_name.trim() || !item.serial_number.trim()
     )
 
     if (hasEmptyFields) {
@@ -83,7 +94,7 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
       await createRequest({
         employee_name: employeeName,
         notes: notes || undefined,
-        equipment_items: equipmentItems
+        equipment_items: equipmentItems,
       })
 
       toast.success('Заявка успешно создана')
@@ -101,11 +112,9 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Новая заявка на выдачу оборудования</DialogTitle>
-          <DialogDescription>
-            Укажите сотрудника и добавьте позиции оборудования
-          </DialogDescription>
+          <DialogDescription>Укажите сотрудника и добавьте позиции оборудования</DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             {/* Employee Info */}
@@ -114,7 +123,7 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
                 <Package className="w-4 h-4" />
                 Информация о сотруднике
               </h3>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="employee_name">ФИО сотрудника *</Label>
                 <Input
@@ -129,11 +138,9 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
                   disabled={loading}
                   className={employeeNameError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
-                {employeeNameError && (
-                  <p className="text-xs text-red-500">Это поле обязательно</p>
-                )}
+                {employeeNameError && <p className="text-xs text-red-500">Это поле обязательно</p>}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Примечания</Label>
                 <Textarea
@@ -191,7 +198,9 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
                         <Input
                           placeholder="Ноутбук Dell Latitude"
                           value={item.equipment_name}
-                          onChange={(e) => updateEquipmentItem(index, 'equipment_name', e.target.value)}
+                          onChange={(e) =>
+                            updateEquipmentItem(index, 'equipment_name', e.target.value)
+                          }
                           disabled={loading}
                         />
                       </div>
@@ -201,7 +210,9 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
                         <Input
                           placeholder="SN123456789"
                           value={item.serial_number}
-                          onChange={(e) => updateEquipmentItem(index, 'serial_number', e.target.value)}
+                          onChange={(e) =>
+                            updateEquipmentItem(index, 'serial_number', e.target.value)
+                          }
                           disabled={loading}
                         />
                       </div>
@@ -213,7 +224,9 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => updateEquipmentItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        onChange={(e) =>
+                          updateEquipmentItem(index, 'quantity', parseInt(e.target.value) || 1)
+                        }
                         disabled={loading}
                         className="w-24"
                       />
@@ -223,7 +236,7 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button
               type="button"

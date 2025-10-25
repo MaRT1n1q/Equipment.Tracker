@@ -40,7 +40,7 @@ export function saveWindowState(window: BrowserWindow) {
       height: bounds.height,
       x: bounds.x,
       y: bounds.y,
-      isMaximized: window.isMaximized()
+      isMaximized: window.isMaximized(),
     }
 
     fs.writeFileSync(getWindowStateFilePath(), JSON.stringify(state, null, 2))

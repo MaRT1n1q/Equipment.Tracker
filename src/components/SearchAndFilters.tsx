@@ -19,7 +19,7 @@ export function SearchAndFilters({
   onFilterChange,
   totalCount,
   filteredCount,
-  searchInputRef
+  searchInputRef,
 }: SearchAndFiltersProps) {
   return (
     <div className="space-y-4 mb-6">
@@ -65,7 +65,8 @@ export function SearchAndFilters({
         <div className="text-sm text-muted-foreground">
           {searchQuery || filter !== 'all' ? (
             <span>
-              Найдено: <span className="font-semibold text-foreground">{filteredCount}</span> из {totalCount}
+              Найдено: <span className="font-semibold text-foreground">{filteredCount}</span> из{' '}
+              {totalCount}
             </span>
           ) : (
             <span>

@@ -2,7 +2,18 @@ import type { Request } from '../types/ipc'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
-import { Trash2, Package, FileText, Edit2, MessageSquare, Calendar, User, Hash, CheckCircle2, Clock } from 'lucide-react'
+import {
+  Trash2,
+  Package,
+  FileText,
+  Edit2,
+  MessageSquare,
+  Calendar,
+  User,
+  Hash,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
 
@@ -25,7 +36,9 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
   }
 
   const handleDelete = async (id: number) => {
-    const confirmed = window.confirm('Удалить заявку? Данные можно будет восстановить только в течение текущей сессии.')
+    const confirmed = window.confirm(
+      'Удалить заявку? Данные можно будет восстановить только в течение текущей сессии.'
+    )
     if (!confirmed) {
       return
     }
@@ -45,9 +58,9 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
                 restoreError instanceof Error ? restoreError.message : 'Ошибка при восстановлении'
               toast.error(message)
             }
-          }
+          },
         },
-        duration: 5000
+        duration: 5000,
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
@@ -62,7 +75,7 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
@@ -76,8 +89,8 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
           Заявок пока нет
         </h3>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Создайте первую заявку на выдачу оборудования, нажав кнопку "Добавить заявку" или используя{' '}
-          <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">Ctrl+N</kbd>
+          Создайте первую заявку на выдачу оборудования, нажав кнопку "Добавить заявку" или
+          используя <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">Ctrl+N</kbd>
         </p>
         <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
@@ -107,15 +120,17 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Status indicator */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-              request.is_issued 
-                ? 'bg-gradient-to-b from-green-500 to-emerald-500' 
-                : 'bg-gradient-to-b from-orange-500 to-amber-500'
-            }`} />
-            
+            <div
+              className={`absolute left-0 top-0 bottom-0 w-1 ${
+                request.is_issued
+                  ? 'bg-gradient-to-b from-green-500 to-emerald-500'
+                  : 'bg-gradient-to-b from-orange-500 to-amber-500'
+              }`}
+            />
+
             {/* Hover gradient effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            
+
             <div className="relative p-4 pl-5">
               <div className="flex items-center justify-between gap-4">
                 {/* Left section - ID and Status */}
@@ -125,7 +140,7 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
                     <Hash className="w-3.5 h-3.5" />
                     <span className="text-sm font-semibold">{request.id}</span>
                   </div>
-                  
+
                   {/* Status Badge */}
                   {request.is_issued ? (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 flex-shrink-0">
@@ -153,7 +168,9 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
                       <div className="flex items-center justify-center">
                         <Checkbox
                           checked={Boolean(request.is_issued)}
-                          onCheckedChange={() => handleToggleIssued(request.id, Boolean(request.is_issued))}
+                          onCheckedChange={() =>
+                            handleToggleIssued(request.id, Boolean(request.is_issued))
+                          }
                           className="w-4 h-4"
                         />
                       </div>
@@ -173,7 +190,7 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
                   >
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -189,7 +206,7 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
               <div className="mt-3 space-y-2">
                 {request.equipment_items && request.equipment_items.length > 0 ? (
                   request.equipment_items.map((item, itemIndex) => (
-                    <div 
+                    <div
                       key={itemIndex}
                       className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/30 text-sm"
                     >
@@ -198,10 +215,12 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
                           <Package className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
                           <span className="font-medium truncate">{item.equipment_name}</span>
                         </div>
-                        
+
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <Hash className="w-3 h-3 text-muted-foreground" />
-                          <span className="font-mono text-xs text-muted-foreground">{item.serial_number}</span>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {item.serial_number}
+                          </span>
                         </div>
                       </div>
 
@@ -232,7 +251,7 @@ export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
                     <span>Выдано: {formatDate(request.issued_at)}</span>
                   </div>
                 )}
-                
+
                 {/* Notes indicator */}
                 {request.notes && (
                   <Tooltip>

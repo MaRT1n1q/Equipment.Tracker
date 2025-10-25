@@ -20,17 +20,17 @@ export default defineConfig({
             outDir: 'dist-electron',
             sourcemap: true,
             rollupOptions: {
-              external: ['better-sqlite3']
-            }
-          }
-        }
-      }
+              external: ['better-sqlite3'],
+            },
+          },
+        },
+      },
     ]),
-    renderer()
+    renderer(),
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  }
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
 })

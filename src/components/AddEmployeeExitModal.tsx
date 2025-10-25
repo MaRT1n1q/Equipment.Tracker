@@ -23,7 +23,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!employeeName.trim() || !login.trim() || !exitDate || !equipmentList.trim()) {
       toast.error('Пожалуйста, заполните все поля')
       return
@@ -36,7 +36,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
         employee_name: employeeName.trim(),
         login: login.trim(),
         exit_date: exitDate,
-        equipment_list: equipmentList.trim()
+        equipment_list: equipmentList.trim(),
       })
 
       toast.success('Запись о выходе сотрудника создана')

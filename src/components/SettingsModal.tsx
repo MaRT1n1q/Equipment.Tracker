@@ -1,12 +1,6 @@
 import { Settings, Database, Download, Upload, Info } from 'lucide-react'
 import { Button } from './ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { toast } from 'sonner'
 
 interface SettingsModalProps {
@@ -74,9 +68,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Database className="w-5 h-5 text-purple-500" />
               <h3 className="font-semibold text-lg">Резервное копирование</h3>
             </div>
-            
+
             <div className="grid gap-3">
-              <Button 
+              <Button
                 onClick={handleCreateBackup}
                 variant="outline"
                 className="w-full justify-start h-auto py-3 hover:bg-accent hover:border-purple-500 transition-all group"
@@ -94,7 +88,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               </Button>
 
-              <Button 
+              <Button
                 onClick={handleRestoreBackup}
                 variant="outline"
                 className="w-full justify-start h-auto py-3 hover:bg-accent hover:border-orange-500 transition-all group"
@@ -119,7 +113,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/5">
               <Info className="w-5 h-5 text-blue-500 mt-0.5" />
               <div className="text-sm text-muted-foreground">
-                <p className="font-medium text-foreground mb-1">Автоматическое резервное копирование</p>
+                <p className="font-medium text-foreground mb-1">
+                  Автоматическое резервное копирование
+                </p>
                 <p className="text-xs">
                   Резервная копия автоматически создаётся при закрытии приложения
                 </p>

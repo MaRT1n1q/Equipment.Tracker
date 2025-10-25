@@ -6,7 +6,7 @@ import {
   requestIdSchema,
   requestRecordSchema,
   restoreRequestSchema,
-  updateRequestSchema
+  updateRequestSchema,
 } from '../../src/types/ipc'
 
 type GetDatabase = () => Database.Database
@@ -32,8 +32,8 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
             id: item.id,
             equipment_name: item.equipment_name,
             serial_number: item.serial_number,
-            quantity: item.quantity ?? 1
-          }))
+            quantity: item.quantity ?? 1,
+          })),
         })
       })
 
@@ -60,11 +60,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       `)
 
       const transaction = database.transaction(() => {
-        const requestResult = insertRequest.run(
-          data.employee_name,
-          createdAt,
-          data.notes ?? null
-        )
+        const requestResult = insertRequest.run(data.employee_name, createdAt, data.notes ?? null)
 
         for (const item of data.equipment_items) {
           insertEquipment.run(
@@ -92,11 +88,9 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       const issuedAt = isIssued ? new Date().toISOString() : null
 
       const database = getDatabase()
-      database.prepare('UPDATE requests SET is_issued = ?, issued_at = ? WHERE id = ?').run(
-        isIssued ? 1 : 0,
-        issuedAt,
-        id
-      )
+      database
+        .prepare('UPDATE requests SET is_issued = ?, issued_at = ? WHERE id = ?')
+        .run(isIssued ? 1 : 0, issuedAt, id)
 
       return { success: true }
     } catch (error) {
@@ -142,9 +136,9 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       const id = requestIdSchema.parse(rawId)
       const database = getDatabase()
 
-      const request = database
-        .prepare('SELECT * FROM requests WHERE id = ?')
-        .get(id) as Record<string, any> | undefined
+      const request = database.prepare('SELECT * FROM requests WHERE id = ?').get(id) as
+        | Record<string, any>
+        | undefined
 
       if (!request) {
         return { success: false, error: 'Заявка не найдена' }
@@ -160,8 +154,8 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           id: item.id,
           equipment_name: item.equipment_name,
           serial_number: item.serial_number,
-          quantity: item.quantity ?? 1
-        }))
+          quantity: item.quantity ?? 1,
+        })),
       })
 
       database.prepare('DELETE FROM requests WHERE id = ?').run(id)

@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from './ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
@@ -19,11 +26,11 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
   const [employeeName, setEmployeeName] = useState('')
   const [notes, setNotes] = useState('')
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([
-    { equipment_name: '', serial_number: '', quantity: 1 }
+    { equipment_name: '', serial_number: '', quantity: 1 },
   ])
   const [loading, setLoading] = useState(false)
   const [employeeNameError, setEmployeeNameError] = useState(false)
-  
+
   const firstInputRef = useRef<HTMLInputElement>(null)
   const { updateRequest } = useRequestActions()
 
@@ -34,11 +41,11 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       setNotes(request.notes || '')
       setEquipmentItems(
         request.equipment_items && request.equipment_items.length > 0
-          ? request.equipment_items.map(item => ({ ...item }))
+          ? request.equipment_items.map((item) => ({ ...item }))
           : [{ equipment_name: '', serial_number: '', quantity: 1 }]
       )
       setEmployeeNameError(false)
-      
+
       // Focus first field after a small delay
       setTimeout(() => {
         firstInputRef.current?.focus()
@@ -56,7 +63,11 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     }
   }
 
-  const updateEquipmentItem = (index: number, field: keyof EquipmentItem, value: string | number) => {
+  const updateEquipmentItem = (
+    index: number,
+    field: keyof EquipmentItem,
+    value: string | number
+  ) => {
     const updated = [...equipmentItems]
     updated[index] = { ...updated[index], [field]: value }
     setEquipmentItems(updated)
@@ -64,9 +75,9 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!request) return
-    
+
     // Validate employee name
     if (!employeeName.trim()) {
       setEmployeeNameError(true)
@@ -76,7 +87,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
 
     // Validate equipment items
     const hasEmptyFields = equipmentItems.some(
-      item => !item.equipment_name.trim() || !item.serial_number.trim()
+      (item) => !item.equipment_name.trim() || !item.serial_number.trim()
     )
 
     if (hasEmptyFields) {
@@ -91,8 +102,8 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
         data: {
           employee_name: employeeName,
           notes: notes || undefined,
-          equipment_items: equipmentItems
-        }
+          equipment_items: equipmentItems,
+        },
       })
 
       toast.success('Заявка успешно обновлена')
@@ -112,11 +123,9 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Редактирование заявки #{request.id}</DialogTitle>
-          <DialogDescription>
-            Внесите изменения в информацию о заявке
-          </DialogDescription>
+          <DialogDescription>Внесите изменения в информацию о заявке</DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             {/* Employee Info */}
@@ -125,7 +134,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
                 <Package className="w-4 h-4" />
                 Информация о сотруднике
               </h3>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="employee_name">ФИО сотрудника *</Label>
                 <Input
@@ -140,11 +149,9 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
                   disabled={loading}
                   className={employeeNameError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
-                {employeeNameError && (
-                  <p className="text-xs text-red-500">Это поле обязательно</p>
-                )}
+                {employeeNameError && <p className="text-xs text-red-500">Это поле обязательно</p>}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Примечания</Label>
                 <Textarea
@@ -202,7 +209,9 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
                         <Input
                           placeholder="Ноутбук Dell Latitude"
                           value={item.equipment_name}
-                          onChange={(e) => updateEquipmentItem(index, 'equipment_name', e.target.value)}
+                          onChange={(e) =>
+                            updateEquipmentItem(index, 'equipment_name', e.target.value)
+                          }
                           disabled={loading}
                         />
                       </div>
@@ -212,7 +221,9 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
                         <Input
                           placeholder="SN123456789"
                           value={item.serial_number}
-                          onChange={(e) => updateEquipmentItem(index, 'serial_number', e.target.value)}
+                          onChange={(e) =>
+                            updateEquipmentItem(index, 'serial_number', e.target.value)
+                          }
                           disabled={loading}
                         />
                       </div>
@@ -224,7 +235,9 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => updateEquipmentItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        onChange={(e) =>
+                          updateEquipmentItem(index, 'quantity', parseInt(e.target.value) || 1)
+                        }
                         disabled={loading}
                         className="w-24"
                       />
@@ -234,7 +247,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button
               type="button"

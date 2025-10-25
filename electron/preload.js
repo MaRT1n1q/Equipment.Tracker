@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createEmployeeExit: (data) => ipcRenderer.invoke('create-employee-exit', data),
   updateEmployeeExit: (id, data) => ipcRenderer.invoke('update-employee-exit', id, data),
   deleteEmployeeExit: (id) => ipcRenderer.invoke('delete-employee-exit', id),
-  updateExitCompleted: (id, is_completed) => ipcRenderer.invoke('update-exit-completed', id, is_completed)
+  updateExitCompleted: (id, is_completed) =>
+    ipcRenderer.invoke('update-exit-completed', id, is_completed),
 })

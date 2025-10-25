@@ -23,7 +23,7 @@ export function registerBackupHandlers() {
     try {
       const result = await dialog.showOpenDialog({
         properties: ['openFile'],
-        filters: [{ name: 'Database Files', extensions: ['db'] }]
+        filters: [{ name: 'Database Files', extensions: ['db'] }],
       })
 
       if (result.canceled || result.filePaths.length === 0) {

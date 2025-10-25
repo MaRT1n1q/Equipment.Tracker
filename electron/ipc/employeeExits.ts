@@ -4,7 +4,7 @@ import {
   createEmployeeExitSchema,
   employeeExitRecordSchema,
   issuedStatusSchema,
-  requestIdSchema
+  requestIdSchema,
 } from '../../src/types/ipc'
 
 type GetDatabase = () => Database.Database
@@ -31,10 +31,12 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
       const createdAt = new Date().toISOString()
 
       const result = database
-        .prepare(`
+        .prepare(
+          `
           INSERT INTO employee_exits (employee_name, login, exit_date, equipment_list, created_at, is_completed)
           VALUES (?, ?, ?, ?, ?, 0)
-        `)
+        `
+        )
         .run(data.employee_name, data.login, data.exit_date, data.equipment_list, createdAt)
 
       return { success: true, id: result.lastInsertRowid }
@@ -50,11 +52,13 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
 
       const database = getDatabase()
       database
-        .prepare(`
+        .prepare(
+          `
           UPDATE employee_exits
           SET employee_name = ?, login = ?, exit_date = ?, equipment_list = ?
           WHERE id = ?
-        `)
+        `
+        )
         .run(data.employee_name, data.login, data.exit_date, data.equipment_list, id)
 
       return { success: true }
@@ -88,11 +92,13 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
       const isCompleted = issuedStatusSchema.parse(rawCompleted)
       const database = getDatabase()
       database
-        .prepare(`
+        .prepare(
+          `
           UPDATE employee_exits
           SET is_completed = ?
           WHERE id = ?
-        `)
+        `
+        )
         .run(isCompleted ? 1 : 0, id)
 
       return { success: true }

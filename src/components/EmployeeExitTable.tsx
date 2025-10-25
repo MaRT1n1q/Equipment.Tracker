@@ -2,7 +2,16 @@ import type { EmployeeExit } from '../types/ipc'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
-import { Trash2, UserMinus, Calendar, User, KeyRound, Package, CheckCircle2, Clock } from 'lucide-react'
+import {
+  Trash2,
+  UserMinus,
+  Calendar,
+  User,
+  KeyRound,
+  Package,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 
@@ -16,7 +25,9 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
   const handleToggleCompleted = async (id: number, currentStatus: boolean) => {
     try {
       await updateExitCompleted({ id, value: !currentStatus })
-      toast.success(!currentStatus ? 'Выдача оборудования отмечена как завершённая' : 'Статус отменен')
+      toast.success(
+        !currentStatus ? 'Выдача оборудования отмечена как завершённая' : 'Статус отменен'
+      )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
       toast.error(message)
@@ -24,7 +35,9 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
   }
 
   const handleDelete = async (id: number) => {
-    const confirmed = window.confirm('Удалить запись о выходе сотрудника? Действие необратимо без резервной копии.')
+    const confirmed = window.confirm(
+      'Удалить запись о выходе сотрудника? Действие необратимо без резервной копии.'
+    )
     if (!confirmed) {
       return
     }
@@ -43,7 +56,7 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
     return date.toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: 'long',
-      year: 'numeric'
+      year: 'numeric',
     })
   }
 
@@ -67,8 +80,8 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
     <div className="space-y-4">
       {exits.map((exit, index) => {
         const isCompleted = exit.is_completed === 1
-        const equipmentItems = exit.equipment_list.split('\n').filter(item => item.trim())
-        
+        const equipmentItems = exit.equipment_list.split('\n').filter((item) => item.trim())
+
         return (
           <div
             key={exit.id}
@@ -76,11 +89,13 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Status gradient bar */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-              isCompleted 
-                ? 'bg-gradient-to-b from-green-500 to-emerald-500' 
-                : 'bg-gradient-to-b from-orange-500 to-red-500'
-            }`} />
+            <div
+              className={`absolute left-0 top-0 bottom-0 w-1 ${
+                isCompleted
+                  ? 'bg-gradient-to-b from-green-500 to-emerald-500'
+                  : 'bg-gradient-to-b from-orange-500 to-red-500'
+              }`}
+            />
 
             <div className="p-4 pl-5">
               <div className="flex items-start justify-between gap-4">
@@ -89,11 +104,13 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
                   {/* Employee Name & Status */}
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <div className={`w-10 h-10 rounded-lg ${
-                        isCompleted 
-                          ? 'bg-green-500/10' 
-                          : 'bg-gradient-to-br from-orange-500/10 to-red-500/10'
-                      } flex items-center justify-center`}>
+                      <div
+                        className={`w-10 h-10 rounded-lg ${
+                          isCompleted
+                            ? 'bg-green-500/10'
+                            : 'bg-gradient-to-br from-orange-500/10 to-red-500/10'
+                        } flex items-center justify-center`}
+                      >
                         {isCompleted ? (
                           <CheckCircle2 className="w-5 h-5 text-green-600" />
                         ) : (
@@ -113,11 +130,13 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
                     </div>
 
                     {/* Status Badge */}
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      isCompleted
-                        ? 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20'
-                        : 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20'
-                    }`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        isCompleted
+                          ? 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20'
+                          : 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20'
+                      }`}
+                    >
                       {isCompleted ? 'Завершено' : 'Ожидает'}
                     </span>
                   </div>
@@ -137,7 +156,10 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
                     </div>
                     <div className="pl-6 space-y-1">
                       {equipmentItems.map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2 text-sm text-muted-foreground"
+                        >
                           <span className="text-orange-500 mt-1">•</span>
                           <span>{item}</span>
                         </div>

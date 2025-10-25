@@ -28,7 +28,7 @@ type RestorePayload = Request
 export function useRequestsQuery() {
   return useQuery({
     queryKey: REQUESTS_QUERY_KEY,
-    queryFn: fetchRequests
+    queryFn: fetchRequests,
   })
 }
 
@@ -45,7 +45,7 @@ export function useRequestActions() {
         throw new Error(result.error || 'Не удалось создать заявку')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const updateMutation = useMutation<void, Error, UpdatePayload>({
@@ -56,7 +56,7 @@ export function useRequestActions() {
         throw new Error(result.error || 'Не удалось обновить заявку')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const toggleIssuedMutation = useMutation<void, Error, ToggleIssuedPayload>({
@@ -67,7 +67,7 @@ export function useRequestActions() {
         throw new Error(result.error || 'Не удалось изменить статус заявки')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const deleteMutation = useMutation<Request, Error, number>({
@@ -80,7 +80,7 @@ export function useRequestActions() {
 
       return result.data
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const restoreMutation = useMutation<void, Error, RestorePayload>({
@@ -91,7 +91,7 @@ export function useRequestActions() {
         throw new Error(result.error || 'Не удалось восстановить заявку')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   return {
@@ -99,7 +99,7 @@ export function useRequestActions() {
     updateRequest: updateMutation.mutateAsync,
     toggleIssued: toggleIssuedMutation.mutateAsync,
     deleteRequest: deleteMutation.mutateAsync,
-    restoreRequest: restoreMutation.mutateAsync
+    restoreRequest: restoreMutation.mutateAsync,
   }
 }
 

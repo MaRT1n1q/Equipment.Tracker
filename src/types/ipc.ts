@@ -6,11 +6,11 @@ export const issuedStatusSchema = z.boolean()
 export const equipmentItemInputSchema = z.object({
   equipment_name: z.string().trim().min(1, 'Название оборудования обязательно'),
   serial_number: z.string().trim().min(1, 'Серийный номер обязателен'),
-  quantity: z.coerce.number().int().positive().default(1)
+  quantity: z.coerce.number().int().positive().default(1),
 })
 
 export const equipmentItemRecordSchema = equipmentItemInputSchema.extend({
-  id: z.number().int().positive().optional()
+  id: z.number().int().positive().optional(),
 })
 
 export const createRequestSchema = z.object({
@@ -20,7 +20,7 @@ export const createRequestSchema = z.object({
     .trim()
     .optional()
     .transform((value: string | undefined) => (value && value.length > 0 ? value : undefined)),
-  equipment_items: z.array(equipmentItemInputSchema).min(1, 'Добавьте хотя бы одну позицию')
+  equipment_items: z.array(equipmentItemInputSchema).min(1, 'Добавьте хотя бы одну позицию'),
 })
 
 export const updateRequestSchema = createRequestSchema
@@ -33,8 +33,13 @@ export const requestRecordSchema = z.object({
   issued_at: z.string().nullable(),
   notes: z.string().nullable(),
   equipment_items: z.array(
-    equipmentItemRecordSchema.pick({ id: true, equipment_name: true, serial_number: true, quantity: true })
-  )
+    equipmentItemRecordSchema.pick({
+      id: true,
+      equipment_name: true,
+      serial_number: true,
+      quantity: true,
+    })
+  ),
 })
 
 export const restoreRequestSchema = requestRecordSchema
@@ -43,18 +48,18 @@ export const createEmployeeExitSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
   login: z.string().trim().min(1, 'Логин обязателен'),
   exit_date: z.string().trim().min(1, 'Дата выхода обязательна'),
-  equipment_list: z.string().trim().min(1, 'Список оборудования обязателен')
+  equipment_list: z.string().trim().min(1, 'Список оборудования обязателен'),
 })
 
 export const employeeExitRecordSchema = createEmployeeExitSchema.extend({
   id: z.number().int().positive(),
   created_at: z.string(),
-  is_completed: z.number().int()
+  is_completed: z.number().int(),
 })
 
 export const updateExitCompletedSchema = z.object({
   id: requestIdSchema,
-  is_completed: z.boolean()
+  is_completed: z.boolean(),
 })
 
 export type EquipmentItemInput = z.infer<typeof equipmentItemInputSchema>

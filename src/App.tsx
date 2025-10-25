@@ -22,19 +22,16 @@ function App() {
   const [isEmployeeExitModalOpen, setIsEmployeeExitModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
-  const [currentView, setCurrentView] = useState<'dashboard' | 'requests' | 'employee-exit'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'requests' | 'employee-exit'>(
+    'dashboard'
+  )
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Debounce search query
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  const {
-    data: requests = [],
-    isLoading,
-    isError,
-    refetch: refetchRequests
-  } = useRequestsQuery()
+  const { data: requests = [], isLoading, isError, refetch: refetchRequests } = useRequestsQuery()
 
   const handleEdit = (request: Request) => {
     setEditingRequest(request)
@@ -47,24 +44,29 @@ function App() {
 
     // Apply filter
     if (filter === 'issued') {
-      filtered = filtered.filter(req => req.is_issued === 1)
+      filtered = filtered.filter((req) => req.is_issued === 1)
     } else if (filter === 'not-issued') {
-      filtered = filtered.filter(req => req.is_issued === 0)
+      filtered = filtered.filter((req) => req.is_issued === 0)
     }
 
     // Apply debounced search
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase()
-      filtered = filtered.filter(req => {
+      filtered = filtered.filter((req) => {
         // Search in employee name
         if (req.employee_name.toLowerCase().includes(query)) return true
-        
+
         // Search in equipment items
-        if (req.equipment_items && req.equipment_items.some(item =>
-          item.equipment_name.toLowerCase().includes(query) ||
-          item.serial_number.toLowerCase().includes(query)
-        )) return true
-        
+        if (
+          req.equipment_items &&
+          req.equipment_items.some(
+            (item) =>
+              item.equipment_name.toLowerCase().includes(query) ||
+              item.serial_number.toLowerCase().includes(query)
+          )
+        )
+          return true
+
         return false
       })
     }
@@ -94,9 +96,9 @@ function App() {
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
-      
+
       {/* Sidebar - Fixed */}
-      <Sidebar 
+      <Sidebar
         currentView={currentView}
         onViewChange={setCurrentView}
         isCollapsed={isSidebarCollapsed}
@@ -104,34 +106,35 @@ function App() {
       />
 
       {/* Main Content - with left margin for sidebar */}
-      <div className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+      <div
+        className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}
+      >
         {/* Header */}
         <header className="border-b bg-card/80 backdrop-blur-xl sticky top-0 z-10 shadow-sm">
           <div className="px-8 py-5">
             <div className="flex items-center justify-between">
               <div className="animate-fade-in">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                  {currentView === 'dashboard' 
-                    ? 'Дашборд' 
-                    : currentView === 'requests' 
-                    ? 'Заявки' 
-                    : 'Выход сотрудников'}
+                  {currentView === 'dashboard'
+                    ? 'Дашборд'
+                    : currentView === 'requests'
+                      ? 'Заявки'
+                      : 'Выход сотрудников'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {currentView === 'dashboard' 
-                    ? 'Обзор статистики и аналитики' 
+                  {currentView === 'dashboard'
+                    ? 'Обзор статистики и аналитики'
                     : currentView === 'requests'
-                    ? 'Управление заявками на выдачу оборудования'
-                    : 'Учёт выдачи оборудования уходящим сотрудникам'
-                  }
+                      ? 'Управление заявками на выдачу оборудования'
+                      : 'Учёт выдачи оборудования уходящим сотрудникам'}
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <ThemeToggle />
                 {currentView === 'requests' && (
-                  <Button 
-                    onClick={() => setIsModalOpen(true)} 
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
                     size="lg"
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
@@ -140,8 +143,8 @@ function App() {
                   </Button>
                 )}
                 {currentView === 'employee-exit' && (
-                  <Button 
-                    onClick={() => setIsEmployeeExitModalOpen(true)} 
+                  <Button
+                    onClick={() => setIsEmployeeExitModalOpen(true)}
                     size="lg"
                     className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
@@ -165,7 +168,8 @@ function App() {
                 <div>
                   <h3 className="text-lg font-semibold">Не удалось загрузить заявки</h3>
                   <p className="text-sm text-muted-foreground">
-                    Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или обратитесь к администратору.
+                    Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или
+                    обратитесь к администратору.
                   </p>
                 </div>
                 <Button onClick={() => refetchRequests()} variant="outline">
@@ -177,23 +181,20 @@ function App() {
                 {currentView === 'dashboard' ? (
                   <div className="space-y-6 animate-fade-in">
                     <Dashboard requests={requests} />
-                    
+
                     {/* Recent Requests Preview */}
                     <div className="bg-card rounded-xl border border-border p-6 shadow-soft">
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold">Последние заявки</h2>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={() => setCurrentView('requests')}
                           className="hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                         >
                           Все заявки
                         </Button>
                       </div>
-                      <RequestsTable 
-                        requests={requests.slice(0, 5)} 
-                        onEdit={handleEdit}
-                      />
+                      <RequestsTable requests={requests.slice(0, 5)} onEdit={handleEdit} />
                     </div>
                   </div>
                 ) : currentView === 'requests' ? (
@@ -207,15 +208,12 @@ function App() {
                       filteredCount={filteredRequests.length}
                       searchInputRef={searchInputRef}
                     />
-                    
-                    <RequestsTable 
-                      requests={filteredRequests} 
-                      onEdit={handleEdit}
-                    />
+
+                    <RequestsTable requests={filteredRequests} onEdit={handleEdit} />
                   </div>
                 ) : (
                   <div className="animate-fade-in">
-                    <EmployeeExitView 
+                    <EmployeeExitView
                       isModalOpen={isEmployeeExitModalOpen}
                       onModalOpenChange={setIsEmployeeExitModalOpen}
                     />
@@ -228,10 +226,7 @@ function App() {
       </div>
 
       {/* Add Request Modal */}
-      <AddRequestModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+      <AddRequestModal open={isModalOpen} onOpenChange={setIsModalOpen} />
 
       {/* Edit Request Modal */}
       <EditRequestModal

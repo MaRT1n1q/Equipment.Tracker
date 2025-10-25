@@ -26,7 +26,7 @@ type UpdateCompletedPayload = {
 export function useEmployeeExitsQuery() {
   return useQuery({
     queryKey: EMPLOYEE_EXITS_QUERY_KEY,
-    queryFn: fetchEmployeeExits
+    queryFn: fetchEmployeeExits,
   })
 }
 
@@ -43,7 +43,7 @@ export function useEmployeeExitActions() {
         throw new Error(result.error || 'Не удалось создать запись выхода')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const updateMutation = useMutation<void, Error, UpdatePayload>({
@@ -54,7 +54,7 @@ export function useEmployeeExitActions() {
         throw new Error(result.error || 'Не удалось обновить запись выхода')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const deleteMutation = useMutation<EmployeeExit | undefined, Error, number>({
@@ -67,7 +67,7 @@ export function useEmployeeExitActions() {
 
       return result.data
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   const updateCompletedMutation = useMutation<void, Error, UpdateCompletedPayload>({
@@ -78,14 +78,14 @@ export function useEmployeeExitActions() {
         throw new Error(result.error || 'Не удалось изменить статус выдачи')
       }
     },
-    onSuccess: invalidate
+    onSuccess: invalidate,
   })
 
   return {
     createEmployeeExit: createMutation.mutateAsync,
     updateEmployeeExit: updateMutation.mutateAsync,
     deleteEmployeeExit: deleteMutation.mutateAsync,
-    updateExitCompleted: updateCompletedMutation.mutateAsync
+    updateExitCompleted: updateCompletedMutation.mutateAsync,
   }
 }
 
