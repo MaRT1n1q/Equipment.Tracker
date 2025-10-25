@@ -7,7 +7,10 @@ async function fetchRequests(): Promise<Request[]> {
   const response = await window.electronAPI.getRequests()
 
   if (!response.success || !response.data) {
-    throw new Error(response.error || 'Не удалось загрузить заявки')
+    throw new Error(
+      response.error ||
+        'Не удалось загрузить заявки. Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или обратитесь к администратору.'
+    )
   }
 
   return response.data

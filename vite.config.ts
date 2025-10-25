@@ -25,6 +25,27 @@ export default defineConfig({
           },
         },
       },
+      {
+        entry: 'electron/preload.ts',
+        onstart(options: { reload: () => void }) {
+          options.reload()
+        },
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            sourcemap: true,
+            target: 'node20',
+            lib: {
+              entry: 'electron/preload.ts',
+              formats: ['cjs'],
+              fileName: () => 'preload.js',
+            },
+            rollupOptions: {
+              external: ['electron'],
+            },
+          },
+        },
+      },
     ]),
     renderer(),
   ],

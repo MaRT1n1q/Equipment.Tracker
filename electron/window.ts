@@ -32,9 +32,7 @@ function setupContentSecurityPolicy() {
 export function createMainWindow(): BrowserWindow {
   const windowState = loadWindowState()
 
-  const preloadPath = app.isPackaged
-    ? path.join(__dirname, 'preload.js')
-    : path.join(__dirname, '../electron/preload.js')
+  const preloadPath = path.join(__dirname, 'preload.js')
 
   const window = new BrowserWindow({
     width: windowState.width,
