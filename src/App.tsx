@@ -8,6 +8,8 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { SearchAndFilters } from './components/SearchAndFilters'
 import { TableSkeleton } from './components/TableSkeleton'
 import { SettingsMenu } from './components/SettingsMenu'
+import { Dashboard } from './components/Dashboard'
+import { Sidebar } from './components/Sidebar'
 import { Toaster } from 'sonner'
 import { Request } from './types/electron.d'
 import { useDebounce } from './hooks/useDebounce'
@@ -20,6 +22,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'requests'>('dashboard')
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   
   // Debounce search query
@@ -90,88 +94,105 @@ function App() {
     loadRequests()
   }, [])
 
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const total = requests.length
-    const issued = requests.filter(r => r.is_issued === 1).length
-    const notIssued = total - issued
-    return { total, issued, notIssued }
-  }, [requests])
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Toaster position="top-right" richColors />
       
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Equipment Tracker
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Учет заявок на выдачу оборудования
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* Statistics */}
-              <div className="hidden md:flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                  <span className="text-muted-foreground">Всего:</span>
-                  <span className="font-semibold">{stats.total}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                  <span className="text-muted-foreground">Выдано:</span>
-                  <span className="font-semibold">{stats.issued}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-orange-500"></div>
-                  <span className="text-muted-foreground">Не выдано:</span>
-                  <span className="font-semibold">{stats.notIssued}</span>
-                </div>
-              </div>
-              
-              <div className="h-8 w-px bg-border hidden md:block"></div>
-              
-              <SettingsMenu />
-              <ThemeToggle />
-              <Button onClick={() => setIsModalOpen(true)} size="lg">
-                <Plus className="h-5 w-5 mr-2" />
-                Добавить заявку
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Sidebar */}
+      <Sidebar 
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        onSettingsClick={() => setIsSettingsOpen(!isSettingsOpen)}
+      />
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
-        {loading ? (
-          <TableSkeleton />
-        ) : (
-          <>
-            <SearchAndFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              filter={filter}
-              onFilterChange={setFilter}
-              totalCount={requests.length}
-              filteredCount={filteredRequests.length}
-              searchInputRef={searchInputRef}
-            />
-            <div className="animate-in fade-in duration-300">
-              <RequestsTable 
-                requests={filteredRequests} 
-                onUpdate={loadRequests}
-                onEdit={handleEdit}
-              />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="border-b bg-card/80 backdrop-blur-xl sticky top-0 z-10 shadow-sm">
+          <div className="px-8 py-5">
+            <div className="flex items-center justify-between">
+              <div className="animate-fade-in">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                  {currentView === 'dashboard' ? 'Дашборд' : 'Заявки'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {currentView === 'dashboard' 
+                    ? 'Обзор статистики и аналитики' 
+                    : 'Управление заявками на выдачу оборудования'
+                  }
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {isSettingsOpen && <SettingsMenu />}
+                <ThemeToggle />
+                <Button 
+                  onClick={() => setIsModalOpen(true)} 
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Добавить заявку
+                </Button>
+              </div>
             </div>
-          </>
-        )}
-      </main>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto custom-scrollbar">
+          <div className="px-8 py-6">
+            {loading ? (
+              <TableSkeleton />
+            ) : (
+              <>
+                {currentView === 'dashboard' ? (
+                  <div className="space-y-6 animate-fade-in">
+                    <Dashboard requests={requests} />
+                    
+                    {/* Recent Requests Preview */}
+                    <div className="bg-card rounded-xl border border-border p-6 shadow-soft">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold">Последние заявки</h2>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setCurrentView('requests')}
+                          className="hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                        >
+                          Все заявки
+                        </Button>
+                      </div>
+                      <RequestsTable 
+                        requests={requests.slice(0, 5)} 
+                        onUpdate={loadRequests}
+                        onEdit={handleEdit}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6 animate-fade-in">
+                    <SearchAndFilters
+                      searchQuery={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      filter={filter}
+                      onFilterChange={setFilter}
+                      totalCount={requests.length}
+                      filteredCount={filteredRequests.length}
+                      searchInputRef={searchInputRef}
+                    />
+                    
+                    <RequestsTable 
+                      requests={filteredRequests} 
+                      onUpdate={loadRequests}
+                      onEdit={handleEdit}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
 
       {/* Add Request Modal */}
       <AddRequestModal
