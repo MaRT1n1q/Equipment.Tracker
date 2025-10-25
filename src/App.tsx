@@ -7,7 +7,6 @@ import { RequestsTable } from './components/RequestsTable'
 import { ThemeToggle } from './components/ThemeToggle'
 import { SearchAndFilters } from './components/SearchAndFilters'
 import { TableSkeleton } from './components/TableSkeleton'
-import { SettingsMenu } from './components/SettingsMenu'
 import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
 import { Toaster } from 'sonner'
@@ -23,7 +22,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
   const [currentView, setCurrentView] = useState<'dashboard' | 'requests'>('dashboard')
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   
   // Debounce search query
@@ -102,18 +101,19 @@ function App() {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
       
-      {/* Sidebar */}
+      {/* Sidebar - Fixed */}
       <Sidebar 
         currentView={currentView}
         onViewChange={setCurrentView}
-        onSettingsClick={() => setIsSettingsOpen(!isSettingsOpen)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content - with left margin for sidebar */}
+      <div className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         {/* Header */}
         <header className="border-b bg-card/80 backdrop-blur-xl sticky top-0 z-10 shadow-sm">
           <div className="px-8 py-5">
@@ -131,7 +131,6 @@ function App() {
               </div>
               
               <div className="flex items-center gap-3">
-                {isSettingsOpen && <SettingsMenu />}
                 <ThemeToggle />
                 <Button 
                   onClick={() => setIsModalOpen(true)} 

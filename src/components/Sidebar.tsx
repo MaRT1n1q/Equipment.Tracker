@@ -1,15 +1,17 @@
 import { LayoutDashboard, Package, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
+import { SettingsModal } from './SettingsModal'
 
 interface SidebarProps {
   currentView: 'dashboard' | 'requests'
   onViewChange: (view: 'dashboard' | 'requests') => void
-  onSettingsClick: () => void
+  isCollapsed: boolean
+  onToggleCollapse: () => void
 }
 
-export function Sidebar({ currentView, onViewChange, onSettingsClick }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollapse }: SidebarProps) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const menuItems = [
     {
@@ -28,7 +30,7 @@ export function Sidebar({ currentView, onViewChange, onSettingsClick }: SidebarP
 
   return (
     <div
-      className={`relative flex flex-col h-screen bg-card border-r border-border transition-all duration-300 ${
+      className={`fixed left-0 top-0 flex flex-col h-screen bg-card border-r border-border transition-all duration-300 z-20 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -50,7 +52,7 @@ export function Sidebar({ currentView, onViewChange, onSettingsClick }: SidebarP
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={onToggleCollapse}
           className="ml-auto hover:bg-accent"
         >
           {isCollapsed ? (
@@ -109,7 +111,7 @@ export function Sidebar({ currentView, onViewChange, onSettingsClick }: SidebarP
       {/* Settings Button */}
       <div className="p-4 border-t border-border">
         <button
-          onClick={onSettingsClick}
+          onClick={() => setIsSettingsOpen(true)}
           className={`
             w-full flex items-center gap-3 px-4 py-3 rounded-lg
             hover:bg-accent transition-all duration-200 group
@@ -120,6 +122,12 @@ export function Sidebar({ currentView, onViewChange, onSettingsClick }: SidebarP
           {!isCollapsed && <span className="font-medium">Настройки</span>}
         </button>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
 
       {/* Collapse indicator for collapsed state */}
       {isCollapsed && (
