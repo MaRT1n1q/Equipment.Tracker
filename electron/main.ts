@@ -13,6 +13,50 @@ let db: Database.Database
 
 // Путь к базе данных
 const dbPath = path.join(app.getPath('userData'), 'equipment.db')
+// Путь к файлу настроек окна
+const windowStateFilePath = path.join(app.getPath('userData'), 'window-state.json')
+
+// Интерфейс для состояния окна
+interface WindowState {
+  width: number
+  height: number
+  x?: number
+  y?: number
+  isMaximized?: boolean
+}
+
+// Загрузка состояния окна
+function loadWindowState(): WindowState {
+  try {
+    if (fs.existsSync(windowStateFilePath)) {
+      const data = fs.readFileSync(windowStateFilePath, 'utf-8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Ошибка при загрузке состояния окна:', error)
+  }
+  // Значения по умолчанию
+  return { width: 1200, height: 800 }
+}
+
+// Сохранение состояния окна
+function saveWindowState() {
+  if (!mainWindow) return
+  
+  try {
+    const bounds = mainWindow.getBounds()
+    const windowState: WindowState = {
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      isMaximized: mainWindow.isMaximized()
+    }
+    fs.writeFileSync(windowStateFilePath, JSON.stringify(windowState, null, 2))
+  } catch (error) {
+    console.error('Ошибка при сохранении состояния окна:', error)
+  }
+}
 
 // Инициализация базы данных
 function initDatabase() {
@@ -34,14 +78,19 @@ function initDatabase() {
 }
 
 function createWindow() {
+  // Загружаем сохраненное состояние окна
+  const windowState = loadWindowState()
+  
   // Определяем путь к preload скрипту
   const preloadPath = app.isPackaged
     ? path.join(__dirname, 'preload.js')
     : path.join(__dirname, '../electron/preload.js')
 
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
@@ -51,6 +100,25 @@ function createWindow() {
     },
     autoHideMenuBar: true,
     backgroundColor: '#ffffff',
+  })
+
+  // Восстанавливаем состояние максимизации
+  if (windowState.isMaximized) {
+    mainWindow.maximize()
+  }
+
+  // Сохраняем состояние окна при изменении размера или перемещении
+  mainWindow.on('resize', () => {
+    saveWindowState()
+  })
+
+  mainWindow.on('move', () => {
+    saveWindowState()
+  })
+
+  // Сохраняем состояние при закрытии
+  mainWindow.on('close', () => {
+    saveWindowState()
   })
 
   // Установить Content Security Policy
