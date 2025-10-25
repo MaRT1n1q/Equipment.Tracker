@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, session } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import Database from 'better-sqlite3'
@@ -49,6 +49,20 @@ function createWindow() {
     },
     autoHideMenuBar: true,
     backgroundColor: '#ffffff',
+  })
+
+  // Установить Content Security Policy
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          app.isPackaged
+            ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"
+            : "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: http://localhost:*;"
+        ]
+      }
+    })
   })
 
   // В режиме разработки загружаем из dev сервера
