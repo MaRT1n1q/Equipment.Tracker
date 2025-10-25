@@ -8,5 +8,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteRequest: (id) => ipcRenderer.invoke('delete-request', id),
   restoreRequest: (request) => ipcRenderer.invoke('restore-request', request),
   createBackup: () => ipcRenderer.invoke('create-backup'),
-  restoreBackup: () => ipcRenderer.invoke('restore-backup')
+  restoreBackup: () => ipcRenderer.invoke('restore-backup'),
+  // Employee Exit API
+  getEmployeeExits: () => ipcRenderer.invoke('get-employee-exits'),
+  createEmployeeExit: (data) => ipcRenderer.invoke('create-employee-exit', data),
+  updateEmployeeExit: (id, data) => ipcRenderer.invoke('update-employee-exit', id, data),
+  deleteEmployeeExit: (id) => ipcRenderer.invoke('delete-employee-exit', id),
+  updateExitCompleted: (id, is_completed) => ipcRenderer.invoke('update-exit-completed', id, is_completed)
 })

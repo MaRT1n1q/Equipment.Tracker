@@ -147,6 +147,21 @@ function initDatabase() {
       console.error('❌ Ошибка при миграции базы данных:', error)
     }
   }
+
+  // Создание таблицы выхода сотрудников
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS employee_exits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_name TEXT NOT NULL,
+      login TEXT NOT NULL,
+      exit_date TEXT NOT NULL,
+      equipment_list TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      is_completed INTEGER DEFAULT 0
+    )
+  `)
+
+  console.log('✅ База данных инициализирована')
 }
 
 function createWindow() {
@@ -424,6 +439,111 @@ ipcMain.handle('restore-request', (_event: any, request: any) => {
     return { success: false, error: (error as Error).message }
   }
 })
+
+// ==================== EMPLOYEE EXITS HANDLERS ====================
+
+// Получить все записи выхода сотрудников
+ipcMain.handle('get-employee-exits', async () => {
+  try {
+    const exits = db.prepare('SELECT * FROM employee_exits ORDER BY exit_date DESC').all()
+    return { success: true, data: exits }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Создать запись выхода сотрудника
+ipcMain.handle('create-employee-exit', async (_event, data: {
+  employee_name: string
+  login: string
+  exit_date: string
+  equipment_list: string
+}) => {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO employee_exits (employee_name, login, exit_date, equipment_list, created_at, is_completed)
+      VALUES (?, ?, ?, ?, ?, 0)
+    `)
+    
+    const result = stmt.run(
+      data.employee_name,
+      data.login,
+      data.exit_date,
+      data.equipment_list,
+      new Date().toISOString()
+    )
+    
+    return { success: true, id: result.lastInsertRowid }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Обновить запись выхода сотрудника
+ipcMain.handle('update-employee-exit', async (_event, id: number, data: {
+  employee_name: string
+  login: string
+  exit_date: string
+  equipment_list: string
+}) => {
+  try {
+    const stmt = db.prepare(`
+      UPDATE employee_exits
+      SET employee_name = ?, login = ?, exit_date = ?, equipment_list = ?
+      WHERE id = ?
+    `)
+    
+    stmt.run(
+      data.employee_name,
+      data.login,
+      data.exit_date,
+      data.equipment_list,
+      id
+    )
+    
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Удалить запись выхода сотрудника
+ipcMain.handle('delete-employee-exit', async (_event, id: number) => {
+  try {
+    // Получить запись перед удалением (для возможности восстановления)
+    const exit = db.prepare('SELECT * FROM employee_exits WHERE id = ?').get(id)
+    
+    if (!exit) {
+      return { success: false, error: 'Запись не найдена' }
+    }
+    
+    // Удалить запись
+    db.prepare('DELETE FROM employee_exits WHERE id = ?').run(id)
+    
+    return { success: true, data: exit }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Обновить статус выполнения
+ipcMain.handle('update-exit-completed', async (_event, id: number, is_completed: boolean) => {
+  try {
+    const stmt = db.prepare(`
+      UPDATE employee_exits
+      SET is_completed = ?
+      WHERE id = ?
+    `)
+    
+    stmt.run(is_completed ? 1 : 0, id)
+    
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// ==================== BACKUP HANDLERS ====================
 
 // Создать backup базы данных
 ipcMain.handle('create-backup', async () => {

@@ -24,6 +24,23 @@ interface CreateRequestData {
   equipment_items: EquipmentItem[]
 }
 
+interface EmployeeExit {
+  id: number
+  employee_name: string
+  login: string
+  exit_date: string
+  equipment_list: string
+  created_at: string
+  is_completed: number
+}
+
+interface CreateEmployeeExitData {
+  employee_name: string
+  login: string
+  exit_date: string
+  equipment_list: string
+}
+
 interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
@@ -55,4 +72,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   restoreBackup: (): Promise<ApiResponse> => 
     ipcRenderer.invoke('restore-backup'),
+  
+  // Employee Exit API
+  getEmployeeExits: (): Promise<ApiResponse<EmployeeExit[]>> => 
+    ipcRenderer.invoke('get-employee-exits'),
+  
+  createEmployeeExit: (data: CreateEmployeeExitData): Promise<ApiResponse> => 
+    ipcRenderer.invoke('create-employee-exit', data),
+  
+  updateEmployeeExit: (id: number, data: CreateEmployeeExitData): Promise<ApiResponse> => 
+    ipcRenderer.invoke('update-employee-exit', id, data),
+  
+  deleteEmployeeExit: (id: number): Promise<ApiResponse<EmployeeExit>> => 
+    ipcRenderer.invoke('delete-employee-exit', id),
+  
+  updateExitCompleted: (id: number, is_completed: boolean): Promise<ApiResponse> => 
+    ipcRenderer.invoke('update-exit-completed', id, is_completed),
 })

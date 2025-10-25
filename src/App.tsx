@@ -9,6 +9,7 @@ import { SearchAndFilters } from './components/SearchAndFilters'
 import { TableSkeleton } from './components/TableSkeleton'
 import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
+import { EmployeeExitView } from './components/EmployeeExitView'
 import { Toaster } from 'sonner'
 import { Request } from './types/electron.d'
 import { useDebounce } from './hooks/useDebounce'
@@ -21,7 +22,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
-  const [currentView, setCurrentView] = useState<'dashboard' | 'requests'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'requests' | 'employee-exit'>('dashboard')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   
@@ -120,26 +121,34 @@ function App() {
             <div className="flex items-center justify-between">
               <div className="animate-fade-in">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                  {currentView === 'dashboard' ? 'Дашборд' : 'Заявки'}
+                  {currentView === 'dashboard' 
+                    ? 'Дашборд' 
+                    : currentView === 'requests' 
+                    ? 'Заявки' 
+                    : 'Выход сотрудников'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   {currentView === 'dashboard' 
                     ? 'Обзор статистики и аналитики' 
-                    : 'Управление заявками на выдачу оборудования'
+                    : currentView === 'requests'
+                    ? 'Управление заявками на выдачу оборудования'
+                    : 'Учёт выдачи оборудования уходящим сотрудникам'
                   }
                 </p>
               </div>
               
               <div className="flex items-center gap-3">
                 <ThemeToggle />
-                <Button 
-                  onClick={() => setIsModalOpen(true)} 
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Добавить заявку
-                </Button>
+                {currentView === 'requests' && (
+                  <Button 
+                    onClick={() => setIsModalOpen(true)} 
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Добавить заявку
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -175,7 +184,7 @@ function App() {
                       />
                     </div>
                   </div>
-                ) : (
+                ) : currentView === 'requests' ? (
                   <div className="space-y-6 animate-fade-in">
                     <SearchAndFilters
                       searchQuery={searchQuery}
@@ -192,6 +201,10 @@ function App() {
                       onUpdate={loadRequests}
                       onEdit={handleEdit}
                     />
+                  </div>
+                ) : (
+                  <div className="animate-fade-in">
+                    <EmployeeExitView />
                   </div>
                 )}
               </>

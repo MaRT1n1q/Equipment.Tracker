@@ -16,6 +16,23 @@ export interface Request {
   equipment_items: EquipmentItem[]
 }
 
+export interface EmployeeExit {
+  id: number
+  employee_name: string
+  login: string
+  exit_date: string
+  equipment_list: string
+  created_at: string
+  is_completed: number
+}
+
+export interface CreateEmployeeExitData {
+  employee_name: string
+  login: string
+  exit_date: string
+  equipment_list: string
+}
+
 export interface CreateRequestData {
   employee_name: string
   notes?: string
@@ -40,6 +57,12 @@ declare global {
       restoreRequest: (request: Request) => Promise<ApiResponse>
       createBackup: () => Promise<ApiResponse<{ path: string }>>
       restoreBackup: () => Promise<ApiResponse>
+      // Employee Exit API
+      getEmployeeExits: () => Promise<ApiResponse<EmployeeExit[]>>
+      createEmployeeExit: (data: CreateEmployeeExitData) => Promise<ApiResponse>
+      updateEmployeeExit: (id: number, data: CreateEmployeeExitData) => Promise<ApiResponse>
+      deleteEmployeeExit: (id: number) => Promise<ApiResponse<EmployeeExit>>
+      updateExitCompleted: (id: number, is_completed: boolean) => Promise<ApiResponse>
     }
   }
 }

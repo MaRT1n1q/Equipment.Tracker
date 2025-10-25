@@ -1,11 +1,11 @@
-import { LayoutDashboard, Package, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Package, Settings, ChevronLeft, ChevronRight, UserMinus } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
 import { SettingsModal } from './SettingsModal'
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'requests'
-  onViewChange: (view: 'dashboard' | 'requests') => void
+  currentView: 'dashboard' | 'requests' | 'employee-exit'
+  onViewChange: (view: 'dashboard' | 'requests' | 'employee-exit') => void
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -25,6 +25,12 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
       label: 'Заявки',
       icon: Package,
       gradient: 'from-purple-500 to-pink-500'
+    },
+    {
+      id: 'employee-exit' as const,
+      label: 'Выход сотрудников',
+      icon: UserMinus,
+      gradient: 'from-orange-500 to-red-500'
     }
   ]
 
@@ -129,6 +135,6 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
         onClose={() => setIsSettingsOpen(false)}
       />
     </div>
-    
+
   )
 }
