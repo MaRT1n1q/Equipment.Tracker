@@ -111,12 +111,12 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <TooltipProvider>
         {requests.map((request, index) => (
           <div
             key={request.id}
-            className="group relative bg-card rounded-xl border border-border hover:border-primary/50 transition-all duration-300 hover-lift overflow-hidden animate-fade-in"
+            className="group relative bg-card rounded-lg border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-md overflow-hidden animate-fade-in"
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Status indicator */}
@@ -129,97 +129,45 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
             {/* Hover gradient effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
-            <div className="relative p-6">
-              <div className="flex items-start justify-between gap-4">
-                {/* Main content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-4">
-                    {/* ID Badge */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary">
-                      <Hash className="w-4 h-4" />
-                      <span className="text-sm font-semibold">{request.id}</span>
-                    </div>
-                    
-                    {/* Status Badge */}
-                    {request.is_issued ? (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span className="text-sm font-medium">Выдано</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm font-medium">В ожидании</span>
-                      </div>
-                    )}
+            <div className="relative p-4 pl-5">
+              <div className="flex items-center justify-between gap-4">
+                {/* Left section - ID and Status */}
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* ID Badge */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary flex-shrink-0">
+                    <Hash className="w-3.5 h-3.5" />
+                    <span className="text-sm font-semibold">{request.id}</span>
                   </div>
-
-                  {/* Employee name */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-blue-500" />
+                  
+                  {/* Status Badge */}
+                  {request.is_issued ? (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 flex-shrink-0">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">Выдано</span>
                     </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Сотрудник</div>
-                      <div className="text-base font-semibold">{request.employee_name}</div>
-                    </div>
-                  </div>
-
-                  {/* Equipment info */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-purple-500" />
-                      <div className="min-w-0">
-                        <div className="text-xs text-muted-foreground">Оборудование</div>
-                        <div className="text-sm font-medium truncate">{request.equipment_name}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Hash className="w-4 h-4 text-muted-foreground" />
-                      <div className="min-w-0">
-                        <div className="text-xs text-muted-foreground">Серийный номер</div>
-                        <div className="text-sm font-mono">{request.serial_number}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>Создано: {formatDate(request.created_at)}</span>
-                    </div>
-                    {request.issued_at && (
-                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Выдано: {formatDate(request.issued_at)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Notes */}
-                  {request.notes && (
-                    <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border/50">
-                      <div className="flex items-start gap-2">
-                        <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <div className="text-xs text-muted-foreground mb-1">Примечания</div>
-                          <div className="text-sm whitespace-pre-wrap break-words">{request.notes}</div>
-                        </div>
-                      </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 flex-shrink-0">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">В ожидании</span>
                     </div>
                   )}
+
+                  {/* Employee name */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <span className="text-sm font-semibold truncate">{request.employee_name}</span>
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-col gap-2">
+                {/* Right section - Actions */}
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center justify-center">
                         <Checkbox
                           checked={Boolean(request.is_issued)}
                           onCheckedChange={() => handleToggleIssued(request.id, Boolean(request.is_issued))}
-                          className="w-5 h-5"
+                          className="w-4 h-4"
                         />
                       </div>
                     </TooltipTrigger>
@@ -234,20 +182,64 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
                     variant="ghost"
                     size="icon"
                     onClick={() => onEdit(request)}
-                    className="text-primary hover:text-primary hover:bg-primary/10"
+                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
                   >
-                    <Edit2 className="h-4 w-4" />
+                    <Edit2 className="h-3.5 w-3.5" />
                   </Button>
                   
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDelete(request.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+              </div>
+
+              {/* Equipment info row */}
+              <div className="flex items-center gap-4 mt-3 text-sm">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Package className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                  <span className="text-muted-foreground text-xs">Оборудование:</span>
+                  <span className="font-medium truncate">{request.equipment_name}</span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <Hash className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground text-xs">S/N:</span>
+                  <span className="font-mono text-xs">{request.serial_number}</span>
+                </div>
+              </div>
+
+              {/* Dates row */}
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  <span>{formatDate(request.created_at)}</span>
+                </div>
+                {request.issued_at && (
+                  <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Выдано: {formatDate(request.issued_at)}</span>
+                  </div>
+                )}
+                
+                {/* Notes indicator */}
+                {request.notes && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 cursor-help">
+                        <MessageSquare className="w-3 h-3" />
+                        <span>Примечания</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs whitespace-pre-wrap">{request.notes}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
             </div>
           </div>
