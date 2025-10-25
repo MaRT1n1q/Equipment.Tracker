@@ -128,13 +128,7 @@ export function Sidebar({ currentView, onViewChange, isCollapsed, onToggleCollap
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
-
-      {/* Collapse indicator for collapsed state */}
-      {isCollapsed && (
-        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-12 bg-primary rounded-r-lg flex items-center justify-center shadow-lg animate-pulse-slow">
-          <ChevronRight className="w-4 h-4 text-primary-foreground" />
-        </div>
-      )}
     </div>
+    
   )
 }
