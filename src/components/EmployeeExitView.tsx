@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react'
 import { EmployeeExit } from '../types/electron.d'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
-import { Button } from './ui/button'
-import { UserPlus, CheckCircle, Clock, Users } from 'lucide-react'
+import { CheckCircle, Clock, Users } from 'lucide-react'
 
-export function EmployeeExitView() {
+interface EmployeeExitViewProps {
+  isModalOpen: boolean
+  onModalOpenChange: (open: boolean) => void
+}
+
+export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExitViewProps) {
   const [exits, setExits] = useState<EmployeeExit[]>([])
   const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const loadExits = async () => {
     try {
@@ -37,7 +40,7 @@ export function EmployeeExitView() {
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Total */}
-        <div className="bg-card rounded-xl border border-border p-6 hover:border-orange-500/50 transition-all duration-300 hover-lift">
+        {/* <div className="bg-card rounded-xl border border-border p-6 hover:border-orange-500/50 transition-all duration-300 hover-lift">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Всего записей</p>
@@ -49,10 +52,10 @@ export function EmployeeExitView() {
               <Users className="w-7 h-7 text-orange-500" />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Completed */}
-        <div className="bg-card rounded-xl border border-border p-6 hover:border-green-500/50 transition-all duration-300 hover-lift">
+        {/* <div className="bg-card rounded-xl border border-border p-6 hover:border-green-500/50 transition-all duration-300 hover-lift">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Завершено</p>
@@ -64,10 +67,10 @@ export function EmployeeExitView() {
               <CheckCircle className="w-7 h-7 text-green-500" />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Pending */}
-        <div className="bg-card rounded-xl border border-border p-6 hover:border-orange-500/50 transition-all duration-300 hover-lift">
+        {/* <div className="bg-card rounded-xl border border-border p-6 hover:border-orange-500/50 transition-all duration-300 hover-lift">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">В ожидании</p>
@@ -79,40 +82,31 @@ export function EmployeeExitView() {
               <Clock className="w-7 h-7 text-orange-500" />
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
-      {/* Add Button */}
-      <div className="flex justify-between items-center">
+      {/* Table */}
+      <div className="space-y-4">
         <div>
           <h2 className="text-2xl font-bold">Список выходов</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Управление записями о выходе сотрудников
           </p>
         </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          size="lg"
-          className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          <UserPlus className="h-5 w-5 mr-2" />
-          Добавить запись
-        </Button>
-      </div>
 
-      {/* Table */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
-        </div>
-      ) : (
-        <EmployeeExitTable exits={exits} onUpdate={loadExits} />
-      )}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+          </div>
+        ) : (
+          <EmployeeExitTable exits={exits} onUpdate={loadExits} />
+        )}
+      </div>
 
       {/* Add Modal */}
       <AddEmployeeExitModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => onModalOpenChange(false)}
         onSuccess={loadExits}
       />
     </div>

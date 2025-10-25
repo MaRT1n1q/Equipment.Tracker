@@ -1,11 +1,27 @@
-import { Package, PackageCheck, Clock, TrendingUp } from 'lucide-react'
-import { Request } from '../types/electron.d'
+import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users } from 'lucide-react'
+import { Request, EmployeeExit } from '../types/electron.d'
+import { useEffect, useState } from 'react'
 
 interface DashboardProps {
   requests: Request[]
 }
 
 export function Dashboard({ requests }: DashboardProps) {
+  const [employeeExits, setEmployeeExits] = useState<EmployeeExit[]>([])
+
+  useEffect(() => {
+    const loadExits = async () => {
+      try {
+        const result = await window.electronAPI.getEmployeeExits()
+        if (result.success && result.data) {
+          setEmployeeExits(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to load employee exits:', error)
+      }
+    }
+    loadExits()
+  }, [])
   const stats = {
     total: requests.length,
     issued: requests.filter(r => r.is_issued === 1).length,
@@ -14,7 +30,11 @@ export function Dashboard({ requests }: DashboardProps) {
       const date = new Date(r.created_at)
       const now = new Date()
       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-    }).length
+    }).length,
+    // Employee exits stats
+    totalExits: employeeExits.length,
+    completedExits: employeeExits.filter(e => e.is_completed === 1).length,
+    pendingExits: employeeExits.filter(e => e.is_completed === 0).length
   }
 
   const cards = [
@@ -56,38 +76,117 @@ export function Dashboard({ requests }: DashboardProps) {
     }
   ]
 
+  const exitCards = [
+    {
+      title: 'Всего выходов',
+      value: stats.totalExits,
+      icon: Users,
+      gradient: 'from-orange-500 to-red-500',
+      bgLight: 'bg-orange-50',
+      bgDark: 'dark:bg-orange-950/20',
+      iconColor: 'text-orange-600 dark:text-orange-400'
+    },
+    {
+      title: 'Завершено',
+      value: stats.completedExits,
+      icon: PackageCheck,
+      gradient: 'from-green-500 to-emerald-500',
+      bgLight: 'bg-green-50',
+      bgDark: 'dark:bg-green-950/20',
+      iconColor: 'text-green-600 dark:text-green-400'
+    },
+    {
+      title: 'В ожидании',
+      value: stats.pendingExits,
+      icon: UserMinus,
+      gradient: 'from-red-500 to-rose-500',
+      bgLight: 'bg-red-50',
+      bgDark: 'dark:bg-red-950/20',
+      iconColor: 'text-red-600 dark:text-red-400'
+    }
+  ]
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {cards.map((card, index) => (
-        <div
-          key={card.title}
-          className="group relative overflow-hidden rounded-xl bg-card border border-border hover-lift transition-all duration-300 animate-scale-in"
-          style={{ animationDelay: `${index * 100}ms` }}
-        >
-          {/* Gradient background on hover */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-          
-          {/* Content */}
-          <div className="relative p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-lg ${card.bgLight} ${card.bgDark} transition-transform duration-300 group-hover:scale-110`}>
-                <card.icon className={`w-6 h-6 ${card.iconColor}`} />
-              </div>
-              <div className="text-right">
-                <div className={`text-3xl font-bold bg-gradient-to-br ${card.gradient} bg-clip-text text-transparent`}>
-                  {card.value}
+    <div className="space-y-8">
+      {/* Requests Section */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-purple-500" />
+          Статистика заявок
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {cards.map((card, index) => (
+            <div
+              key={card.title}
+              className="group relative overflow-hidden rounded-xl bg-card border border-border hover-lift transition-all duration-300 animate-scale-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              {/* Gradient background on hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+              
+              {/* Content */}
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-lg ${card.bgLight} ${card.bgDark} transition-transform duration-300 group-hover:scale-110`}>
+                    <card.icon className={`w-6 h-6 ${card.iconColor}`} />
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-3xl font-bold bg-gradient-to-br ${card.gradient} bg-clip-text text-transparent`}>
+                      {card.value}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  {card.title}
                 </div>
               </div>
+              
+              {/* Bottom accent line */}
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`} />
             </div>
-            <div className="text-sm font-medium text-muted-foreground">
-              {card.title}
-            </div>
-          </div>
-          
-          {/* Bottom accent line */}
-          <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`} />
+          ))}
         </div>
-      ))}
+      </div>
+
+      {/* Employee Exits Section */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <UserMinus className="w-5 h-5 text-orange-500" />
+          Статистика выходов сотрудников
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {exitCards.map((card, index) => (
+            <div
+              key={card.title}
+              className="group relative overflow-hidden rounded-xl bg-card border border-border hover-lift transition-all duration-300 animate-scale-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              {/* Gradient background on hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+              
+              {/* Content */}
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-lg ${card.bgLight} ${card.bgDark} transition-transform duration-300 group-hover:scale-110`}>
+                    <card.icon className={`w-6 h-6 ${card.iconColor}`} />
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-3xl font-bold bg-gradient-to-br ${card.gradient} bg-clip-text text-transparent`}>
+                      {card.value}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  {card.title}
+                </div>
+              </div>
+              
+              {/* Bottom accent line */}
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`} />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

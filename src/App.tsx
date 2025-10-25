@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, UserPlus } from 'lucide-react'
 import { Button } from './components/ui/button'
 import { AddRequestModal } from './components/AddRequestModal'
 import { EditRequestModal } from './components/EditRequestModal'
@@ -19,6 +19,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingRequest, setEditingRequest] = useState<Request | null>(null)
+  const [isEmployeeExitModalOpen, setIsEmployeeExitModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
@@ -149,6 +150,16 @@ function App() {
                     Добавить заявку
                   </Button>
                 )}
+                {currentView === 'employee-exit' && (
+                  <Button 
+                    onClick={() => setIsEmployeeExitModalOpen(true)} 
+                    size="lg"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Добавить запись
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -204,7 +215,10 @@ function App() {
                   </div>
                 ) : (
                   <div className="animate-fade-in">
-                    <EmployeeExitView />
+                    <EmployeeExitView 
+                      isModalOpen={isEmployeeExitModalOpen}
+                      onModalOpenChange={setIsEmployeeExitModalOpen}
+                    />
                   </div>
                 )}
               </>
