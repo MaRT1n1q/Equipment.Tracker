@@ -1,29 +1,25 @@
-import { EmployeeExit } from '../types/electron.d'
+import type { EmployeeExit } from '../types/ipc'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Trash2, UserMinus, Calendar, User, KeyRound, Package, CheckCircle2, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 
 interface EmployeeExitTableProps {
   exits: EmployeeExit[]
-  onUpdate: () => void
 }
 
-export function EmployeeExitTable({ exits, onUpdate }: EmployeeExitTableProps) {
+export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
+  const { updateExitCompleted, deleteEmployeeExit } = useEmployeeExitActions()
+
   const handleToggleCompleted = async (id: number, currentStatus: boolean) => {
     try {
-      const result = await window.electronAPI.updateExitCompleted(id, !currentStatus)
-      
-      if (result.success) {
-        toast.success(!currentStatus ? 'Выдача оборудования отмечена как завершённая' : 'Статус отменен')
-        onUpdate()
-      } else {
-        toast.error(result.error || 'Ошибка при обновлении статуса')
-      }
+      await updateExitCompleted({ id, value: !currentStatus })
+      toast.success(!currentStatus ? 'Выдача оборудования отмечена как завершённая' : 'Статус отменен')
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     }
   }
 
@@ -34,17 +30,11 @@ export function EmployeeExitTable({ exits, onUpdate }: EmployeeExitTableProps) {
     }
 
     try {
-      const result = await window.electronAPI.deleteEmployeeExit(id)
-      
-      if (result.success) {
-        toast.success('Запись удалена')
-        onUpdate()
-      } else {
-        toast.error(result.error || 'Ошибка при удалении записи')
-      }
+      await deleteEmployeeExit(id)
+      toast.success('Запись удалена')
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     }
   }
 

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { EmployeeExit } from '../types/electron.d'
+import { AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
-import { CheckCircle, Clock, Users } from 'lucide-react'
+import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
+import { Button } from './ui/button'
 
 interface EmployeeExitViewProps {
   isModalOpen: boolean
@@ -10,25 +10,12 @@ interface EmployeeExitViewProps {
 }
 
 export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExitViewProps) {
-  const [exits, setExits] = useState<EmployeeExit[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const loadExits = async () => {
-    try {
-      const result = await window.electronAPI.getEmployeeExits()
-      if (result.success && result.data) {
-        setExits(result.data)
-      }
-    } catch (error) {
-      console.error('Failed to load employee exits:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadExits()
-  }, [])
+  const {
+    data: exits = [],
+    isLoading,
+    isError,
+    refetch: refetchExits
+  } = useEmployeeExitsQuery()
 
   // Statistics
   const totalExits = exits.length
@@ -105,21 +92,30 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
           </p>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
           </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+            <div>
+              <h3 className="text-lg font-semibold">Не удалось загрузить выходы сотрудников</h3>
+              <p className="text-sm text-muted-foreground">
+                Повторите попытку. Если ошибка сохраняется, проверьте журнал приложения.
+              </p>
+            </div>
+            <Button onClick={() => refetchExits()} variant="outline">
+              Обновить данные
+            </Button>
+          </div>
         ) : (
-          <EmployeeExitTable exits={exits} onUpdate={loadExits} />
+          <EmployeeExitTable exits={exits} />
         )}
       </div>
 
       {/* Add Modal */}
-      <AddEmployeeExitModal
-        isOpen={isModalOpen}
-        onClose={() => onModalOpenChange(false)}
-        onSuccess={loadExits}
-      />
+      <AddEmployeeExitModal isOpen={isModalOpen} onClose={() => onModalOpenChange(false)} />
     </div>
   )
 }

@@ -1,27 +1,13 @@
 import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users } from 'lucide-react'
-import { Request, EmployeeExit } from '../types/electron.d'
-import { useEffect, useState } from 'react'
+import type { Request } from '../types/ipc'
+import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
 
 interface DashboardProps {
   requests: Request[]
 }
 
 export function Dashboard({ requests }: DashboardProps) {
-  const [employeeExits, setEmployeeExits] = useState<EmployeeExit[]>([])
-
-  useEffect(() => {
-    const loadExits = async () => {
-      try {
-        const result = await window.electronAPI.getEmployeeExits()
-        if (result.success && result.data) {
-          setEmployeeExits(result.data)
-        }
-      } catch (error) {
-        console.error('Failed to load employee exits:', error)
-      }
-    }
-    loadExits()
-  }, [])
+  const { data: employeeExits = [] } = useEmployeeExitsQuery()
   const stats = {
     total: requests.length,
     issued: requests.filter(r => r.is_issued === 1).length,

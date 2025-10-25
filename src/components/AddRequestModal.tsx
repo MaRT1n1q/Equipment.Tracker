@@ -6,15 +6,15 @@ import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
 import { Plus, Trash2, Package } from 'lucide-react'
-import { EquipmentItem } from '../types/electron.d'
+import type { EquipmentItem } from '../types/ipc'
+import { useRequestActions } from '../hooks/useRequests'
 
 interface AddRequestModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onRequestAdded: () => void
 }
 
-export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddRequestModalProps) {
+export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
   const [employeeName, setEmployeeName] = useState('')
   const [notes, setNotes] = useState('')
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([
@@ -24,6 +24,7 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
   const [employeeNameError, setEmployeeNameError] = useState(false)
   
   const firstInputRef = useRef<HTMLInputElement>(null)
+  const { createRequest } = useRequestActions()
 
   // Auto-focus first field when modal opens
   useEffect(() => {
@@ -79,22 +80,17 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
 
     setLoading(true)
     try {
-      const result = await window.electronAPI.createRequest({
+      await createRequest({
         employee_name: employeeName,
         notes: notes || undefined,
         equipment_items: equipmentItems
       })
-      
-      if (result.success) {
-        toast.success('Заявка успешно создана')
-        onOpenChange(false)
-        onRequestAdded()
-      } else {
-        toast.error(result.error || 'Ошибка при создании заявки')
-      }
+
+      toast.success('Заявка успешно создана')
+      onOpenChange(false)
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     } finally {
       setLoading(false)
     }

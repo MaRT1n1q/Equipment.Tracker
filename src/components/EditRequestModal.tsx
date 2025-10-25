@@ -6,16 +6,16 @@ import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
 import { Plus, Trash2, Package } from 'lucide-react'
-import { Request, EquipmentItem } from '../types/electron.d'
+import type { Request, EquipmentItem } from '../types/ipc'
+import { useRequestActions } from '../hooks/useRequests'
 
 interface EditRequestModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onRequestUpdated: () => void
   request: Request | null
 }
 
-export function EditRequestModal({ open, onOpenChange, onRequestUpdated, request }: EditRequestModalProps) {
+export function EditRequestModal({ open, onOpenChange, request }: EditRequestModalProps) {
   const [employeeName, setEmployeeName] = useState('')
   const [notes, setNotes] = useState('')
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([
@@ -25,6 +25,7 @@ export function EditRequestModal({ open, onOpenChange, onRequestUpdated, request
   const [employeeNameError, setEmployeeNameError] = useState(false)
   
   const firstInputRef = useRef<HTMLInputElement>(null)
+  const { updateRequest } = useRequestActions()
 
   // Load request data when modal opens
   useEffect(() => {
@@ -85,22 +86,20 @@ export function EditRequestModal({ open, onOpenChange, onRequestUpdated, request
 
     setLoading(true)
     try {
-      const result = await window.electronAPI.updateRequest(request.id, {
-        employee_name: employeeName,
-        notes: notes || undefined,
-        equipment_items: equipmentItems
+      await updateRequest({
+        id: request.id,
+        data: {
+          employee_name: employeeName,
+          notes: notes || undefined,
+          equipment_items: equipmentItems
+        }
       })
-      
-      if (result.success) {
-        toast.success('Заявка успешно обновлена')
-        onOpenChange(false)
-        onRequestUpdated()
-      } else {
-        toast.error(result.error || 'Ошибка при обновлении заявки')
-      }
+
+      toast.success('Заявка успешно обновлена')
+      onOpenChange(false)
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     } finally {
       setLoading(false)
     }

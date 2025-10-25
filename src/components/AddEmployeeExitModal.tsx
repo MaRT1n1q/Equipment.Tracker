@@ -6,19 +6,20 @@ import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
 import { UserMinus } from 'lucide-react'
+import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 
 interface AddEmployeeExitModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
 }
 
-export function AddEmployeeExitModal({ isOpen, onClose, onSuccess }: AddEmployeeExitModalProps) {
+export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalProps) {
   const [employeeName, setEmployeeName] = useState('')
   const [login, setLogin] = useState('')
   const [exitDate, setExitDate] = useState('')
   const [equipmentList, setEquipmentList] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { createEmployeeExit } = useEmployeeExitActions()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,27 +32,22 @@ export function AddEmployeeExitModal({ isOpen, onClose, onSuccess }: AddEmployee
     setIsSubmitting(true)
 
     try {
-      const result = await window.electronAPI.createEmployeeExit({
+      await createEmployeeExit({
         employee_name: employeeName.trim(),
         login: login.trim(),
         exit_date: exitDate,
         equipment_list: equipmentList.trim()
       })
 
-      if (result.success) {
-        toast.success('Запись о выходе сотрудника создана')
-        setEmployeeName('')
-        setLogin('')
-        setExitDate('')
-        setEquipmentList('')
-        onSuccess()
-        onClose()
-      } else {
-        toast.error(result.error || 'Ошибка при создании записи')
-      }
+      toast.success('Запись о выходе сотрудника создана')
+      setEmployeeName('')
+      setLogin('')
+      setExitDate('')
+      setEquipmentList('')
+      onClose()
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

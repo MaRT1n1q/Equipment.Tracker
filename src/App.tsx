@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus, UserPlus } from 'lucide-react'
+import { Plus, UserPlus, AlertTriangle } from 'lucide-react'
 import { Button } from './components/ui/button'
 import { AddRequestModal } from './components/AddRequestModal'
 import { EditRequestModal } from './components/EditRequestModal'
@@ -11,16 +11,15 @@ import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
 import { EmployeeExitView } from './components/EmployeeExitView'
 import { Toaster } from 'sonner'
-import { Request } from './types/electron.d'
+import type { Request } from './types/ipc'
 import { useDebounce } from './hooks/useDebounce'
+import { useRequestsQuery } from './hooks/useRequests'
 
 function App() {
-  const [requests, setRequests] = useState<Request[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingRequest, setEditingRequest] = useState<Request | null>(null)
   const [isEmployeeExitModalOpen, setIsEmployeeExitModalOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
   const [currentView, setCurrentView] = useState<'dashboard' | 'requests' | 'employee-exit'>('dashboard')
@@ -30,18 +29,12 @@ function App() {
   // Debounce search query
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  const loadRequests = async () => {
-    try {
-      const result = await window.electronAPI.getRequests()
-      if (result.success && result.data) {
-        setRequests(result.data)
-      }
-    } catch (error) {
-      console.error('Failed to load requests:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    data: requests = [],
+    isLoading,
+    isError,
+    refetch: refetchRequests
+  } = useRequestsQuery()
 
   const handleEdit = (request: Request) => {
     setEditingRequest(request)
@@ -96,10 +89,6 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  useEffect(() => {
-    loadRequests()
   }, [])
 
   return (
@@ -168,8 +157,21 @@ function App() {
         {/* Content Area */}
         <main className="flex-1 overflow-auto custom-scrollbar">
           <div className="px-8 py-6">
-            {loading ? (
+            {isLoading ? (
               <TableSkeleton />
+            ) : isError ? (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 flex flex-col items-center gap-3 text-center">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+                <div>
+                  <h3 className="text-lg font-semibold">Не удалось загрузить заявки</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или обратитесь к администратору.
+                  </p>
+                </div>
+                <Button onClick={() => refetchRequests()} variant="outline">
+                  Повторить попытку
+                </Button>
+              </div>
             ) : (
               <>
                 {currentView === 'dashboard' ? (
@@ -190,7 +192,6 @@ function App() {
                       </div>
                       <RequestsTable 
                         requests={requests.slice(0, 5)} 
-                        onUpdate={loadRequests}
                         onEdit={handleEdit}
                       />
                     </div>
@@ -209,7 +210,6 @@ function App() {
                     
                     <RequestsTable 
                       requests={filteredRequests} 
-                      onUpdate={loadRequests}
                       onEdit={handleEdit}
                     />
                   </div>
@@ -231,14 +231,12 @@ function App() {
       <AddRequestModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        onRequestAdded={loadRequests}
       />
 
       {/* Edit Request Modal */}
       <EditRequestModal
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
-        onRequestUpdated={loadRequests}
         request={editingRequest}
       />
     </div>

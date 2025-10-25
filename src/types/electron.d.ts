@@ -3,7 +3,8 @@ import type {
   CreateEmployeeExitData,
   CreateRequestData,
   EmployeeExit,
-  Request
+  Request,
+  UpdateRequestData
 } from './ipc'
 
 declare global {
@@ -11,7 +12,7 @@ declare global {
     electronAPI: {
       getRequests: () => Promise<ApiResponse<Request[]>>
       createRequest: (data: CreateRequestData) => Promise<ApiResponse>
-      updateRequest: (id: number, data: CreateRequestData) => Promise<ApiResponse>
+  updateRequest: (id: number, data: UpdateRequestData) => Promise<ApiResponse>
       updateIssued: (id: number, is_issued: boolean) => Promise<ApiResponse>
       deleteRequest: (id: number) => Promise<ApiResponse<Request>>
       restoreRequest: (request: Request) => Promise<ApiResponse>

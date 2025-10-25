@@ -1,30 +1,26 @@
-import { Request } from '../types/electron.d'
+import type { Request } from '../types/ipc'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Trash2, Package, FileText, Edit2, MessageSquare, Calendar, User, Hash, CheckCircle2, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRequestActions } from '../hooks/useRequests'
 
 interface RequestsTableProps {
   requests: Request[]
-  onUpdate: () => void
   onEdit: (request: Request) => void
 }
 
-export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps) {
+export function RequestsTable({ requests, onEdit }: RequestsTableProps) {
+  const { toggleIssued, deleteRequest, restoreRequest } = useRequestActions()
+
   const handleToggleIssued = async (id: number, currentStatus: boolean) => {
     try {
-      const result = await window.electronAPI.updateIssued(id, !currentStatus)
-      
-      if (result.success) {
-        toast.success(!currentStatus ? 'Оборудование отмечено как выданное' : 'Статус отменен')
-        onUpdate()
-      } else {
-        toast.error(result.error || 'Ошибка при обновлении статуса')
-      }
+      await toggleIssued({ id, value: !currentStatus })
+      toast.success(!currentStatus ? 'Оборудование отмечено как выданное' : 'Статус отменен')
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     }
   }
 
@@ -35,41 +31,27 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
     }
 
     try {
-      const result = await window.electronAPI.deleteRequest(id)
-      
-      if (result.success && result.data) {
-        const deletedRequest = result.data
-        
-        // Обновить список
-        onUpdate()
-        
-        // Показать toast с кнопкой отмены
-        toast.success('Заявка удалена', {
-          action: {
-            label: 'Отменить',
-            onClick: async () => {
-              try {
-                const restoreResult = await window.electronAPI.restoreRequest(deletedRequest)
-                if (restoreResult.success) {
-                  toast.success('Заявка восстановлена')
-                  onUpdate()
-                } else {
-                  toast.error('Ошибка при восстановлении')
-                }
-              } catch (error) {
-                toast.error('Ошибка при восстановлении')
-                console.error(error)
-              }
+      const deletedRequest = await deleteRequest(id)
+
+      toast.success('Заявка удалена', {
+        action: {
+          label: 'Отменить',
+          onClick: async () => {
+            try {
+              await restoreRequest(deletedRequest)
+              toast.success('Заявка восстановлена')
+            } catch (restoreError) {
+              const message =
+                restoreError instanceof Error ? restoreError.message : 'Ошибка при восстановлении'
+              toast.error(message)
             }
-          },
-          duration: 5000,
-        })
-      } else {
-        toast.error(result.error || 'Ошибка при удалении заявки')
-      }
+          }
+        },
+        duration: 5000
+      })
     } catch (error) {
-      toast.error('Произошла ошибка')
-      console.error(error)
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
     }
   }
 
