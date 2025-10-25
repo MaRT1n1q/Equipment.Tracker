@@ -61,11 +61,18 @@ function App() {
     // Apply debounced search
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase()
-      filtered = filtered.filter(req =>
-        req.employee_name.toLowerCase().includes(query) ||
-        req.equipment_name.toLowerCase().includes(query) ||
-        req.serial_number.toLowerCase().includes(query)
-      )
+      filtered = filtered.filter(req => {
+        // Search in employee name
+        if (req.employee_name.toLowerCase().includes(query)) return true
+        
+        // Search in equipment items
+        if (req.equipment_items && req.equipment_items.some(item =>
+          item.equipment_name.toLowerCase().includes(query) ||
+          item.serial_number.toLowerCase().includes(query)
+        )) return true
+        
+        return false
+      })
     }
 
     return filtered

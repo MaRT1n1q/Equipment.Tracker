@@ -1,18 +1,27 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+interface EquipmentItem {
+  id?: number
+  request_id?: number
+  equipment_name: string
+  serial_number: string
+  quantity: number
+}
+
 interface Request {
   id: number
   employee_name: string
-  equipment_name: string
-  serial_number: string
   created_at: string
   is_issued: number
+  issued_at: string | null
+  notes: string | null
+  equipment_items: EquipmentItem[]
 }
 
 interface CreateRequestData {
   employee_name: string
-  equipment_name: string
-  serial_number: string
+  notes?: string
+  equipment_items: EquipmentItem[]
 }
 
 interface ApiResponse<T = unknown> {

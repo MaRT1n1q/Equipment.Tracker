@@ -198,23 +198,43 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
                 </div>
               </div>
 
-              {/* Equipment info row */}
-              <div className="flex items-center gap-4 mt-3 text-sm">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Package className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-                  <span className="text-muted-foreground text-xs">Оборудование:</span>
-                  <span className="font-medium truncate">{request.equipment_name}</span>
-                </div>
-                
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Hash className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground text-xs">S/N:</span>
-                  <span className="font-mono text-xs">{request.serial_number}</span>
-                </div>
+              {/* Equipment items list */}
+              <div className="mt-3 space-y-2">
+                {request.equipment_items && request.equipment_items.length > 0 ? (
+                  request.equipment_items.map((item, itemIndex) => (
+                    <div 
+                      key={itemIndex}
+                      className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/30 text-sm"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Package className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                          <span className="font-medium truncate">{item.equipment_name}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Hash className="w-3 h-3 text-muted-foreground" />
+                          <span className="font-mono text-xs text-muted-foreground">{item.serial_number}</span>
+                        </div>
+                      </div>
+
+                      {item.quantity > 1 && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-primary flex-shrink-0">
+                          <span className="text-xs font-semibold">×{item.quantity}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30 text-sm text-muted-foreground">
+                    <Package className="w-3.5 h-3.5" />
+                    <span>Нет оборудования</span>
+                  </div>
+                )}
               </div>
 
               {/* Dates row */}
-              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   <span>{formatDate(request.created_at)}</span>

@@ -5,6 +5,8 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
+import { Plus, Trash2, Package } from 'lucide-react'
+import { EquipmentItem } from '../types/electron.d'
 
 interface AddRequestModalProps {
   open: boolean
@@ -13,18 +15,13 @@ interface AddRequestModalProps {
 }
 
 export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddRequestModalProps) {
-  const [formData, setFormData] = useState({
-    employee_name: '',
-    equipment_name: '',
-    serial_number: '',
-    notes: ''
-  })
+  const [employeeName, setEmployeeName] = useState('')
+  const [notes, setNotes] = useState('')
+  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([
+    { equipment_name: '', serial_number: '', quantity: 1 }
+  ])
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState({
-    employee_name: false,
-    equipment_name: false,
-    serial_number: false
-  })
+  const [employeeNameError, setEmployeeNameError] = useState(false)
   
   const firstInputRef = useRef<HTMLInputElement>(null)
 
@@ -32,41 +29,64 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
   useEffect(() => {
     if (open) {
       // Clear form when opening
-      setFormData({ employee_name: '', equipment_name: '', serial_number: '', notes: '' })
-      setErrors({ employee_name: false, equipment_name: false, serial_number: false })
+      setEmployeeName('')
+      setNotes('')
+      setEquipmentItems([{ equipment_name: '', serial_number: '', quantity: 1 }])
+      setEmployeeNameError(false)
       
-      // Focus first field after a small delay to ensure modal is rendered
+      // Focus first field after a small delay
       setTimeout(() => {
         firstInputRef.current?.focus()
       }, 100)
     }
   }, [open])
 
+  const addEquipmentItem = () => {
+    setEquipmentItems([...equipmentItems, { equipment_name: '', serial_number: '', quantity: 1 }])
+  }
+
+  const removeEquipmentItem = (index: number) => {
+    if (equipmentItems.length > 1) {
+      setEquipmentItems(equipmentItems.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateEquipmentItem = (index: number, field: keyof EquipmentItem, value: string | number) => {
+    const updated = [...equipmentItems]
+    updated[index] = { ...updated[index], [field]: value }
+    setEquipmentItems(updated)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate fields
-    const newErrors = {
-      employee_name: !formData.employee_name.trim(),
-      equipment_name: !formData.equipment_name.trim(),
-      serial_number: !formData.serial_number.trim()
+    // Validate employee name
+    if (!employeeName.trim()) {
+      setEmployeeNameError(true)
+      toast.error('Укажите ФИО сотрудника')
+      return
     }
-    
-    setErrors(newErrors)
-    
-    if (newErrors.employee_name || newErrors.equipment_name || newErrors.serial_number) {
-      toast.error('Заполните все поля')
+
+    // Validate equipment items
+    const hasEmptyFields = equipmentItems.some(
+      item => !item.equipment_name.trim() || !item.serial_number.trim()
+    )
+
+    if (hasEmptyFields) {
+      toast.error('Заполните все поля оборудования')
       return
     }
 
     setLoading(true)
     try {
-      const result = await window.electronAPI.createRequest(formData)
+      const result = await window.electronAPI.createRequest({
+        employee_name: employeeName,
+        notes: notes || undefined,
+        equipment_items: equipmentItems
+      })
       
       if (result.success) {
         toast.success('Заявка успешно создана')
-        setFormData({ employee_name: '', equipment_name: '', serial_number: '', notes: '' })
-        setErrors({ employee_name: false, equipment_name: false, serial_number: false })
         onOpenChange(false)
         onRequestAdded()
       } else {
@@ -82,85 +102,133 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Новая заявка на выдачу оборудования</DialogTitle>
           <DialogDescription>
-            Заполните информацию о сотруднике и оборудовании
+            Укажите сотрудника и добавьте позиции оборудования
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="employee_name">ФИО сотрудника</Label>
-              <Input
-                ref={firstInputRef}
-                id="employee_name"
-                placeholder="Иванов Иван Иванович"
-                value={formData.employee_name}
-                onChange={(e) => {
-                  setFormData({ ...formData, employee_name: e.target.value })
-                  setErrors({ ...errors, employee_name: false })
-                }}
-                disabled={loading}
-                className={errors.employee_name ? 'border-red-500 focus-visible:ring-red-500' : ''}
-              />
-              {errors.employee_name && (
-                <p className="text-xs text-red-500">Это поле обязательно</p>
-              )}
+          <div className="space-y-6">
+            {/* Employee Info */}
+            <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Информация о сотруднике
+              </h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="employee_name">ФИО сотрудника *</Label>
+                <Input
+                  ref={firstInputRef}
+                  id="employee_name"
+                  placeholder="Иванов Иван Иванович"
+                  value={employeeName}
+                  onChange={(e) => {
+                    setEmployeeName(e.target.value)
+                    setEmployeeNameError(false)
+                  }}
+                  disabled={loading}
+                  className={employeeNameError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                {employeeNameError && (
+                  <p className="text-xs text-red-500">Это поле обязательно</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="notes">Примечания</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Дополнительная информация о заявке..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  disabled={loading}
+                  rows={2}
+                />
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="equipment_name">Название оборудования</Label>
-              <Input
-                id="equipment_name"
-                placeholder="Ноутбук Dell Latitude"
-                value={formData.equipment_name}
-                onChange={(e) => {
-                  setFormData({ ...formData, equipment_name: e.target.value })
-                  setErrors({ ...errors, equipment_name: false })
-                }}
-                disabled={loading}
-                className={errors.equipment_name ? 'border-red-500 focus-visible:ring-red-500' : ''}
-              />
-              {errors.equipment_name && (
-                <p className="text-xs text-red-500">Это поле обязательно</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="serial_number">Серийный номер</Label>
-              <Input
-                id="serial_number"
-                placeholder="SN123456789"
-                value={formData.serial_number}
-                onChange={(e) => {
-                  setFormData({ ...formData, serial_number: e.target.value })
-                  setErrors({ ...errors, serial_number: false })
-                }}
-                disabled={loading}
-                className={errors.serial_number ? 'border-red-500 focus-visible:ring-red-500' : ''}
-              />
-              {errors.serial_number && (
-                <p className="text-xs text-red-500">Это поле обязательно</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">Примечания <span className="text-muted-foreground text-xs">(необязательно)</span></Label>
-              <Textarea
-                id="notes"
-                placeholder="Дополнительная информация о заявке..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                disabled={loading}
-                rows={3}
-              />
+
+            {/* Equipment Items */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm">Позиции оборудования</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addEquipmentItem}
+                  disabled={loading}
+                  className="h-8"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Добавить позицию
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {equipmentItems.map((item, index) => (
+                  <div key={index} className="p-4 border rounded-lg bg-card space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Позиция #{index + 1}
+                      </span>
+                      {equipmentItems.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEquipmentItem(index)}
+                          disabled={loading}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Название оборудования *</Label>
+                        <Input
+                          placeholder="Ноутбук Dell Latitude"
+                          value={item.equipment_name}
+                          onChange={(e) => updateEquipmentItem(index, 'equipment_name', e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Серийный номер *</Label>
+                        <Input
+                          placeholder="SN123456789"
+                          value={item.serial_number}
+                          onChange={(e) => updateEquipmentItem(index, 'serial_number', e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Количество</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateEquipmentItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        disabled={loading}
+                        className="w-24"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button
               type="button"
               variant="outline"

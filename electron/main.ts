@@ -62,19 +62,91 @@ function saveWindowState() {
 function initDatabase() {
   db = new Database(dbPath)
   
-  // Создание таблицы заявок
+  // Создание таблицы заявок (основная информация)
   db.exec(`
     CREATE TABLE IF NOT EXISTS requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_name TEXT NOT NULL,
-      equipment_name TEXT NOT NULL,
-      serial_number TEXT NOT NULL,
       created_at TEXT NOT NULL,
       is_issued INTEGER DEFAULT 0,
       issued_at TEXT,
       notes TEXT
     )
   `)
+
+  // Создание таблицы позиций оборудования (связанных с заявкой)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS equipment_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      request_id INTEGER NOT NULL,
+      equipment_name TEXT NOT NULL,
+      serial_number TEXT NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
+    )
+  `)
+
+  // Миграция данных из старой структуры (если есть старые записи)
+  const tableInfo = db.pragma('table_info(requests)') as Array<{ name: string }>
+  const hasOldColumns = tableInfo.some((col) => col.name === 'equipment_name')
+
+  if (hasOldColumns) {
+    try {
+      // Получаем старые данные
+      const oldRequests = db.prepare('SELECT * FROM requests').all() as any[]
+      
+      // Создаем временную таблицу с новой структурой
+      db.exec(`
+        CREATE TABLE requests_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          employee_name TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          is_issued INTEGER DEFAULT 0,
+          issued_at TEXT,
+          notes TEXT
+        )
+      `)
+
+      // Переносим данные в новую таблицу
+      const insertRequest = db.prepare(`
+        INSERT INTO requests_new (id, employee_name, created_at, is_issued, issued_at, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+
+      const insertItem = db.prepare(`
+        INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
+        VALUES (?, ?, ?, 1)
+      `)
+
+      db.transaction(() => {
+        for (const req of oldRequests) {
+          insertRequest.run(
+            req.id,
+            req.employee_name,
+            req.created_at,
+            req.is_issued,
+            req.issued_at,
+            req.notes
+          )
+          
+          // Создаем запись оборудования из старых данных
+          insertItem.run(
+            req.id,
+            req.equipment_name,
+            req.serial_number
+          )
+        }
+      })()
+
+      // Удаляем старую таблицу и переименовываем новую
+      db.exec('DROP TABLE requests')
+      db.exec('ALTER TABLE requests_new RENAME TO requests')
+      
+      console.log('✅ Миграция базы данных завершена успешно')
+    } catch (error) {
+      console.error('❌ Ошибка при миграции базы данных:', error)
+    }
+  }
 }
 
 function createWindow() {
@@ -155,37 +227,75 @@ function createWindow() {
 
 // IPC Handlers для работы с базой данных
 
-// Получить все заявки
+// Получить все заявки с оборудованием
 ipcMain.handle('get-requests', () => {
   try {
-    const stmt = db.prepare('SELECT * FROM requests ORDER BY created_at DESC')
-    return { success: true, data: stmt.all() }
+    const requests = db.prepare('SELECT * FROM requests ORDER BY created_at DESC').all() as any[]
+    
+    // Для каждой заявки получаем список оборудования
+    const result = requests.map(request => {
+      const equipment = db.prepare('SELECT * FROM equipment_items WHERE request_id = ?')
+        .all(request.id) as any[]
+      
+      return {
+        ...request,
+        equipment_items: equipment
+      }
+    })
+    
+    return { success: true, data: result }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
 })
 
-// Создать новую заявку
+// Создать новую заявку с несколькими позициями оборудования
 ipcMain.handle('create-request', (_event: any, data: {
   employee_name: string
-  equipment_name: string
-  serial_number: string
   notes?: string
+  equipment_items: Array<{
+    equipment_name: string
+    serial_number: string
+    quantity: number
+  }>
 }) => {
   try {
-    const stmt = db.prepare(`
-      INSERT INTO requests (employee_name, equipment_name, serial_number, created_at, notes)
-      VALUES (?, ?, ?, ?, ?)
-    `)
     const created_at = new Date().toISOString()
-    const result = stmt.run(
-      data.employee_name,
-      data.equipment_name,
-      data.serial_number,
-      created_at,
-      data.notes || null
-    )
-    return { success: true, id: result.lastInsertRowid }
+    
+    const insertRequest = db.prepare(`
+      INSERT INTO requests (employee_name, created_at, notes)
+      VALUES (?, ?, ?)
+    `)
+    
+    const insertEquipment = db.prepare(`
+      INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
+      VALUES (?, ?, ?, ?)
+    `)
+    
+    // Используем транзакцию для атомарности операции
+    const result = db.transaction(() => {
+      const requestResult = insertRequest.run(
+        data.employee_name,
+        created_at,
+        data.notes || null
+      )
+      
+      const requestId = requestResult.lastInsertRowid
+      
+      // Добавляем все позиции оборудования
+      for (const item of data.equipment_items) {
+        insertEquipment.run(
+          requestId,
+          item.equipment_name,
+          item.serial_number,
+          item.quantity || 1
+        )
+      }
+      
+      return { id: requestId }
+    })()
+    
+    return { success: true, id: result.id }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
@@ -203,58 +313,112 @@ ipcMain.handle('update-issued', (_event: any, id: number, is_issued: boolean) =>
   }
 })
 
-// Обновить заявку
+// Обновить заявку с оборудованием
 ipcMain.handle('update-request', (_event: any, id: number, data: {
   employee_name: string
-  equipment_name: string
-  serial_number: string
   notes?: string
+  equipment_items: Array<{
+    id?: number
+    equipment_name: string
+    serial_number: string
+    quantity: number
+  }>
 }) => {
   try {
-    const stmt = db.prepare(`
+    const updateRequest = db.prepare(`
       UPDATE requests 
-      SET employee_name = ?, equipment_name = ?, serial_number = ?, notes = ?
+      SET employee_name = ?, notes = ?
       WHERE id = ?
     `)
-    stmt.run(data.employee_name, data.equipment_name, data.serial_number, data.notes || null, id)
+    
+    const deleteEquipment = db.prepare('DELETE FROM equipment_items WHERE request_id = ?')
+    
+    const insertEquipment = db.prepare(`
+      INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
+      VALUES (?, ?, ?, ?)
+    `)
+    
+    // Используем транзакцию
+    db.transaction(() => {
+      updateRequest.run(data.employee_name, data.notes || null, id)
+      
+      // Удаляем старые позиции оборудования
+      deleteEquipment.run(id)
+      
+      // Добавляем новые позиции
+      for (const item of data.equipment_items) {
+        insertEquipment.run(
+          id,
+          item.equipment_name,
+          item.serial_number,
+          item.quantity || 1
+        )
+      }
+    })()
+    
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
 })
 
-// Удалить заявку
+// Удалить заявку с оборудованием
 ipcMain.handle('delete-request', (_event: any, id: number) => {
   try {
-    // Сначала получаем данные для возможного восстановления
-    const getStmt = db.prepare('SELECT * FROM requests WHERE id = ?')
-    const deletedRequest = getStmt.get(id)
+    // Получаем данные для возможного восстановления
+    const request = db.prepare('SELECT * FROM requests WHERE id = ?').get(id) as any
+    const equipment = db.prepare('SELECT * FROM equipment_items WHERE request_id = ?')
+      .all(id) as any[]
     
+    const deletedRequest = {
+      ...request,
+      equipment_items: equipment
+    }
+    
+    // Удаляем заявку (equipment_items удалятся автоматически через CASCADE)
     const stmt = db.prepare('DELETE FROM requests WHERE id = ?')
     stmt.run(id)
+    
     return { success: true, data: deletedRequest }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
 })
 
-// Восстановить заявку
+// Восстановить заявку с оборудованием
 ipcMain.handle('restore-request', (_event: any, request: any) => {
   try {
-    const stmt = db.prepare(`
-      INSERT INTO requests (id, employee_name, equipment_name, serial_number, created_at, is_issued, issued_at, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    const insertRequest = db.prepare(`
+      INSERT INTO requests (id, employee_name, created_at, is_issued, issued_at, notes)
+      VALUES (?, ?, ?, ?, ?, ?)
     `)
-    stmt.run(
-      request.id,
-      request.employee_name,
-      request.equipment_name,
-      request.serial_number,
-      request.created_at,
-      request.is_issued,
-      request.issued_at,
-      request.notes
-    )
+    
+    const insertEquipment = db.prepare(`
+      INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
+      VALUES (?, ?, ?, ?)
+    `)
+    
+    db.transaction(() => {
+      insertRequest.run(
+        request.id,
+        request.employee_name,
+        request.created_at,
+        request.is_issued,
+        request.issued_at,
+        request.notes
+      )
+      
+      // Восстанавливаем все позиции оборудования
+      for (const item of request.equipment_items) {
+        insertEquipment.run(
+          request.id,
+          item.equipment_name,
+          item.serial_number,
+          item.quantity
+        )
+      }
+    })()
+    
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
