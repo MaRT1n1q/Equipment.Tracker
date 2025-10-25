@@ -9,6 +9,12 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const iconVariants = {
+    success: 'status-icon status-icon--success',
+    danger: 'status-icon status-icon--danger',
+    info: 'status-icon status-icon--info',
+  } as const
+
   const handleCreateBackup = async () => {
     try {
       const result = await window.electronAPI.createBackup()
@@ -49,8 +55,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-              <Settings className="w-5 h-5 text-white" />
+            <div className="icon-bubble w-10 h-10">
+              <Settings className="w-5 h-5" />
             </div>
             <div>
               <DialogTitle className="text-2xl">Настройки</DialogTitle>
@@ -63,21 +69,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         <div className="space-y-6 py-4">
           {/* Backup Section */}
-          <div className="space-y-4">
+          <div className="surface-section space-y-4">
             <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-purple-500" />
-              <h3 className="font-semibold text-lg">Резервное копирование</h3>
+              <Database className="w-5 h-5 text-[hsl(var(--primary))]" />
+              <h3 className="font-semibold text-base">Резервное копирование</h3>
             </div>
 
             <div className="grid gap-3">
               <Button
                 onClick={handleCreateBackup}
                 variant="outline"
-                className="w-full justify-start h-auto py-3 hover:bg-accent hover:border-purple-500 transition-all group"
+                className="w-full justify-start h-auto py-3 hover:bg-muted/40 transition-colors group"
               >
                 <div className="flex items-start gap-3 w-full">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
-                    <Download className="w-5 h-5 text-green-600" />
+                  <div className={`${iconVariants.success} w-10 h-10`}>
+                    <Download className="w-5 h-5" />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-medium">Создать резервную копию</div>
@@ -91,11 +97,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Button
                 onClick={handleRestoreBackup}
                 variant="outline"
-                className="w-full justify-start h-auto py-3 hover:bg-accent hover:border-orange-500 transition-all group"
+                className="w-full justify-start h-auto py-3 hover:bg-muted/40 transition-colors group"
               >
                 <div className="flex items-start gap-3 w-full">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
-                    <Upload className="w-5 h-5 text-orange-600" />
+                  <div className={`${iconVariants.danger} w-10 h-10`}>
+                    <Upload className="w-5 h-5" />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-medium">Восстановить из резервной копии</div>
@@ -109,9 +115,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
 
           {/* Info Section */}
-          <div className="border-t pt-4">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/5">
-              <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+          <div className="surface-section space-y-3">
+            <div className="flex items-start gap-3">
+              <div className={`${iconVariants.info} w-10 h-10`}>
+                <Info className="w-5 h-5" />
+              </div>
               <div className="text-sm text-muted-foreground">
                 <p className="font-medium text-foreground mb-1">
                   Автоматическое резервное копирование
@@ -124,7 +132,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
 
           {/* Version info */}
-          <div className="text-center text-xs text-muted-foreground border-t pt-4">
+          <div className="text-center text-xs text-muted-foreground border-t border-border/60 pt-4">
             Equipment Tracker v1.0.0
           </div>
         </div>

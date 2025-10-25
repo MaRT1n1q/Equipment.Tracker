@@ -129,11 +129,13 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             {/* Employee Info */}
-            <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Информация о сотруднике
-              </h3>
+            <div className="surface-section space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="icon-bubble icon-bubble--soft w-9 h-9">
+                  <Package className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Информация о сотруднике</h3>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="employee_name">ФИО сотрудника *</Label>
@@ -184,7 +186,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
 
               <div className="space-y-3">
                 {equipmentItems.map((item, index) => (
-                  <div key={index} className="p-4 border rounded-lg bg-card space-y-3">
+                  <div key={index} className="surface-section space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
                         Позиция #{index + 1}
@@ -257,7 +259,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
             >
               Отмена
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="shadow-brand">
               {loading ? 'Сохранение...' : 'Сохранить изменения'}
             </Button>
           </DialogFooter>

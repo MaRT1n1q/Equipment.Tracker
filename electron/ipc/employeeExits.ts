@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { dialog, ipcMain } from 'electron'
 import type Database from 'better-sqlite3'
 import {
   createEmployeeExitSchema,
@@ -6,8 +6,23 @@ import {
   issuedStatusSchema,
   requestIdSchema,
 } from '../../src/types/ipc'
+import fs from 'fs'
 
 type GetDatabase = () => Database.Database
+
+function createCsvValue(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  const stringValue = String(value).replace(/\r?\n/g, ' ')
+  const needsEscape = /[",\n]/.test(stringValue)
+  if (needsEscape) {
+    return `"${stringValue.replace(/"/g, '""')}"`
+  }
+
+  return stringValue
+}
 
 export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
   ipcMain.handle('get-employee-exits', () => {
@@ -102,6 +117,53 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
         .run(isCompleted ? 1 : 0, id)
 
       return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('export-employee-exits', async (_event, rawExits) => {
+    try {
+      const exits = employeeExitRecordSchema.array().parse(rawExits)
+      const timestamp = new Date().toISOString().split('T')[0]
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: 'Экспорт записей о выходах',
+        defaultPath: `employee-exits-${timestamp}.csv`,
+        filters: [{ name: 'CSV', extensions: ['csv'] }],
+      })
+
+      if (canceled || !filePath) {
+        return { success: false, error: 'Отменено пользователем' }
+      }
+
+      const headers = [
+        'ID',
+        'Сотрудник',
+        'Логин',
+        'Дата выхода',
+        'Статус',
+        'Создано',
+        'Оборудование',
+      ]
+
+      const rows = exits.map((exit) => [
+        exit.id,
+        exit.employee_name,
+        exit.login,
+        exit.exit_date,
+        exit.is_completed === 1 ? 'Завершено' : 'Ожидает',
+        exit.created_at,
+        exit.equipment_list,
+      ])
+
+      const csvContent = [
+        headers.map(createCsvValue).join(','),
+        ...rows.map((row) => row.map(createCsvValue).join(',')),
+      ].join('\n')
+
+      fs.writeFileSync(filePath, csvContent, 'utf8')
+
+      return { success: true, data: { path: filePath } }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

@@ -24,6 +24,7 @@ declare global {
       updateEmployeeExit: (id: number, data: CreateEmployeeExitData) => Promise<ApiResponse>
       deleteEmployeeExit: (id: number) => Promise<ApiResponse<EmployeeExit>>
       updateExitCompleted: (id: number, is_completed: boolean) => Promise<ApiResponse>
+      exportEmployeeExits: (exits: EmployeeExit[]) => Promise<ApiResponse<{ path: string }>>
     }
   }
 }

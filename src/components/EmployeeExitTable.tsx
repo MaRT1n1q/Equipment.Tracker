@@ -11,16 +11,43 @@ import {
   Package,
   CheckCircle2,
   Clock,
+  AlertTriangle,
+  Copy,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
+import { cn } from '../lib/utils'
 
 interface EmployeeExitTableProps {
   exits: EmployeeExit[]
+  isFiltered?: boolean
+  density?: 'comfortable' | 'dense'
 }
 
-export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
+export function EmployeeExitTable({
+  exits,
+  isFiltered = false,
+  density = 'comfortable',
+}: EmployeeExitTableProps) {
   const { updateExitCompleted, deleteEmployeeExit } = useEmployeeExitActions()
+  const isDense = density === 'dense'
+  const statusVariants = {
+    success: {
+      rail: 'bg-[linear-gradient(180deg,hsl(var(--success))0%,hsl(var(--success)/0.6)100%)]',
+      icon: 'status-icon status-icon--success',
+      pill: 'status-pill status-pill--success',
+    },
+    warning: {
+      rail: 'bg-[linear-gradient(180deg,hsl(var(--warning))0%,hsl(var(--warning)/0.6)100%)]',
+      icon: 'status-icon status-icon--warning',
+      pill: 'status-pill status-pill--warning',
+    },
+    danger: {
+      rail: 'bg-[linear-gradient(180deg,hsl(var(--destructive))0%,hsl(var(--destructive)/0.6)100%)]',
+      icon: 'status-icon status-icon--danger',
+      pill: 'status-pill status-pill--danger',
+    },
+  } as const
 
   const handleToggleCompleted = async (id: number, currentStatus: boolean) => {
     try {
@@ -60,7 +87,43 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
     })
   }
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const copyEquipment = async (items: string[], employeeName: string) => {
+    if (items.length === 0) {
+      toast.info('Список оборудования пуст')
+      return
+    }
+
+    const text = items.join('\n')
+
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`Список оборудования для ${employeeName} скопирован`)
+    } catch (error) {
+      toast.error('Не удалось скопировать данные')
+      console.error(error)
+    }
+  }
+
   if (exits.length === 0) {
+    if (isFiltered) {
+      return (
+        <div className="text-center py-16 px-4 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 mb-6">
+            <AlertTriangle className="h-12 w-12 text-orange-500" />
+          </div>
+          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">
+            Совпадений не найдено
+          </h3>
+          <p className="text-muted-foreground mb-2 max-w-md mx-auto">
+            Попробуйте изменить параметры поиска или фильтрации.
+          </p>
+        </div>
+      )
+    }
+
     return (
       <div className="text-center py-16 px-4 animate-fade-in">
         <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 mb-6">
@@ -77,84 +140,93 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={cn('space-y-4', { 'space-y-3': isDense })}>
       {exits.map((exit, index) => {
         const isCompleted = exit.is_completed === 1
         const equipmentItems = exit.equipment_list.split('\n').filter((item) => item.trim())
+        const exitDate = new Date(exit.exit_date)
+        exitDate.setHours(0, 0, 0, 0)
+        const isOverdue = !isCompleted && exitDate < today
+        const variantKey = isCompleted ? 'success' : isOverdue ? 'danger' : 'warning'
+        const variant = statusVariants[variantKey]
+        const StatusIcon = isCompleted ? CheckCircle2 : isOverdue ? AlertTriangle : Clock
 
         return (
           <div
             key={exit.id}
-            className="group relative bg-card rounded-lg border border-border hover:border-orange-500/50 transition-all duration-300 hover:shadow-md overflow-hidden animate-fade-in"
+            className="group relative surface-card surface-card-hover overflow-hidden animate-fade-in"
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Status gradient bar */}
-            <div
-              className={`absolute left-0 top-0 bottom-0 w-1 ${
-                isCompleted
-                  ? 'bg-gradient-to-b from-green-500 to-emerald-500'
-                  : 'bg-gradient-to-b from-orange-500 to-red-500'
-              }`}
-            />
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${variant.rail}`} />
 
-            <div className="p-4 pl-5">
-              <div className="flex items-start justify-between gap-4">
+            <div className={cn('p-4 pl-5', { 'p-3 pl-4': isDense })}>
+              <div className={cn('flex items-start justify-between gap-4', { 'gap-3': isDense })}>
                 {/* Main Info */}
-                <div className="flex-1 space-y-3">
+                <div className={cn('flex-1 space-y-3', { 'space-y-2.5': isDense })}>
                   {/* Employee Name & Status */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-10 h-10 rounded-lg ${
-                          isCompleted
-                            ? 'bg-green-500/10'
-                            : 'bg-gradient-to-br from-orange-500/10 to-red-500/10'
-                        } flex items-center justify-center`}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-orange-600" />
-                        )}
+                  <div className={cn('flex items-center gap-3 flex-wrap', { 'gap-2': isDense })}>
+                    <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
+                      <div className={cn(variant.icon, isDense ? 'scale-90' : '')}>
+                        <StatusIcon
+                          className={cn('text-current', isDense ? 'w-4 h-4' : 'w-5 h-5')}
+                        />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-semibold text-lg">{exit.employee_name}</span>
+                        <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
+                          <User
+                            className={cn(
+                              'text-muted-foreground',
+                              isDense ? 'w-3.5 h-3.5' : 'w-4 h-4'
+                            )}
+                          />
+                          <span className={cn('font-semibold', isDense ? 'text-base' : 'text-lg')}>
+                            {exit.employee_name}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <KeyRound className="w-3.5 h-3.5" />
+                        <div
+                          className={cn('flex items-center gap-2 text-sm text-muted-foreground', {
+                            'gap-1.5 text-xs': isDense,
+                          })}
+                        >
+                          <KeyRound
+                            className={cn(
+                              'text-muted-foreground',
+                              isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
+                            )}
+                          />
                           <span>{exit.login}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Status Badge */}
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        isCompleted
-                          ? 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20'
-                          : 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20'
-                      }`}
-                    >
-                      {isCompleted ? 'Завершено' : 'Ожидает'}
+                    <span className={cn(variant.pill, isDense && 'px-2.5 py-0.5')}>
+                      {isCompleted ? 'Завершено' : isOverdue ? 'Просрочено' : 'Ожидает'}
                     </span>
                   </div>
 
                   {/* Exit Date */}
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className={cn('flex items-center gap-2 text-sm', { 'text-xs': isDense })}>
                     <Calendar className="w-4 h-4 text-orange-500" />
                     <span className="text-muted-foreground">Дата выхода:</span>
                     <span className="font-medium">{formatDate(exit.exit_date)}</span>
                   </div>
 
+                  {isOverdue && (
+                    <div className="flex items-center gap-2 text-sm text-[hsl(var(--destructive))] dark:text-[hsl(var(--destructive))]">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Выдача оборудования просрочена</span>
+                    </div>
+                  )}
+
                   {/* Equipment List */}
-                  <div className="space-y-2">
+                  <div className={cn('space-y-2', { 'space-y-1.5': isDense })}>
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <Package className="w-4 h-4 text-orange-500" />
+                      <Package className="w-4 h-4 text-[hsl(var(--primary))]" />
                       <span>Оборудование для выдачи:</span>
                     </div>
-                    <div className="pl-6 space-y-1">
+                    <div className={cn('pl-6 space-y-1', { 'pl-5 space-y-0.5': isDense })}>
                       {equipmentItems.map((item, idx) => (
                         <div
                           key={idx}
@@ -169,7 +241,7 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col items-end gap-3">
+                <div className={cn('flex flex-col items-end gap-3', { 'gap-2': isDense })}>
                   {/* Completed Checkbox */}
                   <TooltipProvider>
                     <Tooltip>
@@ -191,6 +263,28 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
                     </Tooltip>
                   </TooltipProvider>
 
+                  {/* Copy Equipment */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copyEquipment(equipmentItems, exit.employee_name)}
+                          className={cn(
+                            'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.12)]',
+                            isDense ? 'h-8 w-8' : ''
+                          )}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Скопировать список оборудования</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
                   {/* Delete Button */}
                   <TooltipProvider>
                     <Tooltip>
@@ -199,7 +293,10 @@ export function EmployeeExitTable({ exits }: EmployeeExitTableProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(exit.id)}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                          className={cn(
+                            'text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.12)]',
+                            isDense ? 'h-8 w-8' : ''
+                          )}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
