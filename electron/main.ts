@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron'
+import { app, BrowserWindow, ipcMain, session, dialog } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import Database from 'better-sqlite3'
+import fs from 'fs'
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -26,7 +27,8 @@ function initDatabase() {
       serial_number TEXT NOT NULL,
       created_at TEXT NOT NULL,
       is_issued INTEGER DEFAULT 0,
-      issued_at TEXT
+      issued_at TEXT,
+      notes TEXT
     )
   `)
 }
@@ -100,18 +102,20 @@ ipcMain.handle('create-request', (_event: any, data: {
   employee_name: string
   equipment_name: string
   serial_number: string
+  notes?: string
 }) => {
   try {
     const stmt = db.prepare(`
-      INSERT INTO requests (employee_name, equipment_name, serial_number, created_at)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO requests (employee_name, equipment_name, serial_number, created_at, notes)
+      VALUES (?, ?, ?, ?, ?)
     `)
     const created_at = new Date().toISOString()
     const result = stmt.run(
       data.employee_name,
       data.equipment_name,
       data.serial_number,
-      created_at
+      created_at,
+      data.notes || null
     )
     return { success: true, id: result.lastInsertRowid }
   } catch (error) {
@@ -136,14 +140,15 @@ ipcMain.handle('update-request', (_event: any, id: number, data: {
   employee_name: string
   equipment_name: string
   serial_number: string
+  notes?: string
 }) => {
   try {
     const stmt = db.prepare(`
       UPDATE requests 
-      SET employee_name = ?, equipment_name = ?, serial_number = ?
+      SET employee_name = ?, equipment_name = ?, serial_number = ?, notes = ?
       WHERE id = ?
     `)
-    stmt.run(data.employee_name, data.equipment_name, data.serial_number, id)
+    stmt.run(data.employee_name, data.equipment_name, data.serial_number, data.notes || null, id)
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
@@ -153,9 +158,104 @@ ipcMain.handle('update-request', (_event: any, id: number, data: {
 // Удалить заявку
 ipcMain.handle('delete-request', (_event: any, id: number) => {
   try {
+    // Сначала получаем данные для возможного восстановления
+    const getStmt = db.prepare('SELECT * FROM requests WHERE id = ?')
+    const deletedRequest = getStmt.get(id)
+    
     const stmt = db.prepare('DELETE FROM requests WHERE id = ?')
     stmt.run(id)
+    return { success: true, data: deletedRequest }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Восстановить заявку
+ipcMain.handle('restore-request', (_event: any, request: any) => {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO requests (id, employee_name, equipment_name, serial_number, created_at, is_issued, issued_at, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    stmt.run(
+      request.id,
+      request.employee_name,
+      request.equipment_name,
+      request.serial_number,
+      request.created_at,
+      request.is_issued,
+      request.issued_at,
+      request.notes
+    )
     return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Создать backup базы данных
+ipcMain.handle('create-backup', async () => {
+  try {
+    const backupDir = path.join(app.getPath('userData'), 'backups')
+    
+    // Создать папку для backup если не существует
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true })
+    }
+    
+    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0]
+    const backupPath = path.join(backupDir, `equipment_backup_${timestamp}.db`)
+    
+    // Копировать файл базы данных
+    fs.copyFileSync(dbPath, backupPath)
+    
+    return { success: true, path: backupPath }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Восстановить из backup
+ipcMain.handle('restore-backup', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Database Files', extensions: ['db'] }
+      ]
+    })
+    
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, error: 'Отменено пользователем' }
+    }
+    
+    const backupFilePath = result.filePaths[0]
+    
+    // Закрыть текущее соединение
+    db.close()
+    
+    // Создать копию текущей БД на всякий случай
+    const emergencyBackup = dbPath + '.emergency'
+    fs.copyFileSync(dbPath, emergencyBackup)
+    
+    try {
+      // Восстановить из backup
+      fs.copyFileSync(backupFilePath, dbPath)
+      
+      // Переоткрыть базу данных
+      db = new Database(dbPath)
+      
+      // Удалить emergency backup
+      fs.unlinkSync(emergencyBackup)
+      
+      return { success: true }
+    } catch (error) {
+      // При ошибке восстановить из emergency backup
+      fs.copyFileSync(emergencyBackup, dbPath)
+      fs.unlinkSync(emergencyBackup)
+      db = new Database(dbPath)
+      throw error
+    }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
@@ -174,6 +274,33 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    // Создать автоматический backup при закрытии
+    try {
+      const backupDir = path.join(app.getPath('userData'), 'backups')
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true })
+      }
+      
+      const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0]
+      const backupPath = path.join(backupDir, `auto_backup_${timestamp}.db`)
+      
+      fs.copyFileSync(dbPath, backupPath)
+      
+      // Удалить старые auto backups (оставить последние 5)
+      const files = fs.readdirSync(backupDir)
+        .filter(f => f.startsWith('auto_backup_'))
+        .sort()
+        .reverse()
+      
+      if (files.length > 5) {
+        files.slice(5).forEach(f => {
+          fs.unlinkSync(path.join(backupDir, f))
+        })
+      }
+    } catch (error) {
+      console.error('Auto backup failed:', error)
+    }
+    
     db.close()
     app.quit()
   }

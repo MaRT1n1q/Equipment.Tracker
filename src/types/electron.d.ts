@@ -6,12 +6,14 @@ export interface Request {
   created_at: string
   is_issued: number
   issued_at: string | null
+  notes: string | null
 }
 
 export interface CreateRequestData {
   employee_name: string
   equipment_name: string
   serial_number: string
+  notes?: string
 }
 
 export interface ApiResponse<T = unknown> {
@@ -28,7 +30,10 @@ declare global {
       createRequest: (data: CreateRequestData) => Promise<ApiResponse>
       updateRequest: (id: number, data: CreateRequestData) => Promise<ApiResponse>
       updateIssued: (id: number, is_issued: boolean) => Promise<ApiResponse>
-      deleteRequest: (id: number) => Promise<ApiResponse>
+      deleteRequest: (id: number) => Promise<ApiResponse<Request>>
+      restoreRequest: (request: Request) => Promise<ApiResponse>
+      createBackup: () => Promise<ApiResponse<{ path: string }>>
+      restoreBackup: () => Promise<ApiResponse>
     }
   }
 }

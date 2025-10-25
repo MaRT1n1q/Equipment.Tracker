@@ -7,8 +7,10 @@ import { RequestsTable } from './components/RequestsTable'
 import { ThemeToggle } from './components/ThemeToggle'
 import { SearchAndFilters } from './components/SearchAndFilters'
 import { TableSkeleton } from './components/TableSkeleton'
+import { SettingsMenu } from './components/SettingsMenu'
 import { Toaster } from 'sonner'
 import { Request } from './types/electron.d'
+import { useDebounce } from './hooks/useDebounce'
 
 function App() {
   const [requests, setRequests] = useState<Request[]>([])
@@ -19,6 +21,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
   const loadRequests = async () => {
     try {
@@ -49,9 +54,9 @@ function App() {
       filtered = filtered.filter(req => req.is_issued === 0)
     }
 
-    // Apply search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
+    // Apply debounced search
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase()
       filtered = filtered.filter(req =>
         req.employee_name.toLowerCase().includes(query) ||
         req.equipment_name.toLowerCase().includes(query) ||
@@ -60,7 +65,7 @@ function App() {
     }
 
     return filtered
-  }, [requests, filter, searchQuery])
+  }, [requests, filter, debouncedSearchQuery])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -131,6 +136,7 @@ function App() {
               
               <div className="h-8 w-px bg-border hidden md:block"></div>
               
+              <SettingsMenu />
               <ThemeToggle />
               <Button onClick={() => setIsModalOpen(true)} size="lg">
                 <Plus className="h-5 w-5 mr-2" />

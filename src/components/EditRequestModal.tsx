@@ -3,6 +3,7 @@ import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
 import { Request } from '../types/electron.d'
 
@@ -17,7 +18,8 @@ export function EditRequestModal({ open, onOpenChange, onRequestUpdated, request
   const [formData, setFormData] = useState({
     employee_name: '',
     equipment_name: '',
-    serial_number: ''
+    serial_number: '',
+    notes: ''
   })
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({
@@ -34,7 +36,8 @@ export function EditRequestModal({ open, onOpenChange, onRequestUpdated, request
       setFormData({
         employee_name: request.employee_name,
         equipment_name: request.equipment_name,
-        serial_number: request.serial_number
+        serial_number: request.serial_number,
+        notes: request.notes || ''
       })
       setErrors({ employee_name: false, equipment_name: false, serial_number: false })
       
@@ -150,6 +153,18 @@ export function EditRequestModal({ open, onOpenChange, onRequestUpdated, request
               {errors.serial_number && (
                 <p className="text-xs text-red-500">Это поле обязательно</p>
               )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_notes">Примечания <span className="text-muted-foreground text-xs">(необязательно)</span></Label>
+              <Textarea
+                id="edit_notes"
+                placeholder="Дополнительная информация о заявке..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                disabled={loading}
+                rows={3}
+              />
             </div>
           </div>
           

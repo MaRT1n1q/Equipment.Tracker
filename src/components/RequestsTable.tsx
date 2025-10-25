@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Request } from '../types/electron.d'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
-import { Trash2, Package, FileText, Edit2 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { Trash2, Package, FileText, Edit2, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface RequestsTableProps {
@@ -72,9 +73,33 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
     try {
       const result = await window.electronAPI.deleteRequest(id)
       
-      if (result.success) {
-        toast.success('Заявка удалена')
+      if (result.success && result.data) {
+        const deletedRequest = result.data
+        
+        // Обновить список
         onUpdate()
+        
+        // Показать toast с кнопкой отмены
+        toast.success('Заявка удалена', {
+          action: {
+            label: 'Отменить',
+            onClick: async () => {
+              try {
+                const restoreResult = await window.electronAPI.restoreRequest(deletedRequest)
+                if (restoreResult.success) {
+                  toast.success('Заявка восстановлена')
+                  onUpdate()
+                } else {
+                  toast.error('Ошибка при восстановлении')
+                }
+              } catch (error) {
+                toast.error('Ошибка при восстановлении')
+                console.error(error)
+              }
+            }
+          },
+          duration: 5000, // 5 секунд на отмену
+        })
       } else {
         toast.error(result.error || 'Ошибка при удалении заявки')
       }
@@ -177,12 +202,14 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
                   )}
                 </div>
               </th>
+              <th className="text-center p-4 font-semibold text-sm">Примечания</th>
               <th className="text-center p-4 font-semibold text-sm">Выдано</th>
               <th className="text-center p-4 font-semibold text-sm">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {sortedRequests.map((request) => (
+            <TooltipProvider>
+              {sortedRequests.map((request) => (
               <tr
                 key={request.id}
                 className={`border-t hover:bg-muted/50 transition-colors ${
@@ -199,6 +226,22 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
                     <span className="text-green-600 dark:text-green-400 font-medium">
                       {formatDate(request.issued_at)}
                     </span>
+                  ) : (
+                    <span className="text-muted-foreground/50">—</span>
+                  )}
+                </td>
+                <td className="p-4 text-center">
+                  {request.notes ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="inline-flex items-center text-primary hover:text-primary/80">
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm whitespace-pre-wrap">{request.notes}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   ) : (
                     <span className="text-muted-foreground/50">—</span>
                   )}
@@ -235,6 +278,7 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
                 </td>
               </tr>
             ))}
+            </TooltipProvider>
           </tbody>
         </table>
       </div>

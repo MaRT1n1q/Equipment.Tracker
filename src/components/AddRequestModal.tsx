@@ -3,6 +3,7 @@ import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
 
 interface AddRequestModalProps {
@@ -15,7 +16,8 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
   const [formData, setFormData] = useState({
     employee_name: '',
     equipment_name: '',
-    serial_number: ''
+    serial_number: '',
+    notes: ''
   })
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({
@@ -30,7 +32,7 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
   useEffect(() => {
     if (open) {
       // Clear form when opening
-      setFormData({ employee_name: '', equipment_name: '', serial_number: '' })
+      setFormData({ employee_name: '', equipment_name: '', serial_number: '', notes: '' })
       setErrors({ employee_name: false, equipment_name: false, serial_number: false })
       
       // Focus first field after a small delay to ensure modal is rendered
@@ -63,7 +65,7 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
       
       if (result.success) {
         toast.success('Заявка успешно создана')
-        setFormData({ employee_name: '', equipment_name: '', serial_number: '' })
+        setFormData({ employee_name: '', equipment_name: '', serial_number: '', notes: '' })
         setErrors({ employee_name: false, equipment_name: false, serial_number: false })
         onOpenChange(false)
         onRequestAdded()
@@ -143,6 +145,18 @@ export function AddRequestModal({ open, onOpenChange, onRequestAdded }: AddReque
               {errors.serial_number && (
                 <p className="text-xs text-red-500">Это поле обязательно</p>
               )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Примечания <span className="text-muted-foreground text-xs">(необязательно)</span></Label>
+              <Textarea
+                id="notes"
+                placeholder="Дополнительная информация о заявке..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                disabled={loading}
+                rows={3}
+              />
             </div>
           </div>
           

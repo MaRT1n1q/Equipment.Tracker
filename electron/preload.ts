@@ -37,4 +37,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   deleteRequest: (id: number): Promise<ApiResponse> => 
     ipcRenderer.invoke('delete-request', id),
+  
+  restoreRequest: (request: Request): Promise<ApiResponse> => 
+    ipcRenderer.invoke('restore-request', request),
+  
+  createBackup: (): Promise<ApiResponse> => 
+    ipcRenderer.invoke('create-backup'),
+  
+  restoreBackup: (): Promise<ApiResponse> => 
+    ipcRenderer.invoke('restore-backup'),
 })
