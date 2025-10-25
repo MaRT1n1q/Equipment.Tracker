@@ -8,7 +8,11 @@
   "description": "Desktop application for tracking equipment requests",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "build": "npm run build:bundle && electron-builder --win --mac --linux",
+    "build:bundle": "tsc && vite build",
+    "build:win": "npm run build:bundle && electron-builder --win",
+    "build:linux": "npm run build:bundle && electron-builder --linux",
+    "build:mac": "npm run build:bundle && electron-builder --mac",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "electron": "electron .",
@@ -66,17 +70,56 @@
     "appId": "com.equipment.tracker",
     "productName": "Equipment Tracker",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
     ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+    },
     "win": {
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     }
   },
   "lint-staged": {

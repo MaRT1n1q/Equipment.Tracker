@@ -44,15 +44,25 @@ npm run electron:dev
 # 3. Альтернативно: только фронтенд (без Electron-окна)
 npm run dev
 
-# 4. Сборка production-бандла и electron-builder
+# 4. Сборка production-бандла и пакетов для Windows/macOS/Linux
 npm run build
 
 # 5. Запуск собранного приложения
 npm run electron
 ```
 
-> Команда `npm run build` создаёт renderer-бандл, компилирует TypeScript и
-> запускает `electron-builder`, складывая артефакты в `release/`.
+> Команда `npm run build` собирает renderer-бандл, компилирует TypeScript и
+> запускает `electron-builder` сразу для Windows, macOS и Linux, складывая
+> артефакты в `release/`.
+>
+> ⚠️ Для выпуска macOS-артефактов (`.dmg/.zip`) требуется macOS-хост или CI с
+> macOS runner — Apple запрещает сборку этих пакетов на Windows/Linux. Для Linux
+> пакетов нужен установленный Docker либо WSL (electron-builder подтянет образ
+> автоматически).
+>
+> Иконки приложения (`build/icon.{ico,icns,png}`) уже сгенерированы из
+> `build/new_icon.png`. При обновлении дизайна замените PNG и выполните команды
+> из `build/README.md`, чтобы пересобрать набор.
 
 ## 🧭 Структура проекта
 
@@ -127,7 +137,11 @@ React Query-хуки (`src/hooks/useRequests.ts`, `useEmployeeExits.ts`)
 | `npm run dev`          | Vite dev-сервер (renderer)                               |
 | `npm run electron:dev` | Vite dev-сервер + Electron с авто-перезапуском           |
 | `npm run electron`     | Запуск production Electron из `dist-electron`            |
-| `npm run build`        | `tsc && vite build && electron-builder`                  |
+| `npm run build`        | Production-бандл + Electron-пакеты для Win/macOS/Linux   |
+| `npm run build:bundle` | Только сборка renderer + main (`tsc && vite build`)      |
+| `npm run build:win`    | Сборка Windows-артефактов (`electron-builder --win`)     |
+| `npm run build:linux`  | Сборка Linux-артефактов (`--linux`, AppImage и др.)      |
+| `npm run build:mac`    | Сборка macOS-артефактов (`--mac`, требуется macOS)       |
 | `npm run build:ci`     | Облегчённая сборка для CI (`tsc --noEmit && vite build`) |
 | `npm run lint`         | ESLint с жёстким порогом (max-warnings = 0)              |
 | `npm run format`       | Prettier с `--write`                                     |
