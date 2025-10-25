@@ -28,6 +28,11 @@ export function EmployeeExitTable({ exits, onUpdate }: EmployeeExitTableProps) {
   }
 
   const handleDelete = async (id: number) => {
+    const confirmed = window.confirm('Удалить запись о выходе сотрудника? Действие необратимо без резервной копии.')
+    if (!confirmed) {
+      return
+    }
+
     try {
       const result = await window.electronAPI.deleteEmployeeExit(id)
       

@@ -35,54 +35,65 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
   const completedExits = exits.filter(e => e.is_completed === 1).length
   const pendingExits = exits.filter(e => e.is_completed === 0).length
 
+  const cards = [
+    {
+      title: 'Всего записей',
+      value: totalExits,
+      icon: Users,
+      gradient: 'from-orange-500 to-red-500',
+      bgLight: 'bg-orange-50',
+      bgDark: 'dark:bg-orange-950/20',
+      iconColor: 'text-orange-600 dark:text-orange-400'
+    },
+    {
+      title: 'Завершено выдач',
+      value: completedExits,
+      icon: CheckCircle,
+      gradient: 'from-green-500 to-emerald-500',
+      bgLight: 'bg-green-50',
+      bgDark: 'dark:bg-green-950/20',
+      iconColor: 'text-green-600 dark:text-green-400'
+    },
+    {
+      title: 'Ожидает выдачи',
+      value: pendingExits,
+      icon: Clock,
+      gradient: 'from-amber-500 to-orange-500',
+      bgLight: 'bg-amber-50',
+      bgDark: 'dark:bg-amber-950/20',
+      iconColor: 'text-amber-600 dark:text-amber-400'
+    }
+  ] as const
+
   return (
     <div className="space-y-6">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Total */}
-        {/* <div className="bg-card rounded-xl border border-border p-6 hover:border-orange-500/50 transition-all duration-300 hover-lift">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Всего записей</p>
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">
-                {totalExits}
-              </h3>
+        {cards.map((card, index) => (
+          <div
+            key={card.title}
+            className="group relative overflow-hidden rounded-xl bg-card border border-border hover-lift transition-all duration-300 animate-scale-in"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+            <div className="relative p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg ${card.bgLight} ${card.bgDark} transition-transform duration-300 group-hover:scale-110`}>
+                  <card.icon className={`w-6 h-6 ${card.iconColor}`} />
+                </div>
+                <div className="text-right">
+                  <div className={`text-3xl font-bold bg-gradient-to-br ${card.gradient} bg-clip-text text-transparent`}>
+                    {card.value}
+                  </div>
+                </div>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">
+                {card.title}
+              </div>
             </div>
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/10 to-red-500/10 flex items-center justify-center">
-              <Users className="w-7 h-7 text-orange-500" />
-            </div>
+            <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`} />
           </div>
-        </div> */}
-
-        {/* Completed */}
-        {/* <div className="bg-card rounded-xl border border-border p-6 hover:border-green-500/50 transition-all duration-300 hover-lift">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Завершено</p>
-              <h3 className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {completedExits}
-              </h3>
-            </div>
-            <div className="w-14 h-14 rounded-xl bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="w-7 h-7 text-green-500" />
-            </div>
-          </div>
-        </div> */}
-
-        {/* Pending */}
-        {/* <div className="bg-card rounded-xl border border-border p-6 hover:border-orange-500/50 transition-all duration-300 hover-lift">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">В ожидании</p>
-              <h3 className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                {pendingExits}
-              </h3>
-            </div>
-            <div className="w-14 h-14 rounded-xl bg-orange-500/10 flex items-center justify-center">
-              <Clock className="w-7 h-7 text-orange-500" />
-            </div>
-          </div>
-        </div> */}
+        ))}
       </div>
 
       {/* Table */}

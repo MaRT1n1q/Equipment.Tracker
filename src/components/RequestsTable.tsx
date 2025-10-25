@@ -29,6 +29,11 @@ export function RequestsTable({ requests, onUpdate, onEdit }: RequestsTableProps
   }
 
   const handleDelete = async (id: number) => {
+    const confirmed = window.confirm('Удалить заявку? Данные можно будет восстановить только в течение текущей сессии.')
+    if (!confirmed) {
+      return
+    }
+
     try {
       const result = await window.electronAPI.deleteRequest(id)
       
