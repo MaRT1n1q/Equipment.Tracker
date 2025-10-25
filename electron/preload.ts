@@ -29,6 +29,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createRequest: (data: CreateRequestData): Promise<ApiResponse> => 
     ipcRenderer.invoke('create-request', data),
   
+  updateRequest: (id: number, data: CreateRequestData): Promise<ApiResponse> => 
+    ipcRenderer.invoke('update-request', id, data),
+  
   updateIssued: (id: number, is_issued: boolean): Promise<ApiResponse> => 
     ipcRenderer.invoke('update-issued', id, is_issued),
   

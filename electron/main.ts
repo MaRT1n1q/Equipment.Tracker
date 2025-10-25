@@ -25,7 +25,8 @@ function initDatabase() {
       equipment_name TEXT NOT NULL,
       serial_number TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      is_issued INTEGER DEFAULT 0
+      is_issued INTEGER DEFAULT 0,
+      issued_at TEXT
     )
   `)
 }
@@ -107,8 +108,28 @@ ipcMain.handle('create-request', (_event: any, data: {
 // Обновить статус выдачи
 ipcMain.handle('update-issued', (_event: any, id: number, is_issued: boolean) => {
   try {
-    const stmt = db.prepare('UPDATE requests SET is_issued = ? WHERE id = ?')
-    stmt.run(is_issued ? 1 : 0, id)
+    const issued_at = is_issued ? new Date().toISOString() : null
+    const stmt = db.prepare('UPDATE requests SET is_issued = ?, issued_at = ? WHERE id = ?')
+    stmt.run(is_issued ? 1 : 0, issued_at, id)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+// Обновить заявку
+ipcMain.handle('update-request', (_event: any, id: number, data: {
+  employee_name: string
+  equipment_name: string
+  serial_number: string
+}) => {
+  try {
+    const stmt = db.prepare(`
+      UPDATE requests 
+      SET employee_name = ?, equipment_name = ?, serial_number = ?
+      WHERE id = ?
+    `)
+    stmt.run(data.employee_name, data.equipment_name, data.serial_number, id)
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }

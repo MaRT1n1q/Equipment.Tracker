@@ -2,15 +2,19 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from './components/ui/button'
 import { AddRequestModal } from './components/AddRequestModal'
+import { EditRequestModal } from './components/EditRequestModal'
 import { RequestsTable } from './components/RequestsTable'
 import { ThemeToggle } from './components/ThemeToggle'
 import { SearchAndFilters } from './components/SearchAndFilters'
+import { TableSkeleton } from './components/TableSkeleton'
 import { Toaster } from 'sonner'
 import { Request } from './types/electron.d'
 
 function App() {
   const [requests, setRequests] = useState<Request[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingRequest, setEditingRequest] = useState<Request | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'issued' | 'not-issued'>('all')
@@ -27,6 +31,11 @@ function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEdit = (request: Request) => {
+    setEditingRequest(request)
+    setIsEditModalOpen(true)
   }
 
   // Filter and search requests
@@ -135,9 +144,7 @@ function App() {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground">Загрузка...</div>
-          </div>
+          <TableSkeleton />
         ) : (
           <>
             <SearchAndFilters
@@ -149,7 +156,13 @@ function App() {
               filteredCount={filteredRequests.length}
               searchInputRef={searchInputRef}
             />
-            <RequestsTable requests={filteredRequests} onUpdate={loadRequests} />
+            <div className="animate-in fade-in duration-300">
+              <RequestsTable 
+                requests={filteredRequests} 
+                onUpdate={loadRequests}
+                onEdit={handleEdit}
+              />
+            </div>
           </>
         )}
       </main>
@@ -159,6 +172,14 @@ function App() {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         onRequestAdded={loadRequests}
+      />
+
+      {/* Edit Request Modal */}
+      <EditRequestModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onRequestUpdated={loadRequests}
+        request={editingRequest}
       />
     </div>
   )
