@@ -14,8 +14,8 @@ function createWindow() {
   })
 }
 
-app.whenReady().then(() => {
-  initDatabase()
+app.whenReady().then(async () => {
+  await initDatabase()
 
   registerRequestHandlers(getDatabase)
   registerEmployeeExitHandlers(getDatabase)
@@ -30,14 +30,14 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   if (process.platform !== 'darwin') {
-    const backupResult = createAutomaticBackup()
+    const backupResult = await createAutomaticBackup()
     if (!backupResult.success) {
       console.error('Auto backup failed:', backupResult.error)
     }
 
-    closeDatabase()
+    await closeDatabase()
     app.quit()
   }
 })

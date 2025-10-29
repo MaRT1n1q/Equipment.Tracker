@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import type Database from 'better-sqlite3'
+import type { Knex } from 'knex'
 import {
   createRequestSchema,
   issuedStatusSchema,
@@ -9,22 +9,34 @@ import {
   updateRequestSchema,
 } from '../../src/types/ipc'
 
-type GetDatabase = () => Database.Database
+type GetDatabase = () => Knex
 
 export function registerRequestHandlers(getDatabase: GetDatabase) {
-  ipcMain.handle('get-requests', () => {
+  ipcMain.handle('get-requests', async () => {
     try {
       const database = getDatabase()
-      const requests = database
-        .prepare('SELECT * FROM requests ORDER BY created_at DESC')
-        .all() as Array<Record<string, any>>
+      const requests = (await database('requests')
+        .select('*')
+        .orderBy('created_at', 'desc')) as Array<Record<string, any>>
 
-      const equipmentStatement = database.prepare(
-        'SELECT * FROM equipment_items WHERE request_id = ?'
-      )
+      if (requests.length === 0) {
+        return { success: true, data: [] }
+      }
+
+      const requestIds = requests.map((request) => request.id)
+      const equipmentItems = (await database('equipment_items')
+        .select('*')
+        .whereIn('request_id', requestIds)) as Array<Record<string, any>>
+
+      const itemsByRequest = new Map<number, Array<Record<string, any>>>()
+      for (const item of equipmentItems) {
+        const current = itemsByRequest.get(item.request_id) ?? []
+        current.push(item)
+        itemsByRequest.set(item.request_id, current)
+      }
 
       const payload = requests.map((request) => {
-        const equipment = equipmentStatement.all(request.id) as Array<Record<string, any>>
+        const equipment = itemsByRequest.get(request.id) ?? []
 
         return requestRecordSchema.parse({
           ...request,
@@ -43,54 +55,74 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
     }
   })
 
-  ipcMain.handle('create-request', (_event, rawData) => {
+  ipcMain.handle('create-request', async (_event, rawData) => {
     try {
       const data = createRequestSchema.parse(rawData)
       const database = getDatabase()
       const createdAt = new Date().toISOString()
 
-      const insertRequest = database.prepare(`
-        INSERT INTO requests (employee_name, created_at, notes)
-        VALUES (?, ?, ?)
-      `)
+      const result = await database.transaction(async (trx) => {
+        const requestInsertResult = (await trx('requests').insert({
+          employee_name: data.employee_name,
+          created_at: createdAt,
+          notes: data.notes ?? null,
+        })) as number | Array<number> | { [key: string]: number }
 
-      const insertEquipment = database.prepare(`
-        INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
-        VALUES (?, ?, ?, ?)
-      `)
+        const insertValue = Array.isArray(requestInsertResult)
+          ? requestInsertResult[0]
+          : requestInsertResult
 
-      const transaction = database.transaction(() => {
-        const requestResult = insertRequest.run(data.employee_name, createdAt, data.notes ?? null)
+        const insertedId = (() => {
+          if (typeof insertValue === 'number') {
+            return insertValue
+          }
 
-        for (const item of data.equipment_items) {
-          insertEquipment.run(
-            requestResult.lastInsertRowid,
-            item.equipment_name,
-            item.serial_number,
-            item.quantity ?? 1
-          )
+          if (typeof insertValue === 'bigint') {
+            return Number(insertValue)
+          }
+
+          const valueFromObject = (insertValue as { id?: number }).id
+          if (typeof valueFromObject === 'number') {
+            return valueFromObject
+          }
+
+          return Number(insertValue)
+        })()
+
+        if (typeof insertedId !== 'number' || Number.isNaN(insertedId)) {
+          throw new Error('Не удалось получить идентификатор созданной заявки')
         }
 
-        return { id: requestResult.lastInsertRowid }
+        const equipmentRows = data.equipment_items.map((item) => ({
+          request_id: insertedId,
+          equipment_name: item.equipment_name,
+          serial_number: item.serial_number,
+          quantity: item.quantity ?? 1,
+        }))
+
+        if (equipmentRows.length > 0) {
+          await trx('equipment_items').insert(equipmentRows)
+        }
+
+        return insertedId
       })
 
-      const result = transaction()
-      return { success: true, id: result.id }
+      return { success: true, id: Number(result) }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }
   })
 
-  ipcMain.handle('update-issued', (_event, rawId, rawStatus) => {
+  ipcMain.handle('update-issued', async (_event, rawId, rawStatus) => {
     try {
       const id = requestIdSchema.parse(rawId)
       const isIssued = issuedStatusSchema.parse(rawStatus)
       const issuedAt = isIssued ? new Date().toISOString() : null
 
       const database = getDatabase()
-      database
-        .prepare('UPDATE requests SET is_issued = ?, issued_at = ? WHERE id = ?')
-        .run(isIssued ? 1 : 0, issuedAt, id)
+      await database('requests')
+        .where({ id })
+        .update({ is_issued: isIssued ? 1 : 0, issued_at: issuedAt })
 
       return { success: true }
     } catch (error) {
@@ -98,32 +130,31 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
     }
   })
 
-  ipcMain.handle('update-request', (_event, rawId, rawData) => {
+  ipcMain.handle('update-request', async (_event, rawId, rawData) => {
     try {
       const id = requestIdSchema.parse(rawId)
       const data = updateRequestSchema.parse(rawData)
 
       const database = getDatabase()
-      const updateRequest = database.prepare(`
-        UPDATE requests
-        SET employee_name = ?, notes = ?
-        WHERE id = ?
-      `)
 
-      const deleteEquipment = database.prepare('DELETE FROM equipment_items WHERE request_id = ?')
-      const insertEquipment = database.prepare(`
-        INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
-        VALUES (?, ?, ?, ?)
-      `)
+      await database.transaction(async (trx) => {
+        await trx('requests')
+          .where({ id })
+          .update({ employee_name: data.employee_name, notes: data.notes ?? null })
 
-      database.transaction(() => {
-        updateRequest.run(data.employee_name, data.notes ?? null, id)
-        deleteEquipment.run(id)
+        await trx('equipment_items').where({ request_id: id }).delete()
 
-        for (const item of data.equipment_items) {
-          insertEquipment.run(id, item.equipment_name, item.serial_number, item.quantity ?? 1)
+        const equipmentRows = data.equipment_items.map((item) => ({
+          request_id: id,
+          equipment_name: item.equipment_name,
+          serial_number: item.serial_number,
+          quantity: item.quantity ?? 1,
+        }))
+
+        if (equipmentRows.length > 0) {
+          await trx('equipment_items').insert(equipmentRows)
         }
-      })()
+      })
 
       return { success: true }
     } catch (error) {
@@ -131,12 +162,12 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
     }
   })
 
-  ipcMain.handle('delete-request', (_event, rawId) => {
+  ipcMain.handle('delete-request', async (_event, rawId) => {
     try {
       const id = requestIdSchema.parse(rawId)
       const database = getDatabase()
 
-      const request = database.prepare('SELECT * FROM requests WHERE id = ?').get(id) as
+      const request = (await database('requests').where({ id }).first()) as
         | Record<string, any>
         | undefined
 
@@ -144,9 +175,9 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         return { success: false, error: 'Заявка не найдена' }
       }
 
-      const equipment = database
-        .prepare('SELECT * FROM equipment_items WHERE request_id = ?')
-        .all(id) as Array<Record<string, any>>
+      const equipment = (await database('equipment_items').where({ request_id: id })) as Array<
+        Record<string, any>
+      >
 
       const deletedRequest = requestRecordSchema.parse({
         ...request,
@@ -158,7 +189,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         })),
       })
 
-      database.prepare('DELETE FROM requests WHERE id = ?').run(id)
+      await database('requests').where({ id }).delete()
 
       return { success: true, data: deletedRequest }
     } catch (error) {
@@ -166,40 +197,32 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
     }
   })
 
-  ipcMain.handle('restore-request', (_event, rawRequest) => {
+  ipcMain.handle('restore-request', async (_event, rawRequest) => {
     try {
       const request = restoreRequestSchema.parse(rawRequest)
       const database = getDatabase()
 
-      const insertRequest = database.prepare(`
-        INSERT INTO requests (id, employee_name, created_at, is_issued, issued_at, notes)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `)
+      await database.transaction(async (trx) => {
+        await trx('requests').insert({
+          id: request.id,
+          employee_name: request.employee_name,
+          created_at: request.created_at,
+          is_issued: request.is_issued,
+          issued_at: request.issued_at,
+          notes: request.notes,
+        })
 
-      const insertEquipment = database.prepare(`
-        INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
-        VALUES (?, ?, ?, ?)
-      `)
+        const equipmentRows = request.equipment_items.map((item) => ({
+          request_id: request.id,
+          equipment_name: item.equipment_name,
+          serial_number: item.serial_number,
+          quantity: item.quantity ?? 1,
+        }))
 
-      database.transaction(() => {
-        insertRequest.run(
-          request.id,
-          request.employee_name,
-          request.created_at,
-          request.is_issued,
-          request.issued_at,
-          request.notes
-        )
-
-        for (const item of request.equipment_items) {
-          insertEquipment.run(
-            request.id,
-            item.equipment_name,
-            item.serial_number,
-            item.quantity ?? 1
-          )
+        if (equipmentRows.length > 0) {
+          await trx('equipment_items').insert(equipmentRows)
         }
-      })()
+      })
 
       return { success: true }
     } catch (error) {

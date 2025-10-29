@@ -1,98 +1,65 @@
-import type Database from 'better-sqlite3'
+import type { Knex } from 'knex'
 
-export interface Migration {
-  version: number
-  name: string
-  up: (database: Database.Database) => void
-}
+async function migrateLegacyRequests(database: Knex) {
+  const hasRequestsTable = await database.schema.hasTable('requests')
+  if (!hasRequestsTable) {
+    return
+  }
 
-function migrateLegacyRequests(database: Database.Database) {
-  const tableInfo = database.pragma('table_info(requests)') as Array<{ name: string }>
-  const hasOldColumns = tableInfo.some((column) => column.name === 'equipment_name')
+  const columnInfo = await database('requests').columnInfo()
+  const hasOldColumns = Object.prototype.hasOwnProperty.call(columnInfo, 'equipment_name')
 
   if (!hasOldColumns) {
     return
   }
 
-  const oldRequests = database.prepare('SELECT * FROM requests').all() as Array<Record<string, any>>
+  console.log('▶️ Запуск миграции: разделение заявок и оборудования')
 
-  database.exec(`
-    CREATE TABLE requests_new (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      employee_name TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      is_issued INTEGER DEFAULT 0,
-      issued_at TEXT,
-      notes TEXT
-    )
-  `)
+  const oldRequests = await database('requests').select('*')
 
-  const insertRequest = database.prepare(`
-    INSERT INTO requests_new (id, employee_name, created_at, is_issued, issued_at, notes)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `)
+  await database.transaction(async (trx) => {
+    await trx.schema.createTable('requests_new', (table) => {
+      table.increments('id').primary()
+      table.string('employee_name').notNullable()
+      table.string('created_at').notNullable()
+      table.integer('is_issued').defaultTo(0)
+      table.string('issued_at')
+      table.text('notes')
+    })
 
-  const insertItem = database.prepare(`
-    INSERT INTO equipment_items (request_id, equipment_name, serial_number, quantity)
-    VALUES (?, ?, ?, 1)
-  `)
+    const insertRequestRows = oldRequests.map((request) => ({
+      id: request.id,
+      employee_name: request.employee_name,
+      created_at: request.created_at,
+      is_issued: request.is_issued,
+      issued_at: request.issued_at,
+      notes: request.notes,
+    }))
 
-  for (const request of oldRequests) {
-    insertRequest.run(
-      request.id,
-      request.employee_name,
-      request.created_at,
-      request.is_issued,
-      request.issued_at,
-      request.notes
-    )
+    if (insertRequestRows.length > 0) {
+      await trx('requests_new').insert(insertRequestRows)
+    }
 
-    insertItem.run(request.id, request.equipment_name, request.serial_number)
-  }
+    const equipmentRows = oldRequests
+      .filter((request) => request.equipment_name && request.serial_number)
+      .map((request) => ({
+        request_id: request.id,
+        equipment_name: request.equipment_name,
+        serial_number: request.serial_number,
+        quantity: 1,
+      }))
 
-  database.exec('DROP TABLE requests')
-  database.exec('ALTER TABLE requests_new RENAME TO requests')
+    if (equipmentRows.length > 0) {
+      await trx('equipment_items').insert(equipmentRows)
+    }
+
+    await trx.raw('DROP TABLE requests')
+    await trx.raw('ALTER TABLE requests_new RENAME TO requests')
+  })
 
   console.log('✅ Миграция базы данных завершена успешно')
 }
 
-export const migrations: Migration[] = [
-  {
-    version: 1,
-    name: 'Разделение заявок и оборудования по отдельным таблицам',
-    up: migrateLegacyRequests,
-  },
-]
-
-export function runMigrations(database: Database.Database) {
-  if (migrations.length === 0) {
-    return
-  }
-
-  const sortedMigrations = [...migrations].sort((a, b) => a.version - b.version)
-  let currentVersion = Number(database.pragma('user_version', { simple: true })) || 0
-
-  for (const migration of sortedMigrations) {
-    if (migration.version <= currentVersion) {
-      continue
-    }
-
-    console.log(`▶️ Запуск миграции v${migration.version}: ${migration.name}`)
-
-    const applyMigration = database.transaction(() => {
-      migration.up(database)
-      database.pragma(`user_version = ${migration.version}`)
-    })
-
-    try {
-      applyMigration()
-    } catch (error) {
-      console.error(`❌ Ошибка при выполнении миграции v${migration.version}:`, error)
-      throw error
-    }
-
-    currentVersion = migration.version
-
-    console.log(`✅ Миграция v${migration.version} завершена`)
-  }
+export async function runMigrations(database: Knex) {
+  await migrateLegacyRequests(database)
 }

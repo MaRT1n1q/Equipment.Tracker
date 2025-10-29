@@ -20,7 +20,17 @@ export default defineConfig({
             outDir: 'dist-electron',
             sourcemap: true,
             rollupOptions: {
-              external: ['better-sqlite3'],
+              external: [
+                'knex',
+                'sqlite3',
+                'tedious',
+                'pg',
+                'pg-query-stream',
+                'mysql',
+                'mysql2',
+                'oracledb',
+                'mssql',
+              ],
             },
           },
         },

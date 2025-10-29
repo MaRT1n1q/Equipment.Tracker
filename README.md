@@ -25,7 +25,7 @@ Linux.
 - **Electron 33** — оболочка настольного приложения.
 - **React 18 + Vite 5** — фронтенд, сборка и HMR.
 - **TypeScript 5** — строгая типизация, общие типы между main и renderer.
-- **SQLite (better-sqlite3)** — встраиваемая база с миграциями и индексацией.
+- **SQLite + Knex** — встраиваемая база с миграциями и индексацией через query builder.
 - **TanStack Query** — кэширование запросов, синхронизация и оптимистичные
   апдейты.
 - **Tailwind CSS + shadcn/ui + Sonner + Lucide** — визуальный слой.
@@ -94,9 +94,9 @@ equipment-tracker/
 
 - SQLite-файл создаётся автоматически в userData каталоге системы (AppData на
   Windows, `~/Library/Application Support` на macOS, `~/.config` на Linux).
-- Служебные миграции описаны в `electron/migrations.ts` и нумеруются через
-  `user_version`. Первый запуск обновляет старые схемы до актуальной структуры с
-  отдельной таблицей `equipment_items`.
+- Служебные миграции описаны в `electron/migrations.ts` и выполняются через Knex
+  при каждом запуске. Первый запуск обновляет старые схемы до актуальной структуры
+  с отдельной таблицей `equipment_items`.
 - Основные таблицы:
   - `requests` — заявки сотрудников.
   - `equipment_items` — конкретные позиции оборудования внутри заявки.
