@@ -1,6 +1,7 @@
 import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
+import { EmployeeExitCalendar } from './EmployeeExitCalendar'
 
 interface DashboardProps {
   requests: Request[]
@@ -92,6 +93,8 @@ export function Dashboard({ requests }: DashboardProps) {
 
   return (
     <div className="space-y-8">
+      <EmployeeExitCalendar exits={employeeExits} />
+
       {/* Requests Section */}
       <div>
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">

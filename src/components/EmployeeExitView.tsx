@@ -1,12 +1,14 @@
-import { AlertTriangle, Download, Info, Search, X } from 'lucide-react'
+import { AlertTriangle, Download } from 'lucide-react'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
 import { Button } from './ui/button'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Input } from './ui/input'
+import { useMemo, useRef, useState } from 'react'
 import { useDebounce } from '../hooks/useDebounce'
 import { toast } from 'sonner'
+import { SearchAndFilters } from './SearchAndFilters'
+import { usePersistentState } from '../hooks/usePersistentState'
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
@@ -20,91 +22,57 @@ interface EmployeeExitViewProps {
 
 export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExitViewProps) {
   const { data: exits = [], isLoading, isError, refetch: refetchExits } = useEmployeeExitsQuery()
-  const [searchQuery, setSearchQuery] = useState(() => {
-    if (typeof window === 'undefined') {
-      return ''
-    }
-
-    return localStorage.getItem(EXIT_SEARCH_STORAGE_KEY) ?? ''
-  })
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending'>(() => {
-    if (typeof window === 'undefined') {
-      return 'all'
-    }
-
-    const stored = localStorage.getItem(EXIT_FILTER_STORAGE_KEY)
-    if (stored === 'all' || stored === 'completed' || stored === 'pending') {
-      return stored
-    }
-
-    return 'all'
-  })
-  const [tableDensity, setTableDensity] = useState<'comfortable' | 'dense'>(() => {
-    if (typeof window === 'undefined') {
-      return 'comfortable'
-    }
-
-    const stored = localStorage.getItem(EXIT_DENSITY_STORAGE_KEY)
-    return stored === 'dense' ? 'dense' : 'comfortable'
-  })
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const debouncedSearchQuery = useDebounce(searchQuery, 300)
-  const [isExporting, setIsExporting] = useState(false)
-  const [showQuickHelp, setShowQuickHelp] = useState(() => {
-    if (typeof window === 'undefined') {
-      return true
-    }
-
-    return localStorage.getItem(EXIT_TIPS_STORAGE_KEY) !== 'true'
+  const [searchQuery, setSearchQuery] = usePersistentState<string>(EXIT_SEARCH_STORAGE_KEY, '', {
+    serializer: (value) => value,
+    deserializer: (value) => value,
   })
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isPrimaryKey = event.ctrlKey || event.metaKey
-
-      if (!isPrimaryKey) {
-        return
-      }
-
-      if (event.key.toLowerCase() === 'f') {
-        event.preventDefault()
-
-        if (event.shiftKey) {
-          setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))
-        }
-
-        searchInputRef.current?.focus()
-        searchInputRef.current?.select()
-      }
+  const [statusFilter, setStatusFilter] = usePersistentState<'all' | 'completed' | 'pending'>(
+    EXIT_FILTER_STORAGE_KEY,
+    'all',
+    {
+      serializer: (value) => value,
+      deserializer: (value) =>
+        value === 'completed' || value === 'pending' || value === 'all'
+          ? (value as 'all' | 'completed' | 'pending')
+          : 'all',
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+  )
+  const [tableDensity, setTableDensity] = usePersistentState<'comfortable' | 'dense'>(
+    EXIT_DENSITY_STORAGE_KEY,
+    'comfortable',
+    {
+      serializer: (value) => value,
+      deserializer: (value) => (value === 'dense' ? 'dense' : 'comfortable'),
     }
-
-    localStorage.setItem(EXIT_SEARCH_STORAGE_KEY, searchQuery)
-  }, [searchQuery])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+  )
+  const [isExporting, setIsExporting] = useState(false)
+  const [showQuickHelp, setShowQuickHelp] = usePersistentState<boolean>(
+    EXIT_TIPS_STORAGE_KEY,
+    true,
+    {
+      serializer: (value) => (value ? 'visible' : 'hidden'),
+      deserializer: (value) => value !== 'true' && value !== 'hidden' && value !== '0',
     }
+  )
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-    localStorage.setItem(EXIT_FILTER_STORAGE_KEY, statusFilter)
-  }, [statusFilter])
+  useKeyboardShortcut(
+    { key: 'f', ctrlKey: true, shiftKey: true },
+    () => {
+      setStatusFilter((current) => (current === 'pending' ? 'all' : 'pending'))
+    },
+    [setStatusFilter]
+  )
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    localStorage.setItem(EXIT_DENSITY_STORAGE_KEY, tableDensity)
-  }, [tableDensity])
+  useKeyboardShortcut(
+    { key: 'f', ctrlKey: true },
+    () => {
+      searchInputRef.current?.focus()
+      searchInputRef.current?.select()
+    },
+    [searchInputRef]
+  )
 
   // Statistics
   const totalExits = exits.length
@@ -137,7 +105,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
       })
     }
 
-    return list
+    return list.sort((a, b) => new Date(a.exit_date).getTime() - new Date(b.exit_date).getTime())
   }, [exits, statusFilter, debouncedSearchQuery])
 
   const handleExport = async () => {
@@ -165,9 +133,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
 
   const dismissQuickHelp = () => {
     setShowQuickHelp(false)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(EXIT_TIPS_STORAGE_KEY, 'true')
-    }
+    // Removed localStorage management
   }
   return (
     <div className="space-y-6">
@@ -200,43 +166,21 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
         ) : (
           <>
             <div className="space-y-4 mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Поиск по ФИО, логину, дате или оборудованию... (Ctrl+F)"
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant={statusFilter === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStatusFilter('all')}
-                  >
-                    Все
-                  </Button>
-                  <Button
-                    variant={statusFilter === 'pending' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStatusFilter('pending')}
-                  >
-                    Ожидают
-                  </Button>
-                  <Button
-                    variant={statusFilter === 'completed' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setStatusFilter('completed')}
-                  >
-                    Завершены
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-3 flex-wrap justify-end">
+              <SearchAndFilters
+                searchPlaceholder="Поиск по ФИО, логину, дате или оборудованию... (Ctrl+F)"
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                searchInputRef={searchInputRef}
+                filterOptions={[
+                  { value: 'all', label: 'Все' },
+                  { value: 'pending', label: 'Ожидают' },
+                  { value: 'completed', label: 'Завершены' },
+                ]}
+                activeFilter={statusFilter}
+                onFilterChange={setStatusFilter}
+                density={tableDensity}
+                onDensityChange={setTableDensity}
+                actions={
                   <Button
                     variant="outline"
                     size="sm"
@@ -247,7 +191,8 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
                     <Download className="h-4 w-4" />
                     {isExporting ? 'Экспорт...' : 'Экспорт CSV'}
                   </Button>
-
+                }
+                summary={
                   <span className="status-pill status-pill--info text-xs">
                     {searchQuery || statusFilter !== 'all' ? (
                       <>
@@ -264,70 +209,26 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
                       </>
                     )}
                   </span>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Отображение</span>
-                    <div className="inline-flex rounded-full border border-border bg-background/80 p-0.5">
-                      <Button
-                        size="sm"
-                        variant={tableDensity === 'comfortable' ? 'default' : 'ghost'}
-                        className={`h-7 rounded-full px-3 text-xs ${tableDensity === 'comfortable' ? '' : 'text-muted-foreground hover:text-foreground'}`}
-                        onClick={() => setTableDensity('comfortable')}
-                      >
-                        Обычный
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={tableDensity === 'dense' ? 'default' : 'ghost'}
-                        className={`h-7 rounded-full px-3 text-xs ${tableDensity === 'dense' ? '' : 'text-muted-foreground hover:text-foreground'}`}
-                        onClick={() => setTableDensity('dense')}
-                      >
-                        Компактный
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">Ctrl</kbd>+
-                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">F</kbd>
-                  <span>— фокус на поиске</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">Ctrl</kbd>+
-                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">Shift</kbd>+
-                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">F</kbd>
-                  <span>— переключить фильтр &quot;Ожидают&quot;</span>
-                </span>
-              </div>
-
-              {showQuickHelp && (
-                <div className="mt-4 flex flex-wrap items-start gap-3 rounded-lg border border-[hsl(var(--primary)/0.3)] bg-[hsl(var(--primary)/0.08)] px-4 py-3 text-sm">
-                  <Info className="mt-0.5 h-5 w-5 text-[hsl(var(--primary))]" />
-                  <div className="flex-1 space-y-1 text-muted-foreground">
-                    <p className="font-medium text-foreground">Секундный onboarding для раздела</p>
-                    <ul className="list-disc space-y-1 pl-5">
-                      <li>Ctrl+F — моментальный поиск по сотрудникам, логину и оборудованию.</li>
-                      <li>
-                        Ctrl+Shift+F — переключение фильтра «Ожидают» для массового контроля выдач.
-                      </li>
-                      <li>Кнопка «Экспорт CSV» сохранит текущий отфильтрованный список.</li>
-                      <li>
-                        Иконка копирования в каждой записи — переносит список оборудования в буфер.
-                      </li>
-                    </ul>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={dismissQuickHelp}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+                }
+                keyboardHints={[
+                  { keys: ['Ctrl', 'F'], description: '— фокус на поиске' },
+                  {
+                    keys: ['Ctrl', 'Shift', 'F'],
+                    description: '— переключить фильтр «Ожидают»',
+                  },
+                ]}
+                quickHelp={{
+                  visible: showQuickHelp,
+                  title: 'Секундный onboarding для раздела',
+                  items: [
+                    'Ctrl+F — моментальный поиск по сотрудникам, логину и оборудованию.',
+                    'Ctrl+Shift+F — переключение фильтра «Ожидают» для массового контроля выдач.',
+                    'Кнопка «Экспорт CSV» сохранит текущий отфильтрованный список.',
+                    'Иконка копирования в каждой записи — переносит список оборудования в буфер.',
+                  ],
+                  onDismiss: dismissQuickHelp,
+                }}
+              />
             </div>
 
             <EmployeeExitTable

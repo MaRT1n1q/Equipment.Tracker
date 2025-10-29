@@ -1,22 +1,43 @@
 import { Moon, Sun } from 'lucide-react'
 import { Button } from './ui/button'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { usePersistentState } from '../hooks/usePersistentState'
+
+const THEME_STORAGE_KEY = 'theme'
+
+const getPreferredTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') {
+    return 'light'
+  }
+
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = usePersistentState<'light' | 'dark'>(
+    THEME_STORAGE_KEY,
+    getPreferredTheme(),
+    {
+      serializer: (value) => value,
+      deserializer: (value) => (value === 'dark' ? 'dark' : 'light'),
+    }
+  )
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
-    const initialTheme = savedTheme || 'light'
-    setTheme(initialTheme)
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark')
-  }, [])
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light'
     setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', newTheme === 'dark')
+    }
   }
 
   return (
