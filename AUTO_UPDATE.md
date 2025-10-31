@@ -25,6 +25,8 @@
 npm version patch  # для исправлений (1.0.4 -> 1.0.5)
 npm version minor  # для новых функций (1.0.4 -> 1.1.0)
 npm version major  # для breaking changes (1.0.4 -> 2.0.0)
+
+git push --tags
 ```
 
 ### 2. Соберите приложение
