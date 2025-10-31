@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Plus } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { Button } from './ui/button'
 import { useDebounce } from '../hooks/useDebounce'
@@ -23,9 +23,17 @@ interface RequestsViewProps {
   isError: boolean
   onRetry: () => void
   onEdit: (request: Request) => void
+  onAddRequest: () => void
 }
 
-export function RequestsView({ requests, isLoading, isError, onRetry, onEdit }: RequestsViewProps) {
+export function RequestsView({
+  requests,
+  isLoading,
+  isError,
+  onRetry,
+  onEdit,
+  onAddRequest,
+}: RequestsViewProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const [searchQuery, setSearchQuery] = usePersistentState<string>(
@@ -122,7 +130,20 @@ export function RequestsView({ requests, isLoading, isError, onRetry, onEdit }: 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Заявки</h2>
+          <p className="text-sm text-muted-foreground">
+            Управление заявками на выдачу оборудования
+          </p>
+        </div>
+        <Button onClick={onAddRequest} size="sm" className="shadow-brand px-4">
+          <Plus className="mr-2 h-4 w-4" />
+          Добавить заявку
+        </Button>
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="w-12 h-12 border-4 border-[hsl(var(--primary)/0.2)] border-t-[hsl(var(--primary))] rounded-full animate-spin" />

@@ -10,6 +10,7 @@ import { Button } from './ui/button'
 import { useState } from 'react'
 import { SettingsModal } from './SettingsModal'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { ThemeToggle } from './ThemeToggle'
 
 interface SidebarProps {
   currentView: 'dashboard' | 'requests' | 'employee-exit'
@@ -127,8 +128,20 @@ export function Sidebar({
           })}
         </nav>
 
-        {/* Settings Button */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-3">
+          <Tooltip disableHoverableContent={!isCollapsed}>
+            <TooltipTrigger asChild>
+              <div className={`${isCollapsed ? 'flex justify-center' : ''}`}>
+                <ThemeToggle variant={isCollapsed ? 'compact' : 'full'} className="shadow-soft" />
+              </div>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right" align="center">
+                <span className="text-sm font-medium">Переключить тему</span>
+              </TooltipContent>
+            )}
+          </Tooltip>
+
           <Tooltip disableHoverableContent={!isCollapsed}>
             <TooltipTrigger asChild>
               <button

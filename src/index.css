@@ -43,6 +43,10 @@
     /* Gradient variables */
     --gradient-from: 262 83% 58%;
     --gradient-to: 217 91% 60%;
+
+    /* Layout variables */
+    --sidebar-width: 16rem;
+    --sidebar-collapsed-width: 5rem;
   }
 
   .dark {

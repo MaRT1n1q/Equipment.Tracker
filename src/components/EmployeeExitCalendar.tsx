@@ -28,6 +28,7 @@ const MONTH_SHORT_LABELS = [
   'ноя',
   'дек',
 ]
+const CALENDAR_GRID_SIZE = 35
 
 function formatDateKey(date: Date): string {
   const year = date.getFullYear()
@@ -57,7 +58,7 @@ function getMonthGrid(date: Date): CalendarDay[] {
   const gridStart = new Date(year, month, 1 - firstWeekdayIndex)
 
   const days: CalendarDay[] = []
-  for (let i = 0; i < 42; i += 1) {
+  for (let i = 0; i < CALENDAR_GRID_SIZE; i += 1) {
     const current = new Date(gridStart)
     current.setDate(gridStart.getDate() + i)
 

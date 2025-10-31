@@ -1,9 +1,8 @@
-import { useState } from 'react'
-import { Plus, UserPlus, AlertTriangle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { Button } from './components/ui/button'
 import { AddRequestModal } from './components/AddRequestModal'
 import { EditRequestModal } from './components/EditRequestModal'
-import { ThemeToggle } from './components/ThemeToggle'
 import { TableSkeleton } from './components/TableSkeleton'
 import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
@@ -16,22 +15,22 @@ import { usePersistentState } from './hooks/usePersistentState'
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
 import { cn } from './lib/utils'
 
+type AppView = 'dashboard' | 'requests' | 'employee-exit'
+
 const VIEW_STORAGE_KEY = 'equipment-tracker:current-view'
 const SIDEBAR_STORAGE_KEY = 'equipment-tracker:sidebar-collapsed'
+
+const isAppView = (value: string): value is AppView =>
+  value === 'dashboard' || value === 'requests' || value === 'employee-exit'
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingRequest, setEditingRequest] = useState<Request | null>(null)
   const [isEmployeeExitModalOpen, setIsEmployeeExitModalOpen] = useState(false)
-  const [currentView, setCurrentView] = usePersistentState<
-    'dashboard' | 'requests' | 'employee-exit'
-  >(VIEW_STORAGE_KEY, 'dashboard', {
+  const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
-    deserializer: (value) =>
-      value === 'dashboard' || value === 'requests' || value === 'employee-exit'
-        ? (value as 'dashboard' | 'requests' | 'employee-exit')
-        : 'dashboard',
+    deserializer: (value) => (isAppView(value) ? value : 'dashboard'),
   })
   const [isSidebarCollapsed, setIsSidebarCollapsed] = usePersistentState<boolean>(
     SIDEBAR_STORAGE_KEY,
@@ -43,6 +42,14 @@ function App() {
   )
 
   const { data: requests = [], isLoading, isError, refetch: refetchRequests } = useRequestsQuery()
+
+  // Устанавливаем CSS переменную для ширины сайдбара
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--sidebar-width',
+      isSidebarCollapsed ? '5rem' : '16rem'
+    )
+  }, [isSidebarCollapsed])
 
   const handleEdit = (request: Request) => {
     setEditingRequest(request)
@@ -74,75 +81,8 @@ function App() {
           isSidebarCollapsed ? 'ml-20' : 'ml-64'
         )}
       >
-        <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-xl shadow-sm">
-          <div className="flex items-center justify-between px-8 py-5">
-            <div className="animate-fade-in">
-              <h1 className="text-3xl font-bold text-foreground">
-                {currentView === 'dashboard'
-                  ? 'Дашборд'
-                  : currentView === 'requests'
-                    ? 'Заявки'
-                    : 'Выход сотрудников'}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {currentView === 'dashboard'
-                  ? 'Обзор статистики и аналитики'
-                  : currentView === 'requests'
-                    ? 'Управление заявками на выдачу оборудования'
-                    : 'Учёт выдачи оборудования уходящим сотрудникам'}
-              </p>
-              <div className="mt-4 inline-flex rounded-full border border-border bg-background/60 p-1.5 backdrop-blur">
-                <Button
-                  variant={currentView === 'requests' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('requests')}
-                  className={cn(
-                    'rounded-full px-4 transition-all',
-                    currentView === 'requests' ? '' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  Заявки
-                </Button>
-                <Button
-                  variant={currentView === 'employee-exit' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('employee-exit')}
-                  className={cn(
-                    'rounded-full px-4 transition-all',
-                    currentView === 'employee-exit'
-                      ? ''
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  Выходы
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              {currentView === 'requests' && (
-                <Button onClick={() => setIsModalOpen(true)} size="lg" className="shadow-brand">
-                  <Plus className="mr-2 h-5 w-5" />
-                  Добавить заявку
-                </Button>
-              )}
-              {currentView === 'employee-exit' && (
-                <Button
-                  onClick={() => setIsEmployeeExitModalOpen(true)}
-                  size="lg"
-                  className="shadow-brand"
-                >
-                  <UserPlus className="mr-2 h-5 w-5" />
-                  Добавить запись
-                </Button>
-              )}
-            </div>
-          </div>
-        </header>
-
         <main className="custom-scrollbar flex-1 overflow-auto">
-          <div className="px-8 py-6">
+          <div className="px-8 py-8">
             {currentView === 'dashboard' ? (
               isLoading ? (
                 <TableSkeleton />
@@ -173,6 +113,7 @@ function App() {
                   isError={isError}
                   onRetry={() => refetchRequests()}
                   onEdit={handleEdit}
+                  onAddRequest={() => setIsModalOpen(true)}
                 />
               </div>
             ) : (
