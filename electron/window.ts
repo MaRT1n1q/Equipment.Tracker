@@ -56,7 +56,29 @@ export function createMainWindow(): BrowserWindow {
 
   window.on('resize', () => saveWindowState(window))
   window.on('move', () => saveWindowState(window))
-  window.on('close', () => saveWindowState(window))
+
+  // Флаг для определения, действительно ли нужно закрыть приложение
+  let isQuitting = false
+
+  // Слушаем событие before-quit для установки флага
+  app.on('before-quit', () => {
+    isQuitting = true
+  })
+
+  // Перехватываем событие закрытия окна
+  window.on('close', (event) => {
+    if (!isQuitting) {
+      // Предотвращаем закрытие окна
+      event.preventDefault()
+      // Сворачиваем в трей
+      window.hide()
+      // Сохраняем состояние окна
+      saveWindowState(window)
+    } else {
+      // Разрешаем закрытие при выходе из приложения
+      saveWindowState(window)
+    }
+  })
 
   setupContentSecurityPolicy()
 

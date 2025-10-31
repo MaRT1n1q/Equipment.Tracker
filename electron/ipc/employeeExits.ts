@@ -24,7 +24,22 @@ function createCsvValue(value: string | number | null | undefined): string {
   return stringValue
 }
 
-export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
+type EmployeeExitHandlersOptions = {
+  onDataChanged?: () => void
+}
+
+export function registerEmployeeExitHandlers(
+  getDatabase: GetDatabase,
+  options: EmployeeExitHandlersOptions = {}
+) {
+  const notifyChange = () => {
+    try {
+      options.onDataChanged?.()
+    } catch (error) {
+      console.error('Ошибка при обработке обновлений выходов:', error)
+    }
+  }
+
   ipcMain.handle('get-employee-exits', async () => {
     try {
       const database = getDatabase()
@@ -61,6 +76,7 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
         throw new Error('Не удалось получить идентификатор записи об увольнении')
       }
 
+      notifyChange()
       return { success: true, id: numericId }
     } catch (error) {
       return { success: false, error: (error as Error).message }
@@ -80,6 +96,7 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
         equipment_list: data.equipment_list,
       })
 
+      notifyChange()
       return { success: true }
     } catch (error) {
       return { success: false, error: (error as Error).message }
@@ -101,6 +118,7 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
 
       const payload = employeeExitRecordSchema.parse(exit)
       await database('employee_exits').where({ id }).delete()
+      notifyChange()
       return { success: true, data: payload }
     } catch (error) {
       return { success: false, error: (error as Error).message }
@@ -116,6 +134,7 @@ export function registerEmployeeExitHandlers(getDatabase: GetDatabase) {
         .where({ id })
         .update({ is_completed: isCompleted ? 1 : 0 })
 
+      notifyChange()
       return { success: true }
     } catch (error) {
       return { success: false, error: (error as Error).message }

@@ -4,40 +4,102 @@ import { closeDatabase, getDatabase, initDatabase } from './database'
 import { registerRequestHandlers } from './ipc/requests'
 import { registerEmployeeExitHandlers } from './ipc/employeeExits'
 import { createAutomaticBackup, registerBackupHandlers } from './ipc/backup'
+import { startExitReminderScheduler } from './notifications'
+import { createTray, destroyTray } from './tray'
 
 let mainWindow: BrowserWindow | null = null
+let exitReminderScheduler: ReturnType<typeof startExitReminderScheduler> = null
 
-function createWindow() {
-  mainWindow = createMainWindow()
-  mainWindow.on('closed', () => {
-    mainWindow = null
-  })
+const triggerExitReminderCheck = () => {
+  if (exitReminderScheduler) {
+    exitReminderScheduler.triggerCheck()
+  }
 }
 
-app.whenReady().then(async () => {
-  await initDatabase()
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.equipment.tracker')
+}
 
-  registerRequestHandlers(getDatabase)
-  registerEmployeeExitHandlers(getDatabase)
-  registerBackupHandlers()
+// Защита от запуска множественных экземпляров приложения
+const gotTheLock = app.requestSingleInstanceLock()
 
-  createWindow()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+if (!gotTheLock) {
+  // Если приложение уже запущено, завершаем этот экземпляр
+  app.quit()
+} else {
+  // Обработчик для второго экземпляра
+  app.on('second-instance', () => {
+    // Если пользователь попытался запустить второй экземпляр,
+    // показываем существующее окно
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore()
+      }
+      if (!mainWindow.isVisible()) {
+        mainWindow.show()
+      }
+      mainWindow.focus()
     }
   })
-})
 
-app.on('window-all-closed', async () => {
-  if (process.platform !== 'darwin') {
+  function createWindow() {
+    mainWindow = createMainWindow()
+    // Не устанавливаем mainWindow = null при закрытии
+    // так как окно только скрывается, а не закрывается
+  }
+
+  // Функция для получения текущего окна
+  function getMainWindow() {
+    return mainWindow
+  }
+
+  app.whenReady().then(async () => {
+    await initDatabase()
+
+    // Включаем автозапуск приложения
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      openAsHidden: false,
+    })
+
+    registerRequestHandlers(getDatabase)
+    registerEmployeeExitHandlers(getDatabase, {
+      onDataChanged: triggerExitReminderCheck,
+    })
+    registerBackupHandlers()
+
+    exitReminderScheduler = startExitReminderScheduler(getDatabase)
+
+    createWindow()
+
+    // Создаем иконку в трее с функцией для получения окна
+    createTray(getMainWindow)
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      }
+    })
+  })
+
+  app.on('window-all-closed', async () => {
+    // Не закрываем приложение на Windows - оно работает в трее
+    // На macOS тоже оставляем в трее для единообразия поведения
+    // Приложение будет закрыто только через меню трея
+  })
+
+  app.on('before-quit', async () => {
     const backupResult = await createAutomaticBackup()
     if (!backupResult.success) {
       console.error('Auto backup failed:', backupResult.error)
     }
 
+    if (exitReminderScheduler) {
+      exitReminderScheduler.stop()
+      exitReminderScheduler = null
+    }
+
     await closeDatabase()
-    app.quit()
-  }
-})
+    destroyTray()
+  })
+}
