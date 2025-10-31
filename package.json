@@ -118,7 +118,7 @@
           ]
         }
       ],
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+      "artifactName": "Equipment-Tracker-${version}-mac-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -136,7 +136,7 @@
         }
       ],
       "category": "Utility",
-      "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
+      "artifactName": "Equipment-Tracker-${version}-linux-${arch}.${ext}",
       "maintainer": "Equipment Tracker <support@equipment-tracker.app>"
     },
     "win": {
@@ -144,7 +144,7 @@
         "nsis"
       ],
       "icon": "build/icon.ico",
-      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+      "artifactName": "Equipment-Tracker-${version}-win-${arch}.${ext}"
     }
   },
   "lint-staged": {
