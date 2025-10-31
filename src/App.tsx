@@ -94,6 +94,7 @@ function App() {
                     <p className="text-sm text-muted-foreground">
                       Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или
                       обратитесь к администратору.
+                      {/* <p className="text-sm text-muted-foreground">Дополнительная информация</p> */}
                     </p>
                   </div>
                   <Button onClick={() => refetchRequests()} variant="outline">
