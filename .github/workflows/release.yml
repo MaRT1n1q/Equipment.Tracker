@@ -25,6 +25,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Clean release folder
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue release
+        shell: pwsh
+
       - name: Build Windows application
         run: npm run build:win
         env:
@@ -56,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Clean release folder
+        run: rm -rf release
+
       - name: Build macOS application
         run: npm run build:mac
         env:
@@ -86,6 +93,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Clean release folder
+        run: rm -rf release
 
       - name: Build Linux application
         run: npm run build:linux
