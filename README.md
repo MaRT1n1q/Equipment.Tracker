@@ -1,194 +1,433 @@
-# Equipment Tracker
+<div align="center">
 
-Desktop application that tracks equipment requests and employee exits in a
-single, offline-first workspace. Built with Electron, React, Vite, TypeScript,
-and SQLite for fast iteration and native-feeling UX on Windows, macOS, and
-Linux.
+# 🎯 Equipment Tracker
 
-## 🌍 Мультиплатформенность
+**Профессиональная система учёта оборудования и выходов сотрудников**
 
-Приложение автоматически собирается для всех платформ через GitHub Actions:
+[![Latest Release](https://img.shields.io/github/v/release/MaRT1n1q/Equipment.Tracker?style=for-the-badge&logo=github&color=blue)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/MaRT1n1q/Equipment.Tracker/total?style=for-the-badge&logo=download&color=green)](https://github.com/MaRT1n1q/Equipment.Tracker/releases)
+[![License](https://img.shields.io/github/license/MaRT1n1q/Equipment.Tracker?style=for-the-badge&color=orange)](LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/MaRT1n1q/Equipment.Tracker/release.yml?style=for-the-badge&logo=github-actions)](https://github.com/MaRT1n1q/Equipment.Tracker/actions)
 
-- ✅ **Windows** (x64) - `.exe` установщик
-- ✅ **macOS** (Intel x64 & Apple Silicon arm64) - `.dmg`, `.zip`
-- ✅ **Linux** (x64) - `.AppImage`, `.deb`
+**Десктопное приложение для учёта выдачи оборудования и управления выходами сотрудников**  
+_Оффлайн-первый подход • Современный UI • Кросс-платформенность_
 
-📦 **Скачать установщик:** [GitHub Releases](https://github.com/MaRT1n1q/Equipment.Tracker/releases)
+[📥 Скачать](#-скачать) • [✨ Возможности](#-возможности) • [📚 Документация](#-документация) • [🚀 Быстрый старт](#-быстрый-старт)
 
-🔄 **Автообновление:** Приложение автоматически проверяет и устанавливает обновления на всех платформах.
+---
 
-📚 **Подробнее:** См. [MULTIPLATFORM.md](./MULTIPLATFORM.md)
+</div>
+
+## 📥 Скачать
+
+<div align="center">
+
+### 🪟 Windows (x64)
+
+[![Download Windows](https://img.shields.io/badge/💾_Скачать-Windows_x64-0078D4?style=for-the-badge&logo=windows)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-win-x64.exe)
+
+### 🍏 macOS
+
+[![Download macOS Intel](<https://img.shields.io/badge/💾_Скачать-Intel_(x64)-000000?style=for-the-badge&logo=apple>)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-mac-x64.dmg)
+[![Download macOS ARM](<https://img.shields.io/badge/💾_Скачать-Apple_Silicon_(arm64)-000000?style=for-the-badge&logo=apple>)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-mac-arm64.dmg)
+
+### 🐧 Linux (x64)
+
+[![Download Linux AppImage](https://img.shields.io/badge/�_Скачать-AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-linux-x64.AppImage)
+[![Download Linux DEB](https://img.shields.io/badge/💾_Скачать-DEB-A81D33?style=for-the-badge&logo=debian&logoColor=white)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-linux-x64.deb)
+
+**🔄 Автообновление:** Приложение автоматически проверяет и устанавливает обновления
+
+[📋 Все версии и changelog](https://github.com/MaRT1n1q/Equipment.Tracker/releases) • [🌍 Мультиплатформенная сборка](./MULTIPLATFORM.md)
+
+</div>
+
+---
 
 ## ✨ Возможности
 
-- Создание, редактирование и удаление заявок на выдачу оборудования.
-- Отдельные карточки оборудования внутри заявки (название, серийный номер,
-  количество).
-- Учёт возвратов и статистики по выходам сотрудников.
-- Чекбоксы «Выдано / Завершено» с моментальной синхронизацией через React
-  Query.
-- Темная/светлая тема, удобный сайдбар, быстрый поиск и фильтры.
-- Toast-уведомления, skeleton-загрузки, современный UI на shadcn/ui и Tailwind
-  CSS.
-- Полноценный оффлайн-режим: база хранится локально, данные не покидают
-  устройство.
-- Автоматический бэкап/restore БД по требованию пользователя.
-- Системные уведомления в Windows: напоминание за день до запланированного выхода сотрудника (09:00, 12:00, 15:00, 18:00).
+<table>
+<tr>
+<td width="50%">
+
+### 📋 Управление заявками
+
+- ✅ Создание, редактирование и удаление заявок
+- 📦 Карточки оборудования с серийными номерами
+- ☑️ Отслеживание статуса выдачи
+- 🔍 Быстрый поиск и фильтрация
+- 📊 Учёт возвратов оборудования
+
+</td>
+<td width="50%">
+
+### 👥 Выходы сотрудников
+
+- 📅 Календарный вид и таблица
+- 🔔 Системные уведомления (09:00, 12:00, 15:00, 18:00)
+- ✅ Отслеживание завершённых выходов
+- 📈 Статистика по выходам
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 💾 Работа с данными
+
+- 🗄️ SQLite база данных (полностью оффлайн)
+- 💿 Автоматические бэкапы
+- ♻️ Восстановление из резервных копий
+- 🔒 Данные не покидают устройство
+
+</td>
+<td width="50%">
+
+### 🎨 Интерфейс
+
+- 🌓 Тёмная и светлая тема
+- 🚀 Skeleton-загрузки
+- 🎯 Современный UI (shadcn/ui + Tailwind)
+- 📱 Адаптивная вёрстка
+- 🔥 Оптимистичные обновления
+
+</td>
+</tr>
+</table>
+
+---
 
 ## 🧱 Технологии
 
-- **Electron 33** — оболочка настольного приложения.
-- **React 18 + Vite 5** — фронтенд, сборка и HMR.
-- **TypeScript 5** — строгая типизация, общие типы между main и renderer.
-- **SQLite + Knex** — встраиваемая база с миграциями и индексацией через query builder.
-- **TanStack Query** — кэширование запросов, синхронизация и оптимистичные
-  апдейты.
-- **Tailwind CSS + shadcn/ui + Sonner + Lucide** — визуальный слой.
-- **ESLint / Prettier / Husky / lint-staged** — качество кода и pre-commit
-  проверки.
+<div align="center">
+
+[![Electron](https://img.shields.io/badge/Electron-39.0.0-47848F?style=for-the-badge&logo=electron)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7.1.12-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vite.dev/)
+
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
+[![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154?style=for-the-badge&logo=react-query&logoColor=white)](https://tanstack.com/query)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.18-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![shadcn/ui](https://img.shields.io/badge/shadcn/ui-Latest-000000?style=for-the-badge&logo=shadcnui&logoColor=white)](https://ui.shadcn.com/)
+
+</div>
+
+### Основной стек:
+
+- **🖥️ Electron 39** — десктопная оболочка с нативными возможностями ОС
+- **⚛️ React 19 + Vite 7** — быстрая разработка с HMR и оптимизированная сборка
+- **📘 TypeScript 5** — полная типизация main/renderer процессов
+- **🗄️ SQLite + Knex** — локальная БД с миграциями и типизированными запросами
+- **🔄 TanStack Query** — умное кеширование, оптимистичные обновления, синхронизация
+- **🎨 Tailwind CSS + shadcn/ui** — современный UI-кит с готовыми компонентами
+- **🔧 ESLint + Prettier + Husky** — контроль качества кода на pre-commit
+
+---
 
 ## 🚀 Быстрый старт
 
+### Для пользователей
+
+1. **Скачайте** установщик для вашей ОС [из релизов](#-скачать)
+2. **Установите** приложение (Windows/macOS) или запустите AppImage (Linux)
+3. **Готово!** База данных создастся автоматически при первом запуске
+
+### Для разработчиков
+
 ```bash
-# 1. Установка зависимостей
+# 1️⃣ Клонирование репозитория
+git clone https://github.com/MaRT1n1q/Equipment.Tracker.git
+cd Equipment.Tracker
+
+# 2️⃣ Установка зависимостей
 npm install
 
-# 2. Запуск Electron + Vite dev-серверов
+# 3️⃣ Запуск в режиме разработки
 npm run electron:dev
 
-# 3. Альтернативно: только фронтенд (без Electron-окна)
-npm run dev
-
-# 4. Сборка production-бандла и пакетов для Windows/macOS/Linux
-npm run build
-
-# 5. Запуск собранного приложения
-npm run electron
+# 4️⃣ Сборка для production
+npm run build            # Все платформы
+npm run build:win        # Только Windows
+npm run build:mac        # Только macOS
+npm run build:linux      # Только Linux
 ```
 
-> Команда `npm run build` собирает renderer-бандл, компилирует TypeScript и
-> запускает `electron-builder` сразу для Windows, macOS и Linux, складывая
-> артефакты в `release/`.
->
-> ⚠️ Для выпуска macOS-артефактов (`.dmg/.zip`) требуется macOS-хост или CI с
-> macOS runner — Apple запрещает сборку этих пакетов на Windows/Linux. Для Linux
-> пакетов нужен установленный Docker либо WSL (electron-builder подтянет образ
-> автоматически).
->
-> Иконки приложения (`build/icon.{ico,icns,png}`) уже сгенерированы из
-> `build/new_icon.png`. При обновлении дизайна замените PNG и выполните команды
-> из `build/README.md`, чтобы пересобрать набор.
+<details>
+<summary>📋 <b>Все доступные команды</b></summary>
 
-## 🧭 Структура проекта
+| Команда                | Описание                             |
+| ---------------------- | ------------------------------------ |
+| `npm run dev`          | Запуск Vite dev-сервера (только UI)  |
+| `npm run electron:dev` | Запуск Electron + Vite с hot-reload  |
+| `npm run electron`     | Запуск собранного приложения         |
+| `npm run build`        | Production сборка для всех платформ  |
+| `npm run build:bundle` | Сборка только бандлов (без упаковки) |
+| `npm run build:win`    | Сборка Windows (.exe)                |
+| `npm run build:mac`    | Сборка macOS (.dmg, .zip)            |
+| `npm run build:linux`  | Сборка Linux (.AppImage, .deb)       |
+| `npm run lint`         | Проверка кода ESLint                 |
+| `npm run format`       | Форматирование кода Prettier         |
+| `npm run format:check` | Проверка форматирования              |
+
+</details>
+
+> **⚠️ Примечание:** Для сборки macOS требуется macOS-хост или GitHub Actions с macOS runner
+
+---
+
+## 🧭 Архитектура проекта
 
 ```
 equipment-tracker/
-├─ electron/                # Main-процесс, окна, IPC-слой, миграции БД
-│  ├─ database.ts
-│  ├─ migrations.ts
-│  ├─ preload.ts
-│  └─ ipc/
-├─ src/                     # React-приложение (renderer)
-│  ├─ components/
-│  │  ├─ AddRequestModal.tsx
+├─ 📂 electron/              # Main-процесс Electron
+│  ├─ main.ts               # Точка входа, создание окон
+│  ├─ window.ts             # Управление окнами
+│  ├─ tray.ts               # Системный трей
+│  ├─ updater.ts            # Автообновление
+│  ├─ database.ts           # SQLite соединение
+│  ├─ migrations.ts         # Миграции БД
+│  ├─ notifications.ts      # Системные уведомления
+│  └─ ipc/                  # IPC handlers
+│     ├─ requests.ts        # Обработка заявок
+│     ├─ employeeExits.ts   # Обработка выходов
+│     └─ backup.ts          # Бэкапы
+│
+├─ 📂 src/                   # React-приложение (renderer)
+│  ├─ components/           # React компоненты
+│  │  ├─ Dashboard.tsx
+│  │  ├─ RequestsView.tsx
 │  │  ├─ EmployeeExitView.tsx
-│  │  └─ ui/...
-│  ├─ hooks/                # useRequests, useEmployeeExits и пр.
-│  ├─ lib/
-│  ├─ types/
-│  ├─ App.tsx
-│  └─ main.tsx
-├─ docs/                    # Документация и планы развития
-├─ dist/, dist-electron/    # Прод билд (vite, electron)
-├─ release/                 # Артефакты electron-builder
-├─ package.json             # Скрипты и зависимости
-└─ tsconfig*.json           # Конфигурация TypeScript
+│  │  └─ ui/               # shadcn/ui компоненты
+│  ├─ hooks/               # Custom React hooks
+│  │  ├─ useRequests.ts
+│  │  ├─ useEmployeeExits.ts
+│  │  └─ useDebounce.ts
+│  ├─ types/               # TypeScript типы
+│  ├─ lib/                 # Утилиты
+│  ├─ App.tsx              # Главный компонент
+│  └─ main.tsx             # Точка входа React
+│
+├─ 📂 build/                 # Ресурсы для сборки
+│  ├─ icon.ico             # Иконка Windows
+│  ├─ icon.icns            # Иконка macOS
+│  └─ icon.png             # Иконка Linux
+│
+├─ 📂 .github/workflows/     # CI/CD
+│  └─ release.yml          # Автоматическая сборка релизов
+│
+├─ 📂 dist/                  # Production React bundle
+├─ 📂 dist-electron/         # Production Electron bundle
+└─ 📂 release/               # Готовые установщики
 ```
 
-## 🗄️ База данных и миграции
+---
 
-- SQLite-файл создаётся автоматически в userData каталоге системы (AppData на
-  Windows, `~/Library/Application Support` на macOS, `~/.config` на Linux).
-- Служебные миграции описаны в `electron/migrations.ts` и выполняются через Knex
-  при каждом запуске. Первый запуск обновляет старые схемы до актуальной структуры
-  с отдельной таблицей `equipment_items`.
-- Основные таблицы:
-  - `requests` — заявки сотрудников.
-  - `equipment_items` — конкретные позиции оборудования внутри заявки.
-  - `employee_exits` — записи о выходах сотрудников.
+## � Документация
 
-> Дополнительные индексы и `PRAGMA foreign_keys` включаются автоматически при
-> инициализации `database.ts`.
+| Документ                                  | Описание                           |
+| ----------------------------------------- | ---------------------------------- |
+| [🌍 MULTIPLATFORM.md](./MULTIPLATFORM.md) | Мультиплатформенная сборка и CI/CD |
+| [🔄 AUTO_UPDATE.md](./AUTO_UPDATE.md)     | Система автоматических обновлений  |
+| [📖 USAGE.md](./USAGE.md)                 | Руководство пользователя           |
+| [🔒 SECURITY.md](./SECURITY.md)           | Политика безопасности              |
 
-## 🔌 IPC и слой данных
+---
 
-Коммуникация между renderer и main-процессом идёт через IPC-каналы, типизированные
-`zod`-схемами и описанные в `src/types/ipc.ts`.
+## 🗄️ База данных
 
-Основные хендлеры (см. `electron/ipc/*.ts`):
+- **Расположение**: Автоматически создаётся в системной папке пользователя
+  - Windows: `%APPDATA%\equipment-tracker\`
+  - macOS: `~/Library/Application Support/equipment-tracker/`
+  - Linux: `~/.config/equipment-tracker/`
 
-- Requests: `get-requests`, `create-request`, `update-request`, `update-issued`,
-  `delete-request`, `restore-request`.
-- Employee exits: `get-employee-exits`, `create-employee-exit`,
-  `update-employee-exit`, `update-exit-completed`, `delete-employee-exit`.
-- Backups: `create-backup`, `restore-backup`.
+- **Миграции**: Автоматически применяются при каждом запуске
+- **Бэкапы**: Создаются в подпапке `backups/` той же директории
 
-React Query-хуки (`src/hooks/useRequests.ts`, `useEmployeeExits.ts`)
-инкапсулируют вызовы IPC и кеширование.
+### Основные таблицы:
 
-## 🧪 Качество кода
+| Таблица           | Описание                           |
+| ----------------- | ---------------------------------- |
+| `requests`        | Заявки на выдачу оборудования      |
+| `equipment_items` | Позиции оборудования внутри заявок |
+| `employee_exits`  | Записи о выходах сотрудников       |
 
-- `npm run lint` — ESLint по всем `ts/tsx` файлам.
-- `npm run format` / `npm run format:check` — Prettier с единым конфигом.
-- Husky pre-commit хук запускает lint-staged (eslint + prettier по staged
-  файлам).
-- GitHub Actions (`.github/workflows/ci.yml`) проверяет lint и
-  `npm run build:ci` (tsc --noEmit + vite build).
+---
 
-## 🔄 Скрипты npm
+## 🔌 IPC Коммуникация
 
-| Скрипт                 | Назначение                                               |
-| ---------------------- | -------------------------------------------------------- |
-| `npm run dev`          | Vite dev-сервер (renderer)                               |
-| `npm run electron:dev` | Vite dev-сервер + Electron с авто-перезапуском           |
-| `npm run electron`     | Запуск production Electron из `dist-electron`            |
-| `npm run build`        | Production-бандл + Electron-пакеты для Win/macOS/Linux   |
-| `npm run build:bundle` | Только сборка renderer + main (`tsc && vite build`)      |
-| `npm run build:win`    | Сборка Windows-артефактов (`electron-builder --win`)     |
-| `npm run build:linux`  | Сборка Linux-артефактов (`--linux`, AppImage и др.)      |
-| `npm run build:mac`    | Сборка macOS-артефактов (`--mac`, требуется macOS)       |
-| `npm run build:ci`     | Облегчённая сборка для CI (`tsc --noEmit && vite build`) |
-| `npm run lint`         | ESLint с жёстким порогом (max-warnings = 0)              |
-| `npm run format`       | Prettier с `--write`                                     |
-| `npm run format:check` | Prettier с `--check`                                     |
+Связь между renderer и main процессами через типизированные IPC-каналы:
 
-## 💾 Резервные копии
+```typescript
+// Пример использования в React
+const { data: requests } = useQuery({
+  queryKey: ['requests'],
+  queryFn: () => window.electronAPI.getRequests(),
+})
+```
 
-- Бэкап — `create-backup` кладёт `.db` копию в `%USER_DATA%/backups`.
-- Восстановление — `restore-backup` подменяет текущую БД выбранным файлом (UI
-  диалог в разделе «Настройки»).
-- Путь к директории бэкапов можно увидеть в UI.
+### Доступные API:
 
-## 🛠️ Отладка и советы
+<details>
+<summary>📋 <b>Requests API</b></summary>
 
-- **DevTools**: в dev-режиме Electron открывает инструменты в отдельном окне.
-- **Перезапуск main-процесса**: изменения в `electron/` требуют перезапуска
-  команды `npm run electron:dev`.
-- **Блокировки SQLite**: при параллельных чтениях/записях база синхронная,
-  поэтому избегайте долгих операций в main-процессе.
-- **Tailwind IntelliSense**: расширения VS Code помогают при верстке.
-- **Фоновый режим уведомлений**: системные напоминания работают, пока запущен
-  main-процесс. Для уведомлений после закрытия окна приложения потребуется либо
-  автозапуск и скрытый режим (трэй-иконка), либо отдельный сервис/планировщик
-  задач Windows, который будет вызывать скрипт напоминаний.
+- `getRequests()` - Получить все заявки
+- `createRequest(data)` - Создать заявку
+- `updateRequest(id, data)` - Обновить заявку
+- `deleteRequest(id)` - Удалить заявку
+- `updateRequestIssued(id, issued)` - Обновить статус выдачи
+
+</details>
+
+<details>
+<summary>👥 <b>Employee Exits API</b></summary>
+
+- `getEmployeeExits()` - Получить все выходы
+- `createEmployeeExit(data)` - Создать выход
+- `updateEmployeeExit(id, data)` - Обновить выход
+- `deleteEmployeeExit(id)` - Удалить выход
+- `updateExitCompleted(id, completed)` - Обновить статус завершения
+
+</details>
+
+<details>
+<summary>💾 <b>Backup API</b></summary>
+
+- `createBackup()` - Создать резервную копию
+- `restoreBackup(filePath)` - Восстановить из копии
+- `getBackupPath()` - Получить путь к папке бэкапов
+
+</details>
+
+---
+
+## 🧪 Качество кода и CI/CD
+
+### Локальная разработка
+
+```bash
+npm run lint              # ESLint проверка
+npm run format           # Prettier форматирование
+npm run format:check     # Проверка форматирования
+```
+
+### Pre-commit хуки
+
+Автоматически запускаются через Husky + lint-staged:
+
+- ✅ ESLint с автофиксом
+- ✅ Prettier проверка
+- ✅ Применяется только к staged файлам
+
+### GitHub Actions
+
+- **🔄 CI**: Автоматическая проверка линтинга и сборки на каждый push
+- **🚀 Release**: Автоматическая мультиплатформенная сборка при создании тега
+  - Параллельная сборка для Windows, macOS, Linux
+  - Автоматическая публикация в GitHub Releases
+  - Красивое описание релиза с кликабельными кнопками скачивания
+
+---
+
+## �️ Советы по разработке
+
+<details>
+<summary>🔍 <b>Отладка</b></summary>
+
+- **DevTools**: Открываются автоматически в dev-режиме
+- **Main процесс**: Логи в консоли терминала
+- **Renderer процесс**: DevTools в окне Electron
+- **База данных**: Используйте SQLite Browser для просмотра
+
+</details>
+
+<details>
+<summary>⚡ <b>Hot Reload</b></summary>
+
+- **Renderer**: Автоматический при изменении `src/`
+- **Main**: Требует перезапуска `electron:dev` при изменении `electron/`
+- **Preload**: Требует полной перезагрузки окна (Ctrl+R)
+
+</details>
+
+<details>
+<summary>🎨 <b>Tailwind IntelliSense</b></summary>
+
+Установите расширение VS Code для автодополнения классов:
+
+```
+Name: Tailwind CSS IntelliSense
+Id: bradlc.vscode-tailwindcss
+```
+
+</details>
+
+<details>
+<summary>🔔 <b>Системные уведомления</b></summary>
+
+- Работают только в упакованном приложении (production)
+- В dev-режиме используйте `npm run electron` после сборки
+- Проверьте настройки уведомлений в ОС
+
+</details>
+
+---
 
 ## 🤝 Contributing
 
-1. Сделайте форк и ветку от `main`.
-2. Убедитесь, что проходят `npm run lint` и `npm run build:ci`.
-3. Откройте PR с описанием изменений. Автолинтеры запустятся в CI.
-4. При необходимости обновите `docs/improvement-plan.md` и README.
+Мы приветствуем вклад в проект!
+
+### Как внести вклад:
+
+1. **Fork** репозитория
+2. Создайте **ветку** для фичи: `git checkout -b feature/amazing-feature`
+3. **Commit** изменений: `git commit -m 'feat: add amazing feature'`
+4. **Push** в ветку: `git push origin feature/amazing-feature`
+5. Откройте **Pull Request**
+
+### Требования:
+
+- ✅ Код проходит `npm run lint`
+- ✅ Код проходит `npm run format:check`
+- ✅ Проект собирается без ошибок
+- ✅ Добавлены комментарии для сложной логики
+- ✅ Обновлена документация при необходимости
+
+---
+
+## 📊 Статистика проекта
+
+![GitHub repo size](https://img.shields.io/github/repo-size/MaRT1n1q/Equipment.Tracker?style=flat-square)
+![GitHub code size](https://img.shields.io/github/languages/code-size/MaRT1n1q/Equipment.Tracker?style=flat-square)
+![GitHub language count](https://img.shields.io/github/languages/count/MaRT1n1q/Equipment.Tracker?style=flat-square)
+![GitHub top language](https://img.shields.io/github/languages/top/MaRT1n1q/Equipment.Tracker?style=flat-square)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/MaRT1n1q/Equipment.Tracker?style=flat-square)
+![GitHub last commit](https://img.shields.io/github/last-commit/MaRT1n1q/Equipment.Tracker?style=flat-square)
+
+---
 
 ## 📜 Лицензия
 
-[MIT](LICENSE) — используйте свободно, в том числе в коммерческих проектах.
+<div align="center">
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+**MIT License** — свободное использование в коммерческих и некоммерческих проектах
+
+</div>
+
+---
+
+<div align="center">
+
+### 🌟 Если проект оказался полезным, поставьте звезду!
+
+[![GitHub stars](https://img.shields.io/github/stars/MaRT1n1q/Equipment.Tracker?style=social)](https://github.com/MaRT1n1q/Equipment.Tracker/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/MaRT1n1q/Equipment.Tracker?style=social)](https://github.com/MaRT1n1q/Equipment.Tracker/network/members)
+[![GitHub watchers](https://img.shields.io/github/watchers/MaRT1n1q/Equipment.Tracker?style=social)](https://github.com/MaRT1n1q/Equipment.Tracker/watchers)
+
+**Made with ❤️ by [MaRT1n1q](https://github.com/MaRT1n1q)**
+
+[🏠 На главную](https://github.com/MaRT1n1q/Equipment.Tracker) • [📥 Скачать](#-скачать) • [🐛 Сообщить об ошибке](https://github.com/MaRT1n1q/Equipment.Tracker/issues) • [💡 Предложить идею](https://github.com/MaRT1n1q/Equipment.Tracker/issues/new)
+
+</div>
