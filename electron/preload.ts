@@ -8,6 +8,9 @@ import type {
 } from '../src/types/ipc'
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // App info
+  getAppVersion: (): string => ipcRenderer.sendSync('get-app-version'),
+
   getRequests: (): Promise<ApiResponse<Request[]>> => ipcRenderer.invoke('get-requests'),
 
   createRequest: (data: CreateRequestData): Promise<ApiResponse> =>

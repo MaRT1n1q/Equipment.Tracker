@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { createMainWindow } from './window'
 import { closeDatabase, getDatabase, initDatabase } from './database'
 import { registerRequestHandlers } from './ipc/requests'
@@ -20,6 +20,11 @@ const triggerExitReminderCheck = () => {
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.equipment.tracker')
 }
+
+// Обработчик для получения версии приложения
+ipcMain.on('get-app-version', (event) => {
+  event.returnValue = app.getVersion()
+})
 
 // Защита от запуска множественных экземпляров приложения
 const gotTheLock = app.requestSingleInstanceLock()

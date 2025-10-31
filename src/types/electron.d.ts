@@ -10,6 +10,9 @@ import type {
 declare global {
   interface Window {
     electronAPI: {
+      // App info
+      getAppVersion: () => string
+      // Requests API
       getRequests: () => Promise<ApiResponse<Request[]>>
       createRequest: (data: CreateRequestData) => Promise<ApiResponse>
       updateRequest: (id: number, data: UpdateRequestData) => Promise<ApiResponse>

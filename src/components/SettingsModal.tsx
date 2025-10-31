@@ -2,6 +2,7 @@ import { Settings, Database, Download, Upload, Info } from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -9,6 +10,16 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const [appVersion, setAppVersion] = useState('loading...')
+
+  useEffect(() => {
+    if (window.electronAPI?.getAppVersion) {
+      const version = window.electronAPI.getAppVersion()
+      setAppVersion(version)
+    } else {
+      setAppVersion('unknown')
+    }
+  }, [])
   const iconVariants = {
     success: 'status-icon status-icon--success',
     danger: 'status-icon status-icon--danger',
@@ -133,7 +144,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
           {/* Version info */}
           <div className="text-center text-xs text-muted-foreground border-t border-border/60 pt-4">
-            Equipment Tracker v1.0.0
+            Equipment Tracker v{appVersion}
           </div>
         </div>
       </DialogContent>
