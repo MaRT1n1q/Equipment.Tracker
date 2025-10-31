@@ -24,17 +24,17 @@ _Оффлайн-первый подход • Современный UI • Кр
 
 ### 🪟 Windows (x64)
 
-[![Download Windows](https://img.shields.io/badge/💾_Скачать-Windows_x64-0078D4?style=for-the-badge&logo=windows)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-win-x64.exe)
+[![Download Windows](https://img.shields.io/badge/💾_Скачать-Windows_x64-0078D4?style=for-the-badge&logo=windows)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest)
 
 ### 🍏 macOS
 
-[![Download macOS Intel](<https://img.shields.io/badge/💾_Скачать-Intel_(x64)-000000?style=for-the-badge&logo=apple>)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-mac-x64.dmg)
-[![Download macOS ARM](<https://img.shields.io/badge/💾_Скачать-Apple_Silicon_(arm64)-000000?style=for-the-badge&logo=apple>)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-mac-arm64.dmg)
+[![Download macOS Intel](<https://img.shields.io/badge/💾_Скачать-Intel_(x64)-000000?style=for-the-badge&logo=apple>)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest)
+[![Download macOS ARM](<https://img.shields.io/badge/💾_Скачать-Apple_Silicon_(arm64)-000000?style=for-the-badge&logo=apple>)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest)
 
 ### 🐧 Linux (x64)
 
-[![Download Linux AppImage](https://img.shields.io/badge/�_Скачать-AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-linux-x64.AppImage)
-[![Download Linux DEB](https://img.shields.io/badge/💾_Скачать-DEB-A81D33?style=for-the-badge&logo=debian&logoColor=white)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest/download/Equipment-Tracker-linux-x64.deb)
+[![Download Linux AppImage](https://img.shields.io/badge/💾_Скачать-AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest)
+[![Download Linux DEB](https://img.shields.io/badge/💾_Скачать-DEB-A81D33?style=for-the-badge&logo=debian&logoColor=white)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/latest)
 
 **🔄 Автообновление:** Приложение автоматически проверяет и устанавливает обновления
 
