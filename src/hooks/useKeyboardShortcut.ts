@@ -1,4 +1,4 @@
-import { type DependencyList, useEffect } from 'react'
+import { type DependencyList, useEffect, useRef } from 'react'
 
 export interface KeyboardShortcut {
   key: string
@@ -41,10 +41,20 @@ function matchesShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut) {
 export function useKeyboardShortcut(
   shortcut: KeyboardShortcut,
   handler: (event: KeyboardEvent) => void,
-  deps: DependencyList = [],
+  _deps: DependencyList = [],
   options?: UseKeyboardShortcutOptions
 ) {
   const { preventDefault = true, enabled = true } = options ?? {}
+
+  void _deps
+
+  const handlerRef = useRef(handler)
+  const shortcutRef = useRef(shortcut)
+  const preventDefaultRef = useRef(preventDefault)
+
+  handlerRef.current = handler
+  shortcutRef.current = shortcut
+  preventDefaultRef.current = preventDefault
 
   useEffect(() => {
     if (!enabled) {
@@ -52,28 +62,18 @@ export function useKeyboardShortcut(
     }
 
     const listener = (event: KeyboardEvent) => {
-      if (!matchesShortcut(event, shortcut)) {
+      if (!matchesShortcut(event, shortcutRef.current)) {
         return
       }
 
-      if (preventDefault) {
+      if (preventDefaultRef.current) {
         event.preventDefault()
       }
 
-      handler(event)
+      handlerRef.current(event)
     }
 
     window.addEventListener('keydown', listener)
     return () => window.removeEventListener('keydown', listener)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    enabled,
-    preventDefault,
-    shortcut.key,
-    shortcut.altKey,
-    shortcut.ctrlKey,
-    shortcut.metaKey,
-    shortcut.shiftKey,
-    ...deps,
-  ])
+  }, [enabled])
 }
