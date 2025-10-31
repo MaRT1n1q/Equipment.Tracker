@@ -90,18 +90,21 @@
     "extraResources": [
       {
         "from": "build/icon.ico",
-        "to": "icon.ico"
+        "to": "icon.ico",
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "build/icon.png",
-        "to": "icon.png"
-      },
-      {
-        "from": "build/icon.icns",
-        "to": "icon.icns"
+        "to": "icon.png",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {
+      "icon": "build/icon.icns",
       "target": [
         {
           "target": "dmg",
@@ -121,6 +124,7 @@
       "artifactName": "Equipment-Tracker-${version}-mac-${arch}.${ext}"
     },
     "linux": {
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "AppImage",
