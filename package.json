@@ -32,6 +32,8 @@
     "@tanstack/react-query": "^5.90.5",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2",
     "knex": "^3.1.0",
     "lucide-react": "^0.548.0",
     "react": "^19.2.0",
@@ -75,6 +77,11 @@
     "directories": {
       "output": "release",
       "buildResources": "build"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MaRT1n1q",
+      "repo": "Equipment.Tracker"
     },
     "files": [
       "dist/**/*",

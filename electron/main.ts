@@ -6,6 +6,7 @@ import { registerEmployeeExitHandlers } from './ipc/employeeExits'
 import { createAutomaticBackup, registerBackupHandlers } from './ipc/backup'
 import { startExitReminderScheduler } from './notifications'
 import { createTray, destroyTray } from './tray'
+import { initAutoUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let exitReminderScheduler: ReturnType<typeof startExitReminderScheduler> = null
@@ -74,6 +75,9 @@ if (!gotTheLock) {
 
     // Создаем иконку в трее с функцией для получения окна
     createTray(getMainWindow)
+
+    // Инициализируем автообновление
+    initAutoUpdater(mainWindow)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
