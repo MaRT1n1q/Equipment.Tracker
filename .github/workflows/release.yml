@@ -37,52 +37,24 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Версия ${{ steps.get_version.outputs.VERSION }}
+          name: Версия ${{ steps.get_version.outputs.VERSION }}
           body: |
             ## 🚀 Релиз версии ${{ steps.get_version.outputs.VERSION }}
-                      
+                        
             ### 📥 Установка
             Скачайте и запустите установщик для Windows.
-
+            
             ### 🔄 Автообновление
             Если у вас уже установлена предыдущая версия, приложение автоматически обнаружит и загрузит это обновление.
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset (Installer)
-        uses: actions/upload-release-asset@v1
+          files: |
+            ./release/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe
+            ./release/latest.yml
+            ./release/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe.blockmap
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe
-          asset_name: Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload Release Asset (latest.yml)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/latest.yml
-          asset_name: latest.yml
-          asset_content_type: application/x-yaml
-
-      - name: Upload Release Asset (blockmap)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe.blockmap
-          asset_name: Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe.blockmap
-          asset_content_type: application/octet-stream
-        continue-on-error: true # На случай если blockmap не создан
