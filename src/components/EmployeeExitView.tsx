@@ -1,4 +1,4 @@
-import { AlertTriangle, Download } from 'lucide-react'
+import { AlertTriangle, Download, Plus } from 'lucide-react'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
@@ -139,11 +139,17 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
     <div className="space-y-6">
       {/* Table */}
       <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold">Список выходов</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Управление записями о выходе сотрудников
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-bold">Список выходов</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Управление записями о выходе сотрудников
+            </p>
+          </div>
+          <Button onClick={() => onModalOpenChange(true)} size="sm" className="shadow-brand px-4">
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить запись
+          </Button>
         </div>
 
         {isLoading ? (

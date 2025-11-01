@@ -150,48 +150,48 @@ jobs:
           name: 🚀 Equipment Tracker v${{ steps.get_version.outputs.VERSION }}
           body: |
             # 🚀 Релиз Equipment Tracker v${{ steps.get_version.outputs.VERSION }}
-            
-            
+
+
             ---
-            
+
             ## 📥 Установка
-            
+
             ### 🪟 Windows (x64)
-            
+
             [![Download EXE](https://img.shields.io/badge/💾_Скачать-.exe-blue?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-win-x64.exe)
-            
+
             ▶️ Запустите установщик и следуйте инструкциям
-            
+
             ---
-            
+
             ### 🍏 macOS
-            
+
             **Intel (x64):**
-            
+
             [![Download DMG Intel](https://img.shields.io/badge/💾_Скачать-.dmg-brightgreen?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-mac-x64.dmg) [![Download ZIP Intel](https://img.shields.io/badge/💾_Скачать-.zip-green?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-mac-x64.zip)
-            
+
             **Apple Silicon (arm64):**
-            
+
             [![Download DMG ARM](https://img.shields.io/badge/💾_Скачать-.dmg-brightgreen?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-mac-arm64.dmg) [![Download ZIP ARM](https://img.shields.io/badge/💾_Скачать-.zip-green?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-mac-arm64.zip)
-            
+
             📂 Откройте `.dmg` и перетащите приложение в папку **Applications**
-            
+
             ---
-            
+
             ### 🐧 Linux (x64)
-            
+
             [![Download AppImage](https://img.shields.io/badge/💾_Скачать-.AppImage-orange?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-linux-x64.AppImage) [![Download DEB](https://img.shields.io/badge/💾_Скачать-.deb-red?style=for-the-badge)](https://github.com/MaRT1n1q/Equipment.Tracker/releases/download/v${{ steps.get_version.outputs.VERSION }}/Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-linux-x64.deb)
-            
+
             **Для AppImage:**
             ```bash
             chmod +x Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-linux-x64.AppImage
             ./Equipment-Tracker-${{ steps.get_version.outputs.VERSION }}-linux-x64.AppImage
             ```
-            
+
             ---
-            
+
             ## 🔄 Автообновление
-            
+
             Если у вас уже установлена предыдущая версия, приложение **автоматически обнаружит и установит обновление** — ничего делать не нужно 💫
           draft: false
           prerelease: false
