@@ -122,6 +122,10 @@ export function RequestsView({
           return true
         }
 
+        if (request.sd_number && request.sd_number.toLowerCase().includes(query)) {
+          return true
+        }
+
         return false
       })
     }
@@ -169,7 +173,7 @@ export function RequestsView({
         <>
           <div className="space-y-4 mb-6">
             <SearchAndFilters
-              searchPlaceholder="Поиск по ФИО, логину, оборудованию или серийному номеру... (Ctrl+F)"
+              searchPlaceholder="Поиск по ФИО, логину, номеру SD, оборудованию или серийному номеру... (Ctrl+F)"
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
               searchInputRef={searchInputRef}
@@ -212,7 +216,7 @@ export function RequestsView({
                 title: 'Секундный onboarding для раздела',
                 items: [
                   'Ctrl+N — моментальное создание новой заявки.',
-                  'Ctrl+F — поиск по ФИО, логину, оборудованию и серийному номеру.',
+                  'Ctrl+F — поиск по ФИО, логину, номеру SD, оборудованию и серийному номеру.',
                   'Фильтр «Не выданные» помогает отслеживать ожидающие заявки.',
                   'Кнопка редактирования и чекбокс статуса всегда под рукой.',
                 ],

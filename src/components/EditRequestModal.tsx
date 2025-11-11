@@ -34,6 +34,8 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     setLogin,
     loginError,
     setLoginError,
+    sdNumber,
+    setSdNumber,
     notes,
     setNotes,
     equipmentItems,
@@ -51,6 +53,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       resetForm({
         employeeName: request.employee_name,
         login: request.login,
+        sdNumber: request.sd_number ?? '',
         notes: request.notes || '',
         equipmentItems:
           request.equipment_items && request.equipment_items.length > 0
@@ -99,6 +102,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       resetForm({
         employeeName: payload.employee_name,
         login: payload.login,
+        sdNumber: payload.sd_number ?? '',
         notes: payload.notes ?? '',
         equipmentItems: payload.equipment_items,
       })
@@ -161,6 +165,8 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
               }
             }}
             loginError={loginError}
+            sdNumber={sdNumber}
+            onSdNumberChange={(value) => setSdNumber(value)}
             notes={notes}
             onNotesChange={(value) => setNotes(value)}
             equipmentItems={equipmentItems}

@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Clock,
   KeyRound,
+  Tag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
@@ -186,6 +187,25 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                               />
                               <span>{request.login}</span>
                             </div>
+                            {request.sd_number && (
+                              <>
+                                <span className="text-muted-foreground/60">•</span>
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Tag
+                                    className={cn(
+                                      'text-muted-foreground',
+                                      isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
+                                    )}
+                                  />
+                                  <span className="uppercase text-[0.65rem] tracking-wide text-muted-foreground/70">
+                                    номер SD
+                                  </span>
+                                  <span className="font-medium text-foreground normal-case">
+                                    {request.sd_number}
+                                  </span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -16,6 +16,7 @@ export const equipmentItemRecordSchema = equipmentItemInputSchema.extend({
 export const createRequestSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
   login: z.string().trim().min(1, 'Логин обязателен'),
+  sd_number: z.string().trim().max(120, 'Номер SD слишком длинный').optional(),
   notes: z
     .string()
     .trim()
@@ -30,6 +31,7 @@ export const requestRecordSchema = z.object({
   id: requestIdSchema,
   employee_name: z.string(),
   login: z.string(),
+  sd_number: z.string().nullable(),
   created_at: z.string(),
   is_issued: z.number().int(),
   issued_at: z.string().nullable(),
@@ -49,6 +51,7 @@ export const restoreRequestSchema = requestRecordSchema
 export const createEmployeeExitSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
   login: z.string().trim().min(1, 'Логин обязателен'),
+  sd_number: z.string().trim().max(120, 'Номер SD слишком длинный').optional(),
   exit_date: z.string().trim().min(1, 'Дата выхода обязательна'),
   equipment_list: z.string().trim().min(1, 'Список оборудования обязателен'),
 })
@@ -57,6 +60,7 @@ export const employeeExitRecordSchema = createEmployeeExitSchema.extend({
   id: z.number().int().positive(),
   created_at: z.string(),
   is_completed: z.number().int(),
+  sd_number: z.string().nullable(),
 })
 
 export const updateExitCompletedSchema = z.object({

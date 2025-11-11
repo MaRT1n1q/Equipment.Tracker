@@ -16,6 +16,7 @@ interface AddEmployeeExitModalProps {
 export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalProps) {
   const [employeeName, setEmployeeName] = useState('')
   const [login, setLogin] = useState('')
+  const [sdNumber, setSdNumber] = useState('')
   const [exitDate, setExitDate] = useState('')
   const [equipmentList, setEquipmentList] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -35,6 +36,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
       await createEmployeeExit({
         employee_name: employeeName.trim(),
         login: login.trim(),
+        sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
         exit_date: exitDate,
         equipment_list: equipmentList.trim(),
       })
@@ -42,6 +44,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
       toast.success('Запись о выходе сотрудника создана')
       setEmployeeName('')
       setLogin('')
+      setSdNumber('')
       setExitDate('')
       setEquipmentList('')
       onClose()
@@ -57,6 +60,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
     if (!isSubmitting) {
       setEmployeeName('')
       setLogin('')
+      setSdNumber('')
       setExitDate('')
       setEquipmentList('')
       onClose()
@@ -107,6 +111,21 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
                 placeholder="i.ivanov"
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
+                className="w-full"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* SD Number */}
+            <div className="space-y-2">
+              <Label htmlFor="sd-number" className="text-sm font-medium">
+                Номер SD
+              </Label>
+              <Input
+                id="sd-number"
+                placeholder="12345678"
+                value={sdNumber}
+                onChange={(e) => setSdNumber(e.target.value)}
                 className="w-full"
                 disabled={isSubmitting}
               />

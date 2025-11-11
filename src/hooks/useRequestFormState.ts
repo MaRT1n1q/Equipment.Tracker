@@ -10,6 +10,7 @@ const createEmptyEquipmentItem = (): EquipmentItem => ({
 interface UseRequestFormStateOptions {
   employeeName?: string
   login?: string
+  sdNumber?: string | null
   notes?: string
   equipmentItems?: EquipmentItem[]
 }
@@ -17,6 +18,7 @@ interface UseRequestFormStateOptions {
 export function useRequestFormState(options?: UseRequestFormStateOptions) {
   const [employeeName, setEmployeeName] = useState(options?.employeeName ?? '')
   const [login, setLogin] = useState(options?.login ?? '')
+  const [sdNumber, setSdNumber] = useState(options?.sdNumber ?? '')
   const [notes, setNotes] = useState(options?.notes ?? '')
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>(() => {
     if (options?.equipmentItems && options.equipmentItems.length > 0) {
@@ -31,6 +33,7 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
   const resetForm = useCallback((nextOptions?: UseRequestFormStateOptions) => {
     setEmployeeName(nextOptions?.employeeName ?? '')
     setLogin(nextOptions?.login ?? '')
+    setSdNumber(nextOptions?.sdNumber ?? '')
     setNotes(nextOptions?.notes ?? '')
     setEquipmentItems(() => {
       if (nextOptions?.equipmentItems && nextOptions.equipmentItems.length > 0) {
@@ -82,10 +85,11 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
     () => ({
       employee_name: employeeName.trim(),
       login: login.trim(),
+      sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
       notes: notes.trim() || undefined,
       equipment_items: equipmentItems,
     }),
-    [employeeName, equipmentItems, login, notes]
+    [employeeName, equipmentItems, login, notes, sdNumber]
   )
 
   return {
@@ -97,6 +101,8 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
     setLogin,
     loginError,
     setLoginError,
+    sdNumber,
+    setSdNumber,
     notes,
     setNotes,
     equipmentItems,

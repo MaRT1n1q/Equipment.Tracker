@@ -18,6 +18,7 @@ interface EditEmployeeExitModalProps {
 export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExitModalProps) {
   const [employeeName, setEmployeeName] = useState('')
   const [login, setLogin] = useState('')
+  const [sdNumber, setSdNumber] = useState('')
   const [exitDate, setExitDate] = useState('')
   const [equipmentList, setEquipmentList] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -27,6 +28,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
     if (exit && isOpen) {
       setEmployeeName(exit.employee_name)
       setLogin(exit.login)
+      setSdNumber(exit.sd_number ?? '')
       setExitDate(exit.exit_date)
       setEquipmentList(exit.equipment_list)
     }
@@ -52,6 +54,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
         data: {
           employee_name: employeeName.trim(),
           login: login.trim(),
+          sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
           exit_date: exitDate,
           equipment_list: equipmentList.trim(),
         },
@@ -117,6 +120,20 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
                 placeholder="i.ivanov"
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
+                className="w-full"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sd-number-edit" className="text-sm font-medium">
+                Номер SD
+              </Label>
+              <Input
+                id="sd-number-edit"
+                placeholder="12345678"
+                value={sdNumber}
+                onChange={(e) => setSdNumber(e.target.value)}
                 className="w-full"
                 disabled={isSubmitting}
               />

@@ -32,6 +32,8 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
     setLogin,
     loginError,
     setLoginError,
+    sdNumber,
+    setSdNumber,
     notes,
     setNotes,
     equipmentItems,
@@ -138,6 +140,8 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
               }
             }}
             loginError={loginError}
+            sdNumber={sdNumber}
+            onSdNumberChange={(value) => setSdNumber(value)}
             notes={notes}
             onNotesChange={(value) => setNotes(value)}
             equipmentItems={equipmentItems}

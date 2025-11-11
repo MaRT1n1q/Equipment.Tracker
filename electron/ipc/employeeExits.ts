@@ -47,7 +47,12 @@ export function registerEmployeeExitHandlers(
         .select('*')
         .orderBy('exit_date', 'desc')) as Array<Record<string, any>>
 
-      const payload = exits.map((exit) => employeeExitRecordSchema.parse(exit))
+      const payload = exits.map((exit) =>
+        employeeExitRecordSchema.parse({
+          ...exit,
+          sd_number: exit.sd_number ?? null,
+        })
+      )
       return { success: true, data: payload }
     } catch (error) {
       return { success: false, error: (error as Error).message }
@@ -63,6 +68,7 @@ export function registerEmployeeExitHandlers(
       const insertResult = (await database('employee_exits').insert({
         employee_name: data.employee_name,
         login: data.login,
+        sd_number: data.sd_number ?? null,
         exit_date: data.exit_date,
         equipment_list: data.equipment_list,
         created_at: createdAt,
@@ -89,12 +95,15 @@ export function registerEmployeeExitHandlers(
       const data = createEmployeeExitSchema.parse(rawData)
 
       const database = getDatabase()
-      await database('employee_exits').where({ id }).update({
-        employee_name: data.employee_name,
-        login: data.login,
-        exit_date: data.exit_date,
-        equipment_list: data.equipment_list,
-      })
+      await database('employee_exits')
+        .where({ id })
+        .update({
+          employee_name: data.employee_name,
+          login: data.login,
+          sd_number: data.sd_number ?? null,
+          exit_date: data.exit_date,
+          equipment_list: data.equipment_list,
+        })
 
       notifyChange()
       return { success: true }
@@ -116,7 +125,10 @@ export function registerEmployeeExitHandlers(
         return { success: false, error: 'Запись не найдена' }
       }
 
-      const payload = employeeExitRecordSchema.parse(exit)
+      const payload = employeeExitRecordSchema.parse({
+        ...exit,
+        sd_number: exit.sd_number ?? null,
+      })
       await database('employee_exits').where({ id }).delete()
       notifyChange()
       return { success: true, data: payload }
@@ -159,6 +171,7 @@ export function registerEmployeeExitHandlers(
         'ID',
         'Сотрудник',
         'Логин',
+        'Номер SD',
         'Дата выхода',
         'Статус',
         'Создано',
@@ -169,6 +182,7 @@ export function registerEmployeeExitHandlers(
         exit.id,
         exit.employee_name,
         exit.login,
+        exit.sd_number ?? '',
         exit.exit_date,
         exit.is_completed === 1 ? 'Завершено' : 'Ожидает',
         exit.created_at,

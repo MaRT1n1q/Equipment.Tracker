@@ -16,6 +16,8 @@ interface RequestFormFieldsProps {
   login: string
   onLoginChange: (value: string) => void
   loginError: boolean
+  sdNumber: string
+  onSdNumberChange: (value: string) => void
   notes: string
   onNotesChange: (value: string) => void
   equipmentItems: EquipmentItem[]
@@ -34,6 +36,8 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
       login,
       onLoginChange,
       loginError,
+      sdNumber,
+      onSdNumberChange,
       notes,
       onNotesChange,
       equipmentItems,
@@ -79,6 +83,17 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
               className={loginError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
             {loginError && <p className="text-xs text-red-500">Это поле обязательно</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sd_number">Номер SD</Label>
+            <Input
+              id="sd_number"
+              placeholder="12345678"
+              value={sdNumber}
+              onChange={(event) => onSdNumberChange(event.target.value)}
+              disabled={disabled}
+            />
           </div>
 
           <div className="space-y-2">

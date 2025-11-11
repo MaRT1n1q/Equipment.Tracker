@@ -8,6 +8,7 @@ import { runMigrations } from './migrations'
 interface MockRequestSeed {
   employeeName: string
   login: string
+  sdNumber?: string
   notes?: string
   isIssued: boolean
   equipment: Array<{ name: string; serial: string; quantity: number }>
@@ -16,6 +17,7 @@ interface MockRequestSeed {
 interface MockEmployeeExitSeed {
   employeeName: string
   login: string
+  sdNumber?: string
   exitDate: string
   equipmentList: string
   isCompleted: boolean
@@ -53,6 +55,7 @@ async function ensureSchema(database: Knex) {
       table.increments('id').primary()
       table.string('employee_name').notNullable()
       table.string('login').notNullable()
+      table.string('sd_number')
       table.string('created_at').notNullable()
       table.integer('is_issued').defaultTo(0)
       table.string('issued_at')
@@ -66,6 +69,13 @@ async function ensureSchema(database: Knex) {
       })
 
       await database('requests').whereNull('login').update({ login: '' })
+    }
+
+    const hasSdNumberColumn = await database.schema.hasColumn('requests', 'sd_number')
+    if (!hasSdNumberColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.string('sd_number')
+      })
     }
   }
 
@@ -91,11 +101,19 @@ async function ensureSchema(database: Knex) {
       table.increments('id').primary()
       table.string('employee_name').notNullable()
       table.string('login').notNullable()
+      table.string('sd_number')
       table.string('exit_date').notNullable()
       table.text('equipment_list').notNullable()
       table.string('created_at').notNullable()
       table.integer('is_completed').defaultTo(0)
     })
+  } else {
+    const hasSdNumberColumn = await database.schema.hasColumn('employee_exits', 'sd_number')
+    if (!hasSdNumberColumn) {
+      await database.schema.alterTable('employee_exits', (table) => {
+        table.string('sd_number')
+      })
+    }
   }
 
   await database.raw(
@@ -158,6 +176,7 @@ async function seedRequests(database: Knex) {
       const insertResult = await trx('requests').insert({
         employee_name: seed.employeeName,
         login: seed.login,
+        sd_number: seed.sdNumber ?? null,
         created_at: createdAt,
         is_issued: seed.isIssued ? 1 : 0,
         issued_at: issuedAt,
@@ -186,6 +205,7 @@ async function seedEmployeeExits(database: Knex) {
   const rows = mockEmployeeExitSeeds.map((seed, index) => ({
     employee_name: seed.employeeName,
     login: seed.login,
+    sd_number: seed.sdNumber ?? null,
     exit_date: seed.exitDate,
     equipment_list: seed.equipmentList,
     created_at: new Date(now - index * 48 * 60 * 60 * 1000).toISOString(),

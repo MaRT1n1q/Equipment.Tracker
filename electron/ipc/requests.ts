@@ -41,6 +41,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         return requestRecordSchema.parse({
           ...request,
           login: request.login ?? '',
+          sd_number: request.sd_number ?? null,
           equipment_items: equipment.map((item) => ({
             id: item.id,
             equipment_name: item.equipment_name,
@@ -66,6 +67,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         const requestInsertResult = (await trx('requests').insert({
           employee_name: data.employee_name,
           login: data.login,
+          sd_number: data.sd_number ?? null,
           created_at: createdAt,
           notes: data.notes ?? null,
         })) as number | Array<number> | { [key: string]: number }
@@ -145,6 +147,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           .update({
             employee_name: data.employee_name,
             login: data.login,
+            sd_number: data.sd_number ?? null,
             notes: data.notes ?? null,
           })
 
@@ -188,6 +191,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       const deletedRequest = requestRecordSchema.parse({
         ...request,
         login: request.login ?? '',
+        sd_number: request.sd_number ?? null,
         equipment_items: equipment.map((item) => ({
           id: item.id,
           equipment_name: item.equipment_name,
@@ -214,6 +218,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           id: request.id,
           employee_name: request.employee_name,
           login: request.login,
+          sd_number: request.sd_number,
           created_at: request.created_at,
           is_issued: request.is_issued,
           issued_at: request.issued_at,

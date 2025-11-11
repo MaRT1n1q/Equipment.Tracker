@@ -103,6 +103,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
         return (
           exit.employee_name.toLowerCase().includes(query) ||
           exit.login.toLowerCase().includes(query) ||
+          (exit.sd_number && exit.sd_number.toLowerCase().includes(query)) ||
           formattedDate.toLowerCase().includes(query) ||
           exit.equipment_list.toLowerCase().includes(query)
         )
@@ -187,7 +188,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
           <>
             <div className="space-y-4 mb-6">
               <SearchAndFilters
-                searchPlaceholder="Поиск по ФИО, логину, дате или оборудованию... (Ctrl+F)"
+                searchPlaceholder="Поиск по ФИО, логину, номеру SD, дате или оборудованию... (Ctrl+F)"
                 searchQuery={searchQuery}
                 onSearchQueryChange={setSearchQuery}
                 searchInputRef={searchInputRef}
@@ -241,10 +242,11 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
                   visible: showQuickHelp,
                   title: 'Секундный onboarding для раздела',
                   items: [
-                    'Ctrl+F — моментальный поиск по сотрудникам, логину и оборудованию.',
+                    'Ctrl+F — моментальный поиск по сотрудникам, логину, номеру SD и оборудованию.',
                     'Ctrl+Shift+F — переключение фильтра «Ожидают» для массового контроля выдач.',
                     'Кнопка «Экспорт CSV» сохранит текущий отфильтрованный список.',
                     'Иконка копирования в каждой записи — переносит список оборудования в буфер.',
+                    'Поле «Номер SD» помогает связать запись с тикетом службы поддержки.',
                   ],
                   onDismiss: dismissQuickHelp,
                 }}
