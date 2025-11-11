@@ -27,13 +27,19 @@ interface RequestsTableProps {
 export function RequestsTable({ requests, onEdit, density = 'comfortable' }: RequestsTableProps) {
   const { toggleIssued, deleteRequest, restoreRequest } = useRequestActions()
   const isDense = density === 'dense'
-  const cardPadding = isDense ? 'p-3 pl-4' : 'p-4 pl-5'
-  const headerGap = isDense ? 'gap-2' : 'gap-3'
-  const equipmentListSpacing = isDense ? 'mt-2 space-y-1' : 'mt-3 space-y-2'
-  const metadataRowClasses = cn(
-    'flex items-center text-muted-foreground',
-    isDense ? 'gap-3 mt-2 text-[11px]' : 'gap-4 mt-3 text-xs'
-  )
+
+  const statusVariants = {
+    success: {
+      rail: 'bg-[linear-gradient(180deg,hsl(var(--success))0%,hsl(var(--success)/0.6)100%)]',
+      icon: 'status-icon status-icon--success',
+      pill: 'status-pill status-pill--success',
+    },
+    warning: {
+      rail: 'bg-[linear-gradient(180deg,hsl(var(--warning))0%,hsl(var(--warning)/0.6)100%)]',
+      icon: 'status-icon status-icon--warning',
+      pill: 'status-pill status-pill--warning',
+    },
+  } as const
 
   const handleToggleIssued = async (id: number, currentStatus: boolean) => {
     try {
@@ -121,12 +127,13 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
   }
 
   return (
-    <div className={cn('space-y-3', { 'space-y-2': isDense })}>
-      <TooltipProvider>
+    <TooltipProvider>
+      <div className={cn('space-y-4', { 'space-y-3': isDense })}>
         {requests.map((request, index) => {
-          const statusIndicatorClass = request.is_issued
-            ? 'bg-[linear-gradient(180deg,hsl(var(--success))0%,hsl(var(--success)/0.6)100%)]'
-            : 'bg-[linear-gradient(180deg,hsl(var(--warning))0%,hsl(var(--warning)/0.6)100%)]'
+          const isIssued = Boolean(request.is_issued)
+          const variant = statusVariants[isIssued ? 'success' : 'warning']
+          const equipmentItems = request.equipment_items ?? []
+          const StatusIcon = isIssued ? CheckCircle2 : Clock
 
           return (
             <div
@@ -134,160 +141,194 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
               className="group relative surface-card surface-card-hover overflow-hidden animate-fade-in"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* Status indicator */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusIndicatorClass}`} />
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${variant.rail}`} />
 
-              {/* Hover gradient effect */}
-              <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-5 transition-opacity duration-300" />
+              <div className={cn('relative p-4 pl-5', { 'p-3 pl-4': isDense })}>
+                <div className={cn('flex items-start justify-between gap-4', { 'gap-3': isDense })}>
+                  <div className={cn('flex-1 space-y-3', { 'space-y-2.5': isDense })}>
+                    <div className={cn('flex items-center gap-3 flex-wrap', { 'gap-2': isDense })}>
+                      <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
+                        <div className={cn(variant.icon, isDense ? 'scale-90' : '')}>
+                          <StatusIcon
+                            className={cn('text-current', isDense ? 'w-4 h-4' : 'w-5 h-5')}
+                          />
+                        </div>
+                        <div>
+                          <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
+                            <User
+                              className={cn(
+                                'text-[hsl(var(--primary))]',
+                                isDense ? 'w-3.5 h-3.5' : 'w-4 h-4'
+                              )}
+                            />
+                            <span
+                              className={cn('font-semibold', {
+                                'text-base': !isDense,
+                                'text-sm': isDense,
+                              })}
+                            >
+                              {request.employee_name}
+                            </span>
+                          </div>
+                          <div
+                            className={cn(
+                              'flex items-center gap-2 text-xs text-muted-foreground',
+                              isDense ? 'gap-1.5' : ''
+                            )}
+                          >
+                            <Hash
+                              className={cn(
+                                'text-muted-foreground',
+                                isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
+                              )}
+                            />
+                            <span>Заявка №{request.id}</span>
+                          </div>
+                        </div>
+                      </div>
 
-              <div className={`relative ${cardPadding}`}>
-                <div className={`flex items-center justify-between ${isDense ? 'gap-3' : 'gap-4'}`}>
-                  {/* Left section - ID and Status */}
-                  <div className={`flex items-center ${headerGap} min-w-0`}>
-                    {' '}
-                    {/* gap dynamic */}
-                    {/* ID Badge */}
-                    <div className="status-pill status-pill--info flex-shrink-0">
-                      <Hash className="w-3.5 h-3.5" />
-                      <span className="text-sm font-semibold text-foreground">{request.id}</span>
+                      <span className={cn(variant.pill, isDense && 'px-2.5 py-0.5')}>
+                        {isIssued ? 'Выдано' : 'В ожидании'}
+                      </span>
                     </div>
-                    {/* Status Badge */}
-                    {request.is_issued ? (
-                      <span className="status-pill status-pill--success">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Выдано</span>
-                      </span>
-                    ) : (
-                      <span className="status-pill status-pill--warning">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>В ожидании</span>
-                      </span>
+
+                    <div className={cn('flex items-center gap-2 text-sm', { 'text-xs': isDense })}>
+                      <Calendar className="w-4 h-4 text-orange-500" />
+                      <span className="text-muted-foreground">Создана:</span>
+                      <span className="font-medium">{formatDate(request.created_at)}</span>
+                    </div>
+
+                    {request.issued_at && (
+                      <div
+                        className={cn(
+                          'flex items-center gap-2 text-sm text-[hsl(var(--success))]',
+                          {
+                            'text-xs gap-1.5': isDense,
+                          }
+                        )}
+                      >
+                        <CheckCircle2
+                          className={cn('text-current', isDense ? 'w-3 h-3' : 'w-4 h-4')}
+                        />
+                        <span>Выдано: {formatDate(request.issued_at)}</span>
+                      </div>
                     )}
-                    {/* Employee name */}
-                    <div className={`flex items-center ${isDense ? 'gap-1.5' : 'gap-2'} min-w-0`}>
-                      <User
-                        className={`flex-shrink-0 ${isDense ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-[hsl(var(--primary))]`}
-                      />
-                      <span className={`${isDense ? 'text-sm' : 'text-sm'} font-semibold truncate`}>
-                        {request.employee_name}
-                      </span>
+
+                    {request.notes && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 cursor-help">
+                            <MessageSquare className="w-4 h-4" />
+                            <span>Есть примечание</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs whitespace-pre-wrap">{request.notes}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    <div className={cn('space-y-2', { 'space-y-1.5': isDense })}>
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Package className="w-4 h-4 text-[hsl(var(--primary))]" />
+                        <span>Оборудование:</span>
+                      </div>
+                      {equipmentItems.length > 0 ? (
+                        <div className={cn('pl-6 space-y-1.5', { 'pl-5 space-y-1': isDense })}>
+                          {equipmentItems.map((item, itemIndex) => (
+                            <div key={itemIndex} className="flex items-start gap-2 text-sm">
+                              <span className="text-orange-500 mt-1">•</span>
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-foreground">
+                                    {item.equipment_name}
+                                  </span>
+                                  {item.quantity > 1 && (
+                                    <span className="status-pill status-pill--info">
+                                      ×{item.quantity}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Hash className="w-3 h-3" />
+                                  <span className="font-mono">{item.serial_number}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 pl-6 text-sm text-muted-foreground">
+                          <span className="text-orange-500">•</span>
+                          <span>Нет оборудования</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Right section - Actions */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className={cn('flex flex-col items-end gap-3', { 'gap-2': isDense })}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center gap-2">
                           <Checkbox
-                            checked={Boolean(request.is_issued)}
-                            onCheckedChange={() =>
-                              handleToggleIssued(request.id, Boolean(request.is_issued))
-                            }
-                            className="w-4 h-4"
+                            checked={isIssued}
+                            onCheckedChange={() => handleToggleIssued(request.id, isIssued)}
+                            className="w-5 h-5"
                           />
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            Выдано
+                          </span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-xs">
-                          {request.is_issued ? 'Отменить выдачу' : 'Отметить как выданное'}
-                        </p>
+                        <p>{isIssued ? 'Отменить выдачу' : 'Отметить как выданное'}</p>
                       </TooltipContent>
                     </Tooltip>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(request)}
-                      className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(request.id)}
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Equipment items list */}
-                <div className={equipmentListSpacing}>
-                  {request.equipment_items && request.equipment_items.length > 0 ? (
-                    request.equipment_items.map((item, itemIndex) => (
-                      <div
-                        key={itemIndex}
-                        className={cn(
-                          'flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30',
-                          isDense ? 'p-1.5 text-xs' : 'p-2 text-sm'
-                        )}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Package className="w-3.5 h-3.5 text-[hsl(var(--primary))] flex-shrink-0" />
-                            <span className="font-medium truncate">{item.equipment_name}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <Hash className="w-3 h-3 text-muted-foreground" />
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {item.serial_number}
-                            </span>
-                          </div>
-                        </div>
-
-                        {item.quantity > 1 && (
-                          <div className="status-pill status-pill--info flex-shrink-0">
-                            <span className="text-xs font-semibold">×{item.quantity}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30 text-sm text-muted-foreground">
-                      <Package className="w-3.5 h-3.5" />
-                      <span>Нет оборудования</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Dates row */}
-                <div className={metadataRowClasses}>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>{formatDate(request.created_at)}</span>
-                  </div>
-                  {request.issued_at && (
-                    <div className="flex items-center gap-1 text-[hsl(var(--success))]">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>Выдано: {formatDate(request.issued_at)}</span>
-                    </div>
-                  )}
-
-                  {/* Notes indicator */}
-                  {request.notes && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 cursor-help">
-                          <MessageSquare className="w-3 h-3" />
-                          <span>Примечания</span>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(request)}
+                          className={cn(
+                            'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.12)]',
+                            isDense ? 'h-8 w-8' : 'h-9 w-9'
+                          )}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-xs whitespace-pre-wrap">{request.notes}</p>
+                      <TooltipContent>
+                        <p>Редактировать заявку</p>
                       </TooltipContent>
                     </Tooltip>
-                  )}
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(request.id)}
+                          className={cn(
+                            'text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.12)]',
+                            isDense ? 'h-8 w-8' : 'h-9 w-9'
+                          )}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Удалить заявку</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
             </div>
           )
         })}
-      </TooltipProvider>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
