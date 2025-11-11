@@ -30,6 +30,10 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     setEmployeeName,
     employeeNameError,
     setEmployeeNameError,
+    login,
+    setLogin,
+    loginError,
+    setLoginError,
     notes,
     setNotes,
     equipmentItems,
@@ -46,6 +50,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     if (open && request) {
       resetForm({
         employeeName: request.employee_name,
+        login: request.login,
         notes: request.notes || '',
         equipmentItems:
           request.equipment_items && request.equipment_items.length > 0
@@ -72,6 +77,12 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       return
     }
 
+    if (!login.trim()) {
+      setLoginError(true)
+      toast.error('Укажите логин сотрудника')
+      return
+    }
+
     if (hasIncompleteEquipmentItems) {
       toast.error('Заполните все поля оборудования')
       return
@@ -87,6 +98,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       toast.success('Заявка успешно обновлена')
       resetForm({
         employeeName: payload.employee_name,
+        login: payload.login,
         notes: payload.notes ?? '',
         equipmentItems: payload.equipment_items,
       })
@@ -141,6 +153,14 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
               }
             }}
             employeeNameError={employeeNameError}
+            login={login}
+            onLoginChange={(value) => {
+              setLogin(value)
+              if (loginError) {
+                setLoginError(false)
+              }
+            }}
+            loginError={loginError}
             notes={notes}
             onNotesChange={(value) => setNotes(value)}
             equipmentItems={equipmentItems}

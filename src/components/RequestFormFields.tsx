@@ -13,6 +13,9 @@ interface RequestFormFieldsProps {
   employeeName: string
   onEmployeeNameChange: (value: string) => void
   employeeNameError: boolean
+  login: string
+  onLoginChange: (value: string) => void
+  loginError: boolean
   notes: string
   onNotesChange: (value: string) => void
   equipmentItems: EquipmentItem[]
@@ -28,6 +31,9 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
       employeeName,
       onEmployeeNameChange,
       employeeNameError,
+      login,
+      onLoginChange,
+      loginError,
       notes,
       onNotesChange,
       equipmentItems,
@@ -60,6 +66,19 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
               className={employeeNameError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
             {employeeNameError && <p className="text-xs text-red-500">Это поле обязательно</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="employee_login">Логин сотрудника *</Label>
+            <Input
+              id="employee_login"
+              placeholder="i.ivanov"
+              value={login}
+              onChange={(event) => onLoginChange(event.target.value)}
+              disabled={disabled}
+              className={loginError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+            />
+            {loginError && <p className="text-xs text-red-500">Это поле обязательно</p>}
           </div>
 
           <div className="space-y-2">

@@ -21,6 +21,7 @@ async function migrateLegacyRequests(database: Knex) {
     await trx.schema.createTable('requests_new', (table) => {
       table.increments('id').primary()
       table.string('employee_name').notNullable()
+      table.string('login').notNullable().defaultTo('')
       table.string('created_at').notNullable()
       table.integer('is_issued').defaultTo(0)
       table.string('issued_at')
@@ -30,6 +31,7 @@ async function migrateLegacyRequests(database: Knex) {
     const insertRequestRows = oldRequests.map((request) => ({
       id: request.id,
       employee_name: request.employee_name,
+      login: request.login ?? '',
       created_at: request.created_at,
       is_issued: request.is_issued,
       issued_at: request.issued_at,

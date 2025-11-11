@@ -7,6 +7,7 @@ import { runMigrations } from './migrations'
 
 interface MockRequestSeed {
   employeeName: string
+  login: string
   notes?: string
   isIssued: boolean
   equipment: Array<{ name: string; serial: string; quantity: number }>
@@ -51,11 +52,21 @@ async function ensureSchema(database: Knex) {
     await database.schema.createTable('requests', (table) => {
       table.increments('id').primary()
       table.string('employee_name').notNullable()
+      table.string('login').notNullable()
       table.string('created_at').notNullable()
       table.integer('is_issued').defaultTo(0)
       table.string('issued_at')
       table.text('notes')
     })
+  } else {
+    const hasLoginColumn = await database.schema.hasColumn('requests', 'login')
+    if (!hasLoginColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.string('login').defaultTo('').notNullable()
+      })
+
+      await database('requests').whereNull('login').update({ login: '' })
+    }
   }
 
   const hasEquipmentItemsTable = await database.schema.hasTable('equipment_items')
@@ -146,6 +157,7 @@ async function seedRequests(database: Knex) {
 
       const insertResult = await trx('requests').insert({
         employee_name: seed.employeeName,
+        login: seed.login,
         created_at: createdAt,
         is_issued: seed.isIssued ? 1 : 0,
         issued_at: issuedAt,

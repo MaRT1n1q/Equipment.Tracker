@@ -13,6 +13,7 @@ import {
   Hash,
   CheckCircle2,
   Clock,
+  KeyRound,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
@@ -172,17 +173,19 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                           </div>
                           <div
                             className={cn(
-                              'flex items-center gap-2 text-xs text-muted-foreground',
-                              isDense ? 'gap-1.5' : ''
+                              'flex flex-wrap items-center gap-3 text-xs text-muted-foreground',
+                              isDense ? 'gap-2' : ''
                             )}
                           >
-                            <Hash
-                              className={cn(
-                                'text-muted-foreground',
-                                isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
-                              )}
-                            />
-                            <span>Заявка №{request.id}</span>
+                            <div className="flex items-center gap-1.5">
+                              <KeyRound
+                                className={cn(
+                                  'text-muted-foreground',
+                                  isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
+                                )}
+                              />
+                              <span>{request.login}</span>
+                            </div>
                           </div>
                         </div>
                       </div>

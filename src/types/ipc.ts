@@ -15,6 +15,7 @@ export const equipmentItemRecordSchema = equipmentItemInputSchema.extend({
 
 export const createRequestSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
+  login: z.string().trim().min(1, 'Логин обязателен'),
   notes: z
     .string()
     .trim()
@@ -28,6 +29,7 @@ export const updateRequestSchema = createRequestSchema
 export const requestRecordSchema = z.object({
   id: requestIdSchema,
   employee_name: z.string(),
+  login: z.string(),
   created_at: z.string(),
   is_issued: z.number().int(),
   issued_at: z.string().nullable(),

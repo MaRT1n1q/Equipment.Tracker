@@ -28,6 +28,10 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
     setEmployeeName,
     employeeNameError,
     setEmployeeNameError,
+    login,
+    setLogin,
+    loginError,
+    setLoginError,
     notes,
     setNotes,
     equipmentItems,
@@ -58,6 +62,12 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
     if (!employeeName.trim()) {
       setEmployeeNameError(true)
       toast.error('Укажите ФИО сотрудника')
+      return
+    }
+
+    if (!login.trim()) {
+      setLoginError(true)
+      toast.error('Укажите логин сотрудника')
       return
     }
 
@@ -120,6 +130,14 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
               }
             }}
             employeeNameError={employeeNameError}
+            login={login}
+            onLoginChange={(value) => {
+              setLogin(value)
+              if (loginError) {
+                setLoginError(false)
+              }
+            }}
+            loginError={loginError}
             notes={notes}
             onNotesChange={(value) => setNotes(value)}
             equipmentItems={equipmentItems}

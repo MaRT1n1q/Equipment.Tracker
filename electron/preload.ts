@@ -5,6 +5,7 @@ import type {
   CreateRequestData,
   EmployeeExit,
   Request,
+  UpdateRequestData,
 } from '../src/types/ipc'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -16,7 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createRequest: (data: CreateRequestData): Promise<ApiResponse> =>
     ipcRenderer.invoke('create-request', data),
 
-  updateRequest: (id: number, data: CreateRequestData): Promise<ApiResponse> =>
+  updateRequest: (id: number, data: UpdateRequestData): Promise<ApiResponse> =>
     ipcRenderer.invoke('update-request', id, data),
 
   updateIssued: (id: number, is_issued: boolean): Promise<ApiResponse> =>

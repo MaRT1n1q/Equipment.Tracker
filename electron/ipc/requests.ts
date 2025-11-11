@@ -40,6 +40,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
 
         return requestRecordSchema.parse({
           ...request,
+          login: request.login ?? '',
           equipment_items: equipment.map((item) => ({
             id: item.id,
             equipment_name: item.equipment_name,
@@ -64,6 +65,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       const result = await database.transaction(async (trx) => {
         const requestInsertResult = (await trx('requests').insert({
           employee_name: data.employee_name,
+          login: data.login,
           created_at: createdAt,
           notes: data.notes ?? null,
         })) as number | Array<number> | { [key: string]: number }
@@ -140,7 +142,11 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       await database.transaction(async (trx) => {
         await trx('requests')
           .where({ id })
-          .update({ employee_name: data.employee_name, notes: data.notes ?? null })
+          .update({
+            employee_name: data.employee_name,
+            login: data.login,
+            notes: data.notes ?? null,
+          })
 
         await trx('equipment_items').where({ request_id: id }).delete()
 
@@ -181,6 +187,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
 
       const deletedRequest = requestRecordSchema.parse({
         ...request,
+        login: request.login ?? '',
         equipment_items: equipment.map((item) => ({
           id: item.id,
           equipment_name: item.equipment_name,
@@ -206,6 +213,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         await trx('requests').insert({
           id: request.id,
           employee_name: request.employee_name,
+          login: request.login,
           created_at: request.created_at,
           is_issued: request.is_issued,
           issued_at: request.issued_at,

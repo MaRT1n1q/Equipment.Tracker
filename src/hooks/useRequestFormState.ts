@@ -9,12 +9,14 @@ const createEmptyEquipmentItem = (): EquipmentItem => ({
 
 interface UseRequestFormStateOptions {
   employeeName?: string
+  login?: string
   notes?: string
   equipmentItems?: EquipmentItem[]
 }
 
 export function useRequestFormState(options?: UseRequestFormStateOptions) {
   const [employeeName, setEmployeeName] = useState(options?.employeeName ?? '')
+  const [login, setLogin] = useState(options?.login ?? '')
   const [notes, setNotes] = useState(options?.notes ?? '')
   const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>(() => {
     if (options?.equipmentItems && options.equipmentItems.length > 0) {
@@ -24,9 +26,11 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
     return [createEmptyEquipmentItem()]
   })
   const [employeeNameError, setEmployeeNameError] = useState(false)
+  const [loginError, setLoginError] = useState(false)
 
   const resetForm = useCallback((nextOptions?: UseRequestFormStateOptions) => {
     setEmployeeName(nextOptions?.employeeName ?? '')
+    setLogin(nextOptions?.login ?? '')
     setNotes(nextOptions?.notes ?? '')
     setEquipmentItems(() => {
       if (nextOptions?.equipmentItems && nextOptions.equipmentItems.length > 0) {
@@ -36,6 +40,7 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
       return [createEmptyEquipmentItem()]
     })
     setEmployeeNameError(false)
+    setLoginError(false)
   }, [])
 
   const addEquipmentItem = useCallback(() => {
@@ -76,10 +81,11 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
   const payload = useMemo(
     () => ({
       employee_name: employeeName.trim(),
+      login: login.trim(),
       notes: notes.trim() || undefined,
       equipment_items: equipmentItems,
     }),
-    [employeeName, equipmentItems, notes]
+    [employeeName, equipmentItems, login, notes]
   )
 
   return {
@@ -87,6 +93,10 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
     setEmployeeName,
     employeeNameError,
     setEmployeeNameError,
+    login,
+    setLogin,
+    loginError,
+    setLoginError,
     notes,
     setNotes,
     equipmentItems,
