@@ -261,21 +261,24 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                           {equipmentItems.map((item, itemIndex) => (
                             <div key={itemIndex} className="flex items-start gap-2 text-sm">
                               <span className="text-orange-500 mt-1">•</span>
-                              <div className="min-w-0 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-foreground">
-                                    {item.equipment_name}
+                              <div className="min-w-0 flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {item.equipment_name}
+                                </span>
+                                {item.quantity > 1 && (
+                                  <span className="status-pill status-pill--info">
+                                    ×{item.quantity}
                                   </span>
-                                  {item.quantity > 1 && (
-                                    <span className="status-pill status-pill--info">
-                                      ×{item.quantity}
+                                )}
+                                {item.serial_number && (
+                                  <>
+                                    <span className="text-muted-foreground/60">•</span>
+                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Hash className="w-3 h-3" />
+                                      <span className="font-mono">{item.serial_number}</span>
                                     </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Hash className="w-3 h-3" />
-                                  <span className="font-mono">{item.serial_number}</span>
-                                </div>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}

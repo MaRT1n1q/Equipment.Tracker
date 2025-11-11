@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { Textarea } from './ui/textarea'
 import { toast } from 'sonner'
-import { UserMinus } from 'lucide-react'
+import { Package, Plus, Trash2, UserMinus } from 'lucide-react'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
+import { formatExitEquipmentList, type ExitEquipmentItem } from '../lib/employeeExitEquipment'
 
 interface AddEmployeeExitModalProps {
   isOpen: boolean
@@ -18,17 +18,59 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
   const [login, setLogin] = useState('')
   const [sdNumber, setSdNumber] = useState('')
   const [exitDate, setExitDate] = useState('')
-  const [equipmentList, setEquipmentList] = useState('')
+  const [equipmentItems, setEquipmentItems] = useState<ExitEquipmentItem[]>([
+    { name: '', serial: '' },
+  ])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { createEmployeeExit } = useEmployeeExitActions()
+
+  const resetForm = () => {
+    setEmployeeName('')
+    setLogin('')
+    setSdNumber('')
+    setExitDate('')
+    setEquipmentItems([{ name: '', serial: '' }])
+  }
+
+  const addEquipmentItem = () => {
+    setEquipmentItems((items) => [...items, { name: '', serial: '' }])
+  }
+
+  const removeEquipmentItem = (index: number) => {
+    setEquipmentItems((items) => (items.length <= 1 ? items : items.filter((_, i) => i !== index)))
+  }
+
+  const updateEquipmentItem = (index: number, field: keyof ExitEquipmentItem, value: string) => {
+    setEquipmentItems((items) =>
+      items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!employeeName.trim() || !login.trim() || !exitDate || !equipmentList.trim()) {
-      toast.error('Пожалуйста, заполните все поля')
+    const preparedItems = equipmentItems.map((item) => ({
+      name: item.name.trim(),
+      serial: item.serial.trim(),
+    }))
+    const validItems = preparedItems.filter((item) => item.name && item.serial)
+
+    if (!employeeName.trim() || !login.trim() || !exitDate) {
+      toast.error('Пожалуйста, заполните обязательные поля')
       return
     }
+
+    if (validItems.length === 0) {
+      toast.error('Добавьте хотя бы одну позицию оборудования')
+      return
+    }
+
+    if (validItems.length !== preparedItems.length) {
+      toast.error('Укажите название и серийный номер для каждого оборудования')
+      return
+    }
+
+    const serializedList = formatExitEquipmentList(validItems)
 
     setIsSubmitting(true)
 
@@ -38,15 +80,11 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
         login: login.trim(),
         sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
         exit_date: exitDate,
-        equipment_list: equipmentList.trim(),
+        equipment_list: serializedList,
       })
 
       toast.success('Запись о выходе сотрудника создана')
-      setEmployeeName('')
-      setLogin('')
-      setSdNumber('')
-      setExitDate('')
-      setEquipmentList('')
+      resetForm()
       onClose()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
@@ -58,11 +96,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setEmployeeName('')
-      setLogin('')
-      setSdNumber('')
-      setExitDate('')
-      setEquipmentList('')
+      resetForm()
       onClose()
     }
   }
@@ -146,22 +180,79 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
               />
             </div>
 
-            {/* Equipment List */}
-            <div className="space-y-2">
-              <Label htmlFor="equipment-list" className="text-sm font-medium">
-                Список оборудования для выдачи <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="equipment-list"
-                placeholder="Ноутбук Dell XPS 15&#10;Мышь Logitech MX Master&#10;Клавиатура Keychron K2&#10;Монитор LG 27''"
-                value={equipmentList}
-                onChange={(e) => setEquipmentList(e.target.value)}
-                className="w-full min-h-[120px] resize-y"
-                disabled={isSubmitting}
-              />
-              <p className="text-xs text-muted-foreground">
-                Укажите каждую позицию оборудования с новой строки
-              </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="icon-bubble icon-bubble--soft w-9 h-9">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">
+                      Оборудование для выдачи
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Укажите название и серийный номер каждой позиции
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addEquipmentItem}
+                  disabled={isSubmitting}
+                  className="h-8"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Добавить позицию
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {equipmentItems.map((item, index) => (
+                  <div key={index} className="surface-section space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Позиция #{index + 1}
+                      </span>
+                      {equipmentItems.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEquipmentItem(index)}
+                          disabled={isSubmitting}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          aria-label={`Удалить позицию ${index + 1}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Наименование *</Label>
+                        <Input
+                          placeholder="Ноутбук Dell Latitude"
+                          value={item.name}
+                          onChange={(e) => updateEquipmentItem(index, 'name', e.target.value)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Серийный номер *</Label>
+                        <Input
+                          placeholder="SN123456789"
+                          value={item.serial}
+                          onChange={(e) => updateEquipmentItem(index, 'serial', e.target.value)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

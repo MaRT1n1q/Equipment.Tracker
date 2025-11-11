@@ -14,11 +14,17 @@ import {
   Copy,
   Edit2,
   Tag,
+  Hash,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 import { cn } from '../lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import {
+  parseExitEquipmentList,
+  stringifyExitEquipmentItems,
+  type ExitEquipmentItem,
+} from '../lib/employeeExitEquipment'
 
 interface EmployeeExitTableProps {
   exits: EmployeeExit[]
@@ -94,13 +100,13 @@ export function EmployeeExitTable({
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const copyEquipment = async (items: string[], employeeName: string) => {
+  const copyEquipment = async (items: ExitEquipmentItem[], employeeName: string) => {
     if (items.length === 0) {
       toast.info('Список оборудования пуст')
       return
     }
 
-    const text = items.join('\n')
+    const text = stringifyExitEquipmentItems(items)
 
     try {
       await navigator.clipboard.writeText(text)
@@ -148,7 +154,7 @@ export function EmployeeExitTable({
       <div className={cn('space-y-4', { 'space-y-3': isDense })}>
         {exits.map((exit, index) => {
           const isCompleted = exit.is_completed === 1
-          const equipmentItems = exit.equipment_list.split('\n').filter((item) => item.trim())
+          const equipmentItems = parseExitEquipmentList(exit.equipment_list)
           const exitDate = new Date(exit.exit_date)
           exitDate.setHours(0, 0, 0, 0)
           const isOverdue = !isCompleted && exitDate < today
@@ -277,16 +283,35 @@ export function EmployeeExitTable({
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <div className={cn('pl-6 space-y-1', { 'pl-5 space-y-0.5': isDense })}>
-                        {equipmentItems.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-start gap-2 text-sm text-muted-foreground"
-                          >
-                            <span className="text-orange-500 mt-1">•</span>
-                            <span>{item}</span>
+                      <div className={cn('pl-6 space-y-1.5', { 'pl-5 space-y-1': isDense })}>
+                        {equipmentItems.length > 0 ? (
+                          equipmentItems.map((item, idx) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <span className="text-orange-500 mt-1">•</span>
+                              <div className="min-w-0 flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-medium text-foreground leading-none">
+                                  {item.name || '—'}
+                                </span>
+                                {item.serial && (
+                                  <>
+                                    <span className="text-muted-foreground/60">•</span>
+                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Hash className="w-3 h-3" />
+                                      <span className="font-mono truncate" title={item.serial}>
+                                        {item.serial}
+                                      </span>
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="text-orange-500">•</span>
+                            <span>Нет оборудования</span>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </div>

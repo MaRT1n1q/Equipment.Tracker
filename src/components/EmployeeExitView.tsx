@@ -11,6 +11,7 @@ import { SearchAndFilters } from './SearchAndFilters'
 import { usePersistentState } from '../hooks/usePersistentState'
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
 import type { EmployeeExit } from '../types/ipc'
+import { parseExitEquipmentList } from '../lib/employeeExitEquipment'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
@@ -100,12 +101,17 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
           year: 'numeric',
         })
 
+        const equipmentItems = parseExitEquipmentList(exit.equipment_list)
+
         return (
           exit.employee_name.toLowerCase().includes(query) ||
           exit.login.toLowerCase().includes(query) ||
           (exit.sd_number && exit.sd_number.toLowerCase().includes(query)) ||
           formattedDate.toLowerCase().includes(query) ||
-          exit.equipment_list.toLowerCase().includes(query)
+          equipmentItems.some(
+            (item) =>
+              item.name.toLowerCase().includes(query) || item.serial.toLowerCase().includes(query)
+          )
         )
       })
     }
