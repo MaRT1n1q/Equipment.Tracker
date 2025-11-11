@@ -269,62 +269,104 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                     </div>
                   </div>
 
-                  <div className={cn('flex flex-col items-end gap-3', { 'gap-2': isDense })}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            checked={isIssued}
-                            onCheckedChange={() => handleToggleIssued(request.id, isIssued)}
-                            className="w-5 h-5"
-                          />
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            Выдано
-                          </span>
+                  <div
+                    className={cn(
+                      'flex shrink-0 flex-col items-stretch gap-2.5 min-w-full sm:min-w-[13.5rem]',
+                      {
+                        'gap-2 sm:min-w-[12rem]': isDense,
+                      }
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'w-full rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-left shadow-[0_10px_22px_-18px_rgba(15,23,42,0.35)] transition-all duration-200 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-[0_16px_28px_-18px_rgba(79,70,229,0.42)] dark:bg-muted/60',
+                        { 'px-2.5 py-2': isDense }
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2.5">
+                        <div className="space-y-1">
+                          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground/70">
+                            Статус выдачи
+                          </p>
+                          <p className="text-xs font-semibold text-foreground">
+                            {isIssued ? 'Оборудование выдано' : 'Ожидает выдачи'}
+                          </p>
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{isIssued ? 'Отменить выдачу' : 'Отметить как выданное'}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                        <Checkbox
+                          checked={isIssued}
+                          onCheckedChange={() => handleToggleIssued(request.id, isIssued)}
+                          aria-label={
+                            isIssued
+                              ? 'Отменить отметку о выдаче'
+                              : 'Отметить, что оборудование выдано'
+                          }
+                          className="h-[1.15rem] w-[1.15rem] border-[hsl(var(--primary)/0.35)] text-primary-foreground transition-colors data-[state=checked]:bg-[hsl(var(--primary))]"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[0.7rem] leading-snug text-muted-foreground">
+                        {isIssued
+                          ? 'Снимите отметку, если техника ещё не передана сотруднику.'
+                          : 'Отметьте выдачу, когда оборудование будет передано.'}
+                      </p>
+                    </div>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit(request)}
-                          className={cn(
-                            'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.12)]',
-                            isDense ? 'h-8 w-8' : 'h-9 w-9'
-                          )}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Редактировать заявку</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <Button
+                      type="button"
+                      variant="cardAction"
+                      size="card"
+                      onClick={() => onEdit(request)}
+                      className={cn(
+                        'group w-full justify-start text-left gap-3',
+                        'border-[hsl(var(--primary)/0.28)] bg-[linear-gradient(135deg,hsl(var(--primary)/0.12),hsl(var(--primary)/0.04))]',
+                        'hover:border-[hsl(var(--primary)/0.42)] hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.08))] hover:shadow-[0_22px_38px_-18px_hsl(var(--primary)/0.45)]',
+                        'dark:bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.06))] dark:hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.24),hsl(var(--primary)/0.12))]'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))] shadow-[0_10px_22px_-18px_hsl(var(--primary)/0.7)] transition-transform duration-200 group-hover:scale-[1.05]',
+                          { 'h-8 w-8': isDense }
+                        )}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="text-sm font-semibold leading-none">Редактировать</span>
+                        <span className="text-[0.7rem] leading-tight text-muted-foreground">
+                          Обновите данные заявки
+                        </span>
+                      </div>
+                    </Button>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(request.id)}
-                          className={cn(
-                            'text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.12)]',
-                            isDense ? 'h-8 w-8' : 'h-9 w-9'
-                          )}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Удалить заявку</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <Button
+                      type="button"
+                      variant="cardAction"
+                      size="card"
+                      onClick={() => handleDelete(request.id)}
+                      className={cn(
+                        'group w-full justify-start text-left gap-3',
+                        'border-[hsl(var(--destructive)/0.28)] bg-[linear-gradient(135deg,hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.04))]',
+                        'hover:border-[hsl(var(--destructive)/0.42)] hover:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.18),hsl(var(--destructive)/0.08))] hover:shadow-[0_22px_38px_-18px_hsl(var(--destructive)/0.45)]',
+                        'dark:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.18),hsl(var(--destructive)/0.06))] dark:hover:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.24),hsl(var(--destructive)/0.12))]'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))] shadow-[0_10px_22px_-18px_hsl(var(--destructive)/0.6)] transition-transform duration-200 group-hover:scale-[1.05]',
+                          { 'h-8 w-8': isDense }
+                        )}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="text-sm font-semibold leading-none text-[hsl(var(--destructive))]">
+                          Удалить заявку
+                        </span>
+                        <span className="text-[0.7rem] leading-tight text-muted-foreground">
+                          Исключить из списка
+                        </span>
+                      </div>
+                    </Button>
                   </div>
                 </div>
               </div>

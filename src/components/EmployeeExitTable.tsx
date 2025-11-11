@@ -1,7 +1,6 @@
 import type { EmployeeExit } from '../types/ipc'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import {
   Trash2,
   UserMinus,
@@ -18,6 +17,7 @@ import {
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 import { cn } from '../lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 interface EmployeeExitTableProps {
   exits: EmployeeExit[]
@@ -143,200 +143,245 @@ export function EmployeeExitTable({
   }
 
   return (
-    <div className={cn('space-y-4', { 'space-y-3': isDense })}>
-      {exits.map((exit, index) => {
-        const isCompleted = exit.is_completed === 1
-        const equipmentItems = exit.equipment_list.split('\n').filter((item) => item.trim())
-        const exitDate = new Date(exit.exit_date)
-        exitDate.setHours(0, 0, 0, 0)
-        const isOverdue = !isCompleted && exitDate < today
-        const variantKey = isCompleted ? 'success' : isOverdue ? 'danger' : 'warning'
-        const variant = statusVariants[variantKey]
-        const StatusIcon = isCompleted ? CheckCircle2 : isOverdue ? AlertTriangle : Clock
+    <TooltipProvider>
+      <div className={cn('space-y-4', { 'space-y-3': isDense })}>
+        {exits.map((exit, index) => {
+          const isCompleted = exit.is_completed === 1
+          const equipmentItems = exit.equipment_list.split('\n').filter((item) => item.trim())
+          const exitDate = new Date(exit.exit_date)
+          exitDate.setHours(0, 0, 0, 0)
+          const isOverdue = !isCompleted && exitDate < today
+          const variantKey = isCompleted ? 'success' : isOverdue ? 'danger' : 'warning'
+          const variant = statusVariants[variantKey]
+          const StatusIcon = isCompleted ? CheckCircle2 : isOverdue ? AlertTriangle : Clock
 
-        return (
-          <div
-            key={exit.id}
-            className="group relative surface-card surface-card-hover overflow-hidden animate-fade-in"
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
-            {/* Status gradient bar */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${variant.rail}`} />
+          return (
+            <div
+              key={exit.id}
+              className="group relative surface-card surface-card-hover overflow-hidden animate-fade-in"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              {/* Status gradient bar */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${variant.rail}`} />
 
-            <div className={cn('p-4 pl-5', { 'p-3 pl-4': isDense })}>
-              <div className={cn('flex items-start justify-between gap-4', { 'gap-3': isDense })}>
-                {/* Main Info */}
-                <div className={cn('flex-1 space-y-3', { 'space-y-2.5': isDense })}>
-                  {/* Employee Name & Status */}
-                  <div className={cn('flex items-center gap-3 flex-wrap', { 'gap-2': isDense })}>
-                    <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
-                      <div className={cn(variant.icon, isDense ? 'scale-90' : '')}>
-                        <StatusIcon
-                          className={cn('text-current', isDense ? 'w-4 h-4' : 'w-5 h-5')}
+              <div className={cn('p-4 pl-5', { 'p-3 pl-4': isDense })}>
+                <div className={cn('flex items-start justify-between gap-4', { 'gap-3': isDense })}>
+                  {/* Main Info */}
+                  <div className={cn('flex-1 space-y-3', { 'space-y-2.5': isDense })}>
+                    {/* Employee Name & Status */}
+                    <div className={cn('flex items-center gap-3 flex-wrap', { 'gap-2': isDense })}>
+                      <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
+                        <div className={cn(variant.icon, isDense ? 'scale-90' : '')}>
+                          <StatusIcon
+                            className={cn('text-current', isDense ? 'w-4 h-4' : 'w-5 h-5')}
+                          />
+                        </div>
+                        <div>
+                          <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
+                            <User
+                              className={cn(
+                                'text-muted-foreground',
+                                isDense ? 'w-3.5 h-3.5' : 'w-4 h-4'
+                              )}
+                            />
+                            <span
+                              className={cn('font-semibold', isDense ? 'text-base' : 'text-lg')}
+                            >
+                              {exit.employee_name}
+                            </span>
+                          </div>
+                          <div
+                            className={cn('flex items-center gap-2 text-sm text-muted-foreground', {
+                              'gap-1.5 text-xs': isDense,
+                            })}
+                          >
+                            <KeyRound
+                              className={cn(
+                                'text-muted-foreground',
+                                isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
+                              )}
+                            />
+                            <span>{exit.login}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <span className={cn(variant.pill, isDense && 'px-2.5 py-0.5')}>
+                        {isCompleted ? 'Завершено' : isOverdue ? 'Просрочено' : 'Ожидает'}
+                      </span>
+                    </div>
+
+                    {/* Exit Date */}
+                    <div className={cn('flex items-center gap-2 text-sm', { 'text-xs': isDense })}>
+                      <Calendar className="w-4 h-4 text-orange-500" />
+                      <span className="text-muted-foreground">Дата выхода:</span>
+                      <span className="font-medium">{formatDate(exit.exit_date)}</span>
+                    </div>
+
+                    {isOverdue && (
+                      <div className="flex items-center gap-2 text-sm text-[hsl(var(--destructive))] dark:text-[hsl(var(--destructive))]">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Выдача оборудования просрочена</span>
+                      </div>
+                    )}
+
+                    {/* Equipment List */}
+                    <div className={cn('space-y-2', { 'space-y-1.5': isDense })}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Package className="w-4 h-4 text-[hsl(var(--primary))]" />
+                          <span>Оборудование для выдачи:</span>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => copyEquipment(equipmentItems, exit.employee_name)}
+                              className={cn(
+                                'h-8 w-8 rounded-md border border-transparent text-[hsl(var(--primary))] transition-all hover:border-[hsl(var(--primary)/0.25)] hover:bg-[hsl(var(--primary)/0.08)] hover:text-[hsl(var(--primary))]',
+                                'dark:hover:bg-[hsl(var(--primary)/0.12)]'
+                              )}
+                              aria-label={`Скопировать список оборудования для ${exit.employee_name}`}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Скопировать список оборудования</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className={cn('pl-6 space-y-1', { 'pl-5 space-y-0.5': isDense })}>
+                        {equipmentItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 text-sm text-muted-foreground"
+                          >
+                            <span className="text-orange-500 mt-1">•</span>
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div
+                    className={cn(
+                      'flex shrink-0 flex-col items-stretch gap-2.5 min-w-full sm:min-w-[13.5rem]',
+                      {
+                        'gap-2 sm:min-w-[12rem]': isDense,
+                      }
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'w-full rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-left shadow-[0_10px_22px_-18px_rgba(15,23,42,0.35)] transition-all duration-200 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-[0_16px_28px_-18px_rgba(79,70,229,0.42)] dark:bg-muted/60',
+                        { 'px-2.5 py-2': isDense }
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2.5">
+                        <div className="space-y-1">
+                          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground/70">
+                            Статус выдачи
+                          </p>
+                          <p className="text-xs font-semibold text-foreground">
+                            {isCompleted
+                              ? 'Выдача завершена'
+                              : isOverdue
+                                ? 'Выдача просрочена'
+                                : 'Выдача запланирована'}
+                          </p>
+                        </div>
+                        <Checkbox
+                          checked={isCompleted}
+                          onCheckedChange={() => handleToggleCompleted(exit.id, isCompleted)}
+                          aria-label={
+                            isCompleted
+                              ? 'Отменить отметку о завершении выдачи'
+                              : 'Отметить выдачу как завершенную'
+                          }
+                          className="h-[1.15rem] w-[1.15rem] border-[hsl(var(--success)/0.35)] text-primary-foreground transition-colors data-[state=checked]:bg-[hsl(var(--success))]"
                         />
                       </div>
-                      <div>
-                        <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
-                          <User
-                            className={cn(
-                              'text-muted-foreground',
-                              isDense ? 'w-3.5 h-3.5' : 'w-4 h-4'
-                            )}
-                          />
-                          <span className={cn('font-semibold', isDense ? 'text-base' : 'text-lg')}>
-                            {exit.employee_name}
-                          </span>
-                        </div>
-                        <div
-                          className={cn('flex items-center gap-2 text-sm text-muted-foreground', {
-                            'gap-1.5 text-xs': isDense,
-                          })}
-                        >
-                          <KeyRound
-                            className={cn(
-                              'text-muted-foreground',
-                              isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
-                            )}
-                          />
-                          <span>{exit.login}</span>
-                        </div>
+                      <p className="mt-1.5 text-[0.7rem] leading-snug text-muted-foreground">
+                        {isCompleted
+                          ? 'Если оборудование ещё в работе, снимите отметку.'
+                          : isOverdue
+                            ? 'Отметьте выдачу или скорректируйте дату, чтобы убрать просрочку.'
+                            : 'Отметьте завершение, когда оборудование будет передано.'}
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="cardAction"
+                      size="card"
+                      onClick={() => onEdit(exit)}
+                      className={cn(
+                        'group w-full justify-start text-left gap-3',
+                        'border-[hsl(var(--primary)/0.28)] bg-[linear-gradient(135deg,hsl(var(--primary)/0.12),hsl(var(--primary)/0.04))]',
+                        'hover:border-[hsl(var(--primary)/0.42)] hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.08))] hover:shadow-[0_22px_38px_-18px_hsl(var(--primary)/0.45)]',
+                        'dark:bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.06))] dark:hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.24),hsl(var(--primary)/0.12))]'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))] shadow-[0_10px_22px_-18px_hsl(var(--primary)/0.7)] transition-transform duration-200 group-hover:scale-[1.05]',
+                          { 'h-8 w-8': isDense }
+                        )}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="text-sm font-semibold leading-none">
+                          Редактировать запись
+                        </span>
+                        <span className="text-[0.7rem] leading-tight text-muted-foreground">
+                          Измените дату или оборудование
+                        </span>
                       </div>
-                    </div>
+                    </Button>
 
-                    {/* Status Badge */}
-                    <span className={cn(variant.pill, isDense && 'px-2.5 py-0.5')}>
-                      {isCompleted ? 'Завершено' : isOverdue ? 'Просрочено' : 'Ожидает'}
-                    </span>
+                    <Button
+                      type="button"
+                      variant="cardAction"
+                      size="card"
+                      onClick={() => handleDelete(exit.id)}
+                      className={cn(
+                        'group w-full justify-start text-left gap-3',
+                        'border-[hsl(var(--destructive)/0.28)] bg-[linear-gradient(135deg,hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.04))]',
+                        'hover:border-[hsl(var(--destructive)/0.42)] hover:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.18),hsl(var(--destructive)/0.08))] hover:shadow-[0_22px_38px_-18px_hsl(var(--destructive)/0.45)]',
+                        'dark:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.18),hsl(var(--destructive)/0.06))] dark:hover:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.24),hsl(var(--destructive)/0.12))]'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))] shadow-[0_10px_22px_-18px_hsl(var(--destructive)/0.6)] transition-transform duration-200 group-hover:scale-[1.05]',
+                          { 'h-8 w-8': isDense }
+                        )}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </span>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="text-sm font-semibold leading-none text-[hsl(var(--destructive))]">
+                          Удалить запись
+                        </span>
+                        <span className="text-[0.7rem] leading-tight text-muted-foreground">
+                          Удаление без возможности восстановления
+                        </span>
+                      </div>
+                    </Button>
                   </div>
-
-                  {/* Exit Date */}
-                  <div className={cn('flex items-center gap-2 text-sm', { 'text-xs': isDense })}>
-                    <Calendar className="w-4 h-4 text-orange-500" />
-                    <span className="text-muted-foreground">Дата выхода:</span>
-                    <span className="font-medium">{formatDate(exit.exit_date)}</span>
-                  </div>
-
-                  {isOverdue && (
-                    <div className="flex items-center gap-2 text-sm text-[hsl(var(--destructive))] dark:text-[hsl(var(--destructive))]">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span>Выдача оборудования просрочена</span>
-                    </div>
-                  )}
-
-                  {/* Equipment List */}
-                  <div className={cn('space-y-2', { 'space-y-1.5': isDense })}>
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Package className="w-4 h-4 text-[hsl(var(--primary))]" />
-                      <span>Оборудование для выдачи:</span>
-                    </div>
-                    <div className={cn('pl-6 space-y-1', { 'pl-5 space-y-0.5': isDense })}>
-                      {equipmentItems.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-start gap-2 text-sm text-muted-foreground"
-                        >
-                          <span className="text-orange-500 mt-1">•</span>
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className={cn('flex flex-col items-end gap-3', { 'gap-2': isDense })}>
-                  {/* Completed Checkbox */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            checked={isCompleted}
-                            onCheckedChange={() => handleToggleCompleted(exit.id, isCompleted)}
-                            className="w-5 h-5"
-                          />
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            Выдано
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Отметить как выданное/невыданное</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  {/* Edit Button */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit(exit)}
-                          className={cn(
-                            'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.12)]',
-                            isDense ? 'h-8 w-8' : ''
-                          )}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Редактировать запись</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  {/* Copy Equipment */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => copyEquipment(equipmentItems, exit.employee_name)}
-                          className={cn(
-                            'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.12)]',
-                            isDense ? 'h-8 w-8' : ''
-                          )}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Скопировать список оборудования</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  {/* Delete Button */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(exit.id)}
-                          className={cn(
-                            'text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.12)]',
-                            isDense ? 'h-8 w-8' : ''
-                          )}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Удалить запись</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
               </div>
             </div>
-          </div>
-        )
-      })}
-    </div>
+          )
+        })}
+      </div>
+    </TooltipProvider>
   )
 }

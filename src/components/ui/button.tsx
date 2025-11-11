@@ -14,12 +14,15 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
+        cardAction:
+          'relative overflow-hidden rounded-xl border border-transparent bg-transparent text-foreground shadow-none transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_18px_38px_-24px_hsl(var(--primary)/0.38)] focus-visible:ring-[hsl(var(--primary)/0.35)] focus-visible:ring-offset-2',
       },
       size: {
         default: 'h-10 px-4 py-2',
         sm: 'h-9 rounded-md px-3',
         lg: 'h-11 rounded-md px-8',
         icon: 'h-10 w-10',
+        card: 'h-auto px-3 py-2.5',
       },
     },
     defaultVariants: {
