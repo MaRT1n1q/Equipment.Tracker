@@ -1,6 +1,7 @@
 import { AlertTriangle, Download, Plus } from 'lucide-react'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
+import { EditEmployeeExitModal } from './EditEmployeeExitModal'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
 import { Button } from './ui/button'
 import { useMemo, useRef, useState } from 'react'
@@ -9,6 +10,7 @@ import { toast } from 'sonner'
 import { SearchAndFilters } from './SearchAndFilters'
 import { usePersistentState } from '../hooks/usePersistentState'
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
+import type { EmployeeExit } from '../types/ipc'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
@@ -23,6 +25,8 @@ interface EmployeeExitViewProps {
 export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExitViewProps) {
   const { data: exits = [], isLoading, isError, refetch: refetchExits } = useEmployeeExitsQuery()
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [selectedExit, setSelectedExit] = useState<EmployeeExit | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = usePersistentState<string>(EXIT_SEARCH_STORAGE_KEY, '', {
     serializer: (value) => value,
     deserializer: (value) => value,
@@ -135,6 +139,16 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
     setShowQuickHelp(false)
     // Removed localStorage management
   }
+
+  const handleEdit = (exit: EmployeeExit) => {
+    setSelectedExit(exit)
+    setIsEditModalOpen(true)
+  }
+
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false)
+    setSelectedExit(null)
+  }
   return (
     <div className="space-y-6">
       {/* Table */}
@@ -241,6 +255,7 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
               exits={filteredExits}
               isFiltered={Boolean(searchQuery || statusFilter !== 'all')}
               density={tableDensity}
+              onEdit={handleEdit}
             />
           </>
         )}
@@ -248,6 +263,13 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
 
       {/* Add Modal */}
       <AddEmployeeExitModal isOpen={isModalOpen} onClose={() => onModalOpenChange(false)} />
+
+      {/* Edit Modal */}
+      <EditEmployeeExitModal
+        exit={selectedExit}
+        isOpen={isEditModalOpen}
+        onClose={handleEditModalClose}
+      />
     </div>
   )
 }

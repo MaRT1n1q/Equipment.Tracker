@@ -13,6 +13,7 @@ import {
   Clock,
   AlertTriangle,
   Copy,
+  Edit2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
@@ -22,12 +23,14 @@ interface EmployeeExitTableProps {
   exits: EmployeeExit[]
   isFiltered?: boolean
   density?: 'comfortable' | 'dense'
+  onEdit: (exit: EmployeeExit) => void
 }
 
 export function EmployeeExitTable({
   exits,
   isFiltered = false,
   density = 'comfortable',
+  onEdit,
 }: EmployeeExitTableProps) {
   const { updateExitCompleted, deleteEmployeeExit } = useEmployeeExitActions()
   const isDense = density === 'dense'
@@ -259,6 +262,28 @@ export function EmployeeExitTable({
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Отметить как выданное/невыданное</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {/* Edit Button */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(exit)}
+                          className={cn(
+                            'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary)/0.12)]',
+                            isDense ? 'h-8 w-8' : ''
+                          )}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Редактировать запись</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
