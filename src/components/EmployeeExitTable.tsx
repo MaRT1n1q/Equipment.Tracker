@@ -5,15 +5,12 @@ import {
   Trash2,
   UserMinus,
   Calendar,
-  User,
-  KeyRound,
   Package,
   CheckCircle2,
   Clock,
   AlertTriangle,
   Copy,
   Edit2,
-  Tag,
   Hash,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -43,19 +40,22 @@ export function EmployeeExitTable({
   const isDense = density === 'dense'
   const statusVariants = {
     success: {
-      rail: 'bg-[linear-gradient(180deg,hsl(var(--success))0%,hsl(var(--success)/0.6)100%)]',
-      icon: 'status-icon status-icon--success',
+      rail: 'bg-[hsl(var(--success)/0.6)]',
+      icon: 'bg-[hsl(var(--success)/0.18)] text-[hsl(var(--success))]',
       pill: 'status-pill status-pill--success',
+      accent: 'text-[hsl(var(--success))]',
     },
     warning: {
-      rail: 'bg-[linear-gradient(180deg,hsl(var(--warning))0%,hsl(var(--warning)/0.6)100%)]',
-      icon: 'status-icon status-icon--warning',
+      rail: 'bg-[hsl(var(--warning)/0.6)]',
+      icon: 'bg-[hsl(var(--warning)/0.18)] text-[hsl(var(--warning))]',
       pill: 'status-pill status-pill--warning',
+      accent: 'text-[hsl(var(--warning))]',
     },
     danger: {
-      rail: 'bg-[linear-gradient(180deg,hsl(var(--destructive))0%,hsl(var(--destructive)/0.6)100%)]',
-      icon: 'status-icon status-icon--danger',
+      rail: 'bg-[hsl(var(--destructive)/0.6)]',
+      icon: 'bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))]',
       pill: 'status-pill status-pill--danger',
+      accent: 'text-[hsl(var(--destructive))]',
     },
   } as const
 
@@ -161,267 +161,178 @@ export function EmployeeExitTable({
           const variantKey = isCompleted ? 'success' : isOverdue ? 'danger' : 'warning'
           const variant = statusVariants[variantKey]
           const StatusIcon = isCompleted ? CheckCircle2 : isOverdue ? AlertTriangle : Clock
+          const statusLabel = isCompleted ? 'Завершено' : isOverdue ? 'Просрочено' : 'Ожидает'
+          const statusTitle = isCompleted
+            ? 'Выдача завершена'
+            : isOverdue
+              ? 'Выдача просрочена'
+              : 'Выдача запланирована'
+          const statusHint = isCompleted
+            ? 'Если оборудование ещё в работе, снимите отметку.'
+            : isOverdue
+              ? 'Отметьте выдачу или скорректируйте дату, чтобы убрать просрочку.'
+              : 'Отметьте завершение, когда оборудование будет передано.'
 
           return (
             <div
               key={exit.id}
-              className="group relative surface-card surface-card-hover overflow-hidden animate-fade-in"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className={cn(
+                'group relative overflow-hidden surface-card animate-fade-in',
+                'transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-medium'
+              )}
+              style={{ animationDelay: `${index * 40}ms` }}
             >
-              {/* Status gradient bar */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${variant.rail}`} />
+              <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${variant.rail}`} />
 
-              <div className={cn('p-4 pl-5', { 'p-3 pl-4': isDense })}>
-                <div className={cn('flex items-start justify-between gap-4', { 'gap-3': isDense })}>
-                  {/* Main Info */}
-                  <div className={cn('flex-1 space-y-3', { 'space-y-2.5': isDense })}>
-                    {/* Employee Name & Status */}
-                    <div className={cn('flex items-center gap-3 flex-wrap', { 'gap-2': isDense })}>
-                      <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
-                        <div className={cn(variant.icon, isDense ? 'scale-90' : '')}>
-                          <StatusIcon
-                            className={cn('text-current', isDense ? 'w-4 h-4' : 'w-5 h-5')}
-                          />
-                        </div>
-                        <div>
-                          <div className={cn('flex items-center gap-2', { 'gap-1.5': isDense })}>
-                            <User
-                              className={cn(
-                                'text-muted-foreground',
-                                isDense ? 'w-3.5 h-3.5' : 'w-4 h-4'
-                              )}
-                            />
-                            <span
-                              className={cn('font-semibold', isDense ? 'text-base' : 'text-lg')}
-                            >
-                              {exit.employee_name}
-                            </span>
-                          </div>
-                          <div
-                            className={cn(
-                              'flex flex-wrap items-center gap-3 text-xs text-muted-foreground',
-                              isDense ? 'gap-2' : ''
-                            )}
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <KeyRound
-                                className={cn(
-                                  'text-muted-foreground',
-                                  isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
-                                )}
-                              />
-                              <span>{exit.login}</span>
-                            </div>
-                            {exit.sd_number && (
-                              <>
-                                <span className="text-muted-foreground/60">•</span>
-                                <div className="flex items-center gap-1.5 text-muted-foreground">
-                                  <Tag
-                                    className={cn(
-                                      'text-muted-foreground',
-                                      isDense ? 'w-3 h-3' : 'w-3.5 h-3.5'
-                                    )}
-                                  />
-                                  <span className="uppercase text-[0.65rem] tracking-wide text-muted-foreground/70">
-                                    номер SD
-                                  </span>
-                                  <span className="font-medium text-foreground normal-case">
-                                    {exit.sd_number}
-                                  </span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
+              <div
+                className={cn('relative flex flex-col gap-4 p-4 sm:p-5', {
+                  'gap-3 p-3 sm:p-4': isDense,
+                })}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          'inline-flex h-8 w-8 items-center justify-center rounded-lg',
+                          variant.icon,
+                          { 'h-7 w-7': isDense }
+                        )}
+                      >
+                        <StatusIcon className={cn('h-4 w-4', isDense && 'h-3.5 w-3.5')} />
+                      </span>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold leading-tight text-base',
+                            isDense && 'text-sm'
+                          )}
+                        >
+                          {exit.employee_name}
+                        </span>
+                        <span className="text-sm text-muted-foreground/80">{exit.login}</span>
+                        {exit.sd_number && (
+                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70">
+                            SD {exit.sd_number}
+                          </span>
+                        )}
                       </div>
-
-                      {/* Status Badge */}
-                      <span className={cn(variant.pill, isDense && 'px-2.5 py-0.5')}>
-                        {isCompleted ? 'Завершено' : isOverdue ? 'Просрочено' : 'Ожидает'}
+                      <span className={cn(variant.pill, 'ml-auto', isDense && 'px-2.5 py-0.5')}>
+                        {statusLabel}
                       </span>
                     </div>
 
-                    {/* Exit Date */}
-                    <div className={cn('flex items-center gap-2 text-sm', { 'text-xs': isDense })}>
-                      <Calendar className="w-4 h-4 text-orange-500" />
-                      <span className="text-muted-foreground">Дата выхода:</span>
-                      <span className="font-medium">{formatDate(exit.exit_date)}</span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4 text-orange-500" />
+                        <span>Дата выхода {formatDate(exit.exit_date)}</span>
+                      </div>
                     </div>
 
                     {isOverdue && (
-                      <div className="flex items-center gap-2 text-sm text-[hsl(var(--destructive))] dark:text-[hsl(var(--destructive))]">
-                        <AlertTriangle className="w-4 h-4" />
+                      <div
+                        className={cn(
+                          'flex items-center gap-1.5 text-sm font-medium',
+                          variant.accent
+                        )}
+                      >
+                        <AlertTriangle className="h-4 w-4" />
                         <span>Выдача оборудования просрочена</span>
                       </div>
                     )}
-
-                    {/* Equipment List */}
-                    <div className={cn('space-y-2', { 'space-y-1.5': isDense })}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Package className="w-4 h-4 text-[hsl(var(--primary))]" />
-                          <span>Оборудование для выдачи:</span>
-                        </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => copyEquipment(equipmentItems, exit.employee_name)}
-                              className={cn(
-                                'h-8 w-8 rounded-md border border-transparent text-[hsl(var(--primary))] transition-all hover:border-[hsl(var(--primary)/0.25)] hover:bg-[hsl(var(--primary)/0.08)] hover:text-[hsl(var(--primary))]',
-                                'dark:hover:bg-[hsl(var(--primary)/0.12)]'
-                              )}
-                              aria-label={`Скопировать список оборудования для ${exit.employee_name}`}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Скопировать список оборудования</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <div className={cn('pl-6 space-y-1.5', { 'pl-5 space-y-1': isDense })}>
-                        {equipmentItems.length > 0 ? (
-                          equipmentItems.map((item, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                              <span className="text-orange-500 mt-1">•</span>
-                              <div className="min-w-0 flex flex-wrap items-center gap-2">
-                                <span className="text-sm font-medium text-foreground leading-none">
-                                  {item.name || '—'}
-                                </span>
-                                {item.serial && (
-                                  <>
-                                    <span className="text-muted-foreground/60">•</span>
-                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <Hash className="w-3 h-3" />
-                                      <span className="font-mono truncate" title={item.serial}>
-                                        {item.serial}
-                                      </span>
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="text-orange-500">•</span>
-                            <span>Нет оборудования</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Actions */}
-                  <div
+                  <label
                     className={cn(
-                      'flex shrink-0 flex-col items-stretch gap-2.5 min-w-full sm:min-w-[13.5rem]',
-                      {
-                        'gap-2 sm:min-w-[12rem]': isDense,
-                      }
+                      'flex w-full max-w-xs items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground transition-colors sm:text-sm',
+                      'hover:border-[hsl(var(--primary)/0.35)] hover:text-foreground',
+                      { 'px-2 py-1.5': isDense }
                     )}
                   >
-                    <div
-                      className={cn(
-                        'w-full rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-left shadow-[0_10px_22px_-18px_rgba(15,23,42,0.35)] transition-all duration-200 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-[0_16px_28px_-18px_rgba(79,70,229,0.42)] dark:bg-muted/60',
-                        { 'px-2.5 py-2': isDense }
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2.5">
-                        <div className="space-y-1">
-                          <p className="text-[0.6rem] uppercase tracking-wide text-muted-foreground/70">
-                            Статус выдачи
-                          </p>
-                          <p className="text-xs font-semibold text-foreground">
-                            {isCompleted
-                              ? 'Выдача завершена'
-                              : isOverdue
-                                ? 'Выдача просрочена'
-                                : 'Выдача запланирована'}
-                          </p>
-                        </div>
-                        <Checkbox
-                          checked={isCompleted}
-                          onCheckedChange={() => handleToggleCompleted(exit.id, isCompleted)}
-                          aria-label={
-                            isCompleted
-                              ? 'Отменить отметку о завершении выдачи'
-                              : 'Отметить выдачу как завершенную'
-                          }
-                          className="h-[1.15rem] w-[1.15rem] border-[hsl(var(--success)/0.35)] text-primary-foreground transition-colors data-[state=checked]:bg-[hsl(var(--success))]"
-                        />
-                      </div>
-                      <p className="mt-1.5 text-[0.7rem] leading-snug text-muted-foreground">
-                        {isCompleted
-                          ? 'Если оборудование ещё в работе, снимите отметку.'
-                          : isOverdue
-                            ? 'Отметьте выдачу или скорректируйте дату, чтобы убрать просрочку.'
-                            : 'Отметьте завершение, когда оборудование будет передано.'}
-                      </p>
+                    <Checkbox
+                      checked={isCompleted}
+                      onCheckedChange={() => handleToggleCompleted(exit.id, isCompleted)}
+                      aria-label={
+                        isCompleted
+                          ? 'Отменить отметку о завершении выдачи'
+                          : 'Отметить выдачу как завершенную'
+                      }
+                      className="h-4 w-4 border-[hsl(var(--success)/0.35)] text-primary-foreground data-[state=checked]:bg-[hsl(var(--success))]"
+                    />
+                    <div className="flex flex-col leading-tight">
+                      <span className="font-semibold text-foreground">{statusTitle}</span>
+                      <span className="text-[0.7rem] opacity-80">{statusHint}</span>
                     </div>
+                  </label>
+                </div>
 
-                    <Button
-                      type="button"
-                      variant="cardAction"
-                      size="card"
-                      onClick={() => onEdit(exit)}
-                      className={cn(
-                        'group w-full justify-start text-left gap-3',
-                        'border-[hsl(var(--primary)/0.28)] bg-[linear-gradient(135deg,hsl(var(--primary)/0.12),hsl(var(--primary)/0.04))]',
-                        'hover:border-[hsl(var(--primary)/0.42)] hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.08))] hover:shadow-[0_22px_38px_-18px_hsl(var(--primary)/0.45)]',
-                        'dark:bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(var(--primary)/0.06))] dark:hover:bg-[linear-gradient(135deg,hsl(var(--primary)/0.24),hsl(var(--primary)/0.12))]'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))] shadow-[0_10px_22px_-18px_hsl(var(--primary)/0.7)] transition-transform duration-200 group-hover:scale-[1.05]',
-                          { 'h-8 w-8': isDense }
-                        )}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </span>
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="text-sm font-semibold leading-none">
-                          Редактировать запись
-                        </span>
-                        <span className="text-[0.7rem] leading-tight text-muted-foreground">
-                          Измените дату или оборудование
-                        </span>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className={cn('space-y-2', { 'space-y-1.5': isDense }, 'min-w-0 flex-1')}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Package className="h-4 w-4 text-[hsl(var(--primary))]" />
+                        <span>Оборудование</span>
                       </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyEquipment(equipmentItems, exit.employee_name)}
+                            className={cn(
+                              'h-8 w-8 rounded-md border border-transparent text-[hsl(var(--primary))] transition-all hover:border-[hsl(var(--primary)/0.25)] hover:bg-[hsl(var(--primary)/0.08)] hover:text-[hsl(var(--primary))]',
+                              'dark:hover:bg-[hsl(var(--primary)/0.12)]'
+                            )}
+                            aria-label={`Скопировать список оборудования для ${exit.employee_name}`}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Скопировать список оборудования</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    {equipmentItems.length > 0 ? (
+                      <ul
+                        className={cn('ml-6 list-disc space-y-1.5 text-sm marker:text-orange-500', {
+                          'space-y-1': isDense,
+                        })}
+                      >
+                        {equipmentItems.map((item, idx) => (
+                          <li key={idx} className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-foreground">{item.name || '—'}</span>
+                            {item.serial && (
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Hash className="h-3 w-3" />
+                                <span className="font-mono" title={item.serial}>
+                                  {item.serial}
+                                </span>
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="ml-6 text-sm text-muted-foreground">Нет оборудования</p>
+                    )}
+                  </div>
+
+                  <div className="flex w-full justify-end gap-2 sm:w-auto sm:justify-start">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onEdit(exit)}>
+                      <Edit2 className="h-4 w-4" />
+                      Редактировать
                     </Button>
-
                     <Button
                       type="button"
-                      variant="cardAction"
-                      size="card"
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleDelete(exit.id)}
-                      className={cn(
-                        'group w-full justify-start text-left gap-3',
-                        'border-[hsl(var(--destructive)/0.28)] bg-[linear-gradient(135deg,hsl(var(--destructive)/0.12),hsl(var(--destructive)/0.04))]',
-                        'hover:border-[hsl(var(--destructive)/0.42)] hover:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.18),hsl(var(--destructive)/0.08))] hover:shadow-[0_22px_38px_-18px_hsl(var(--destructive)/0.45)]',
-                        'dark:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.18),hsl(var(--destructive)/0.06))] dark:hover:bg-[linear-gradient(135deg,hsl(var(--destructive)/0.24),hsl(var(--destructive)/0.12))]'
-                      )}
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
                     >
-                      <span
-                        className={cn(
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))] shadow-[0_10px_22px_-18px_hsl(var(--destructive)/0.6)] transition-transform duration-200 group-hover:scale-[1.05]',
-                          { 'h-8 w-8': isDense }
-                        )}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </span>
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="text-sm font-semibold leading-none text-[hsl(var(--destructive))]">
-                          Удалить запись
-                        </span>
-                        <span className="text-[0.7rem] leading-tight text-muted-foreground">
-                          Удаление без возможности восстановления
-                        </span>
-                      </div>
+                      <Trash2 className="h-4 w-4" />
+                      Удалить
                     </Button>
                   </div>
                 </div>
