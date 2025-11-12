@@ -14,7 +14,10 @@ declare global {
       // App info
       getAppVersion: () => string
       checkForUpdates: () => Promise<ApiResponse>
+      downloadUpdate: () => Promise<ApiResponse>
       installUpdate: () => Promise<ApiResponse>
+      downloadManualUpdate: () => Promise<ApiResponse<{ path: string }>>
+      openManualUpdateLocation: () => Promise<ApiResponse>
       onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => () => void
       // Requests API
       getRequests: () => Promise<ApiResponse<Request[]>>

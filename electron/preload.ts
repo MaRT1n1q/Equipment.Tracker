@@ -16,7 +16,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   checkForUpdates: (): Promise<ApiResponse> => ipcRenderer.invoke('check-for-updates'),
 
+  downloadUpdate: (): Promise<ApiResponse> => ipcRenderer.invoke('download-update'),
+
   installUpdate: (): Promise<ApiResponse> => ipcRenderer.invoke('install-update'),
+
+  downloadManualUpdate: (): Promise<ApiResponse<{ path: string }>> =>
+    ipcRenderer.invoke('manual-download-update'),
+
+  openManualUpdateLocation: (): Promise<ApiResponse> => ipcRenderer.invoke('manual-open-download'),
 
   onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => {
     const listener = (_event: IpcRendererEvent, payload: UpdateStatusPayload) => {
