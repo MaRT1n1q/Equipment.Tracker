@@ -1,4 +1,4 @@
-import { BrowserWindow, app, session } from 'electron'
+import { BrowserWindow, app, session, Menu } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { loadWindowState, saveWindowState } from './windowState'
@@ -56,6 +56,21 @@ export function createMainWindow(): BrowserWindow {
 
   window.on('resize', () => saveWindowState(window))
   window.on('move', () => saveWindowState(window))
+
+  window.webContents.on('context-menu', (_event, params) => {
+    if (!params.selectionText.trim()) {
+      return
+    }
+
+    const menu = Menu.buildFromTemplate([
+      {
+        label: 'Копировать',
+        role: 'copy',
+      },
+    ])
+
+    menu.popup({ window })
+  })
 
   // Флаг для определения, действительно ли нужно закрыть приложение
   let isQuitting = false
