@@ -1,7 +1,16 @@
+import { useState } from 'react'
 import type { Request } from '../types/ipc'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
 import {
   Trash2,
   Package,
@@ -26,6 +35,11 @@ interface RequestsTableProps {
 export function RequestsTable({ requests, onEdit, density = 'comfortable' }: RequestsTableProps) {
   const { toggleIssued, deleteRequest, restoreRequest } = useRequestActions()
   const isDense = density === 'dense'
+  const [commentModal, setCommentModal] = useState<{
+    employeeName: string
+    login?: string | null
+    comment: string
+  } | null>(null)
 
   const statusVariants = {
     success: {
@@ -202,6 +216,13 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                             <button
                               type="button"
                               className="flex items-center gap-1.5 text-blue-600 underline-offset-2 transition-colors hover:underline dark:text-blue-400"
+                              onClick={() =>
+                                setCommentModal({
+                                  employeeName: request.employee_name,
+                                  login: request.login,
+                                  comment: request.notes ?? '',
+                                })
+                              }
                             >
                               <MessageSquare className="h-4 w-4" />
                               <span>Комментарий</span>
@@ -306,6 +327,33 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
           )
         })}
       </div>
+
+      <Dialog
+        open={Boolean(commentModal)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCommentModal(null)
+          }
+        }}
+      >
+        {commentModal && (
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Комментарий</DialogTitle>
+              <DialogDescription>
+                {commentModal.employeeName}
+                {commentModal.login ? ` · ${commentModal.login}` : ''}
+              </DialogDescription>
+            </DialogHeader>
+            <p className="whitespace-pre-wrap text-sm text-foreground/90">{commentModal.comment}</p>
+            <DialogFooter>
+              <Button type="button" onClick={() => setCommentModal(null)}>
+                Закрыть
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </TooltipProvider>
   )
 }

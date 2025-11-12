@@ -1,4 +1,4 @@
-import { BrowserWindow, app, session, Menu } from 'electron'
+import { BrowserWindow, app, session, Menu, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { loadWindowState, saveWindowState } from './windowState'
@@ -58,16 +58,31 @@ export function createMainWindow(): BrowserWindow {
   window.on('move', () => saveWindowState(window))
 
   window.webContents.on('context-menu', (_event, params) => {
-    if (!params.selectionText.trim()) {
+    const selection = params.selectionText.trim()
+    if (!selection) {
       return
     }
 
-    const menu = Menu.buildFromTemplate([
+    const template: Electron.MenuItemConstructorOptions[] = [
       {
         label: 'Копировать',
         role: 'copy',
       },
-    ])
+    ]
+
+    const sdMatch =
+      selection.match(/(?:^|\b)sd\s*(\d{3,})(?:\b|$)/i) ?? selection.match(/^(\d{3,})$/)
+    if (sdMatch) {
+      const sdNumber = sdMatch[1]
+      template.push({
+        label: 'Открыть в браузере',
+        click: () => {
+          void shell.openExternal(`https://forge.tcsbank.ru/case/${sdNumber}/info`)
+        },
+      })
+    }
+
+    const menu = Menu.buildFromTemplate(template)
 
     menu.popup({ window })
   })
