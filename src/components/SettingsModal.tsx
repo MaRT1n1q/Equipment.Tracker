@@ -1,8 +1,18 @@
-import { Settings, Database, Download, Upload, Info } from 'lucide-react'
+import { Settings, Database, Download, Upload, Info, RefreshCw } from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
+
+type UpdateState =
+  | 'idle'
+  | 'checking'
+  | 'no-update'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+  | 'installing'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -11,6 +21,10 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [appVersion, setAppVersion] = useState('loading...')
+  const [updateState, setUpdateState] = useState<UpdateState>('idle')
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null)
+  const [availableVersion, setAvailableVersion] = useState<string | null>(null)
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
 
   useEffect(() => {
     if (window.electronAPI?.getAppVersion) {
@@ -18,6 +32,87 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setAppVersion(version)
     } else {
       setAppVersion('unknown')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!window.electronAPI?.onUpdateStatus) {
+      return
+    }
+
+    const unsubscribe = window.electronAPI.onUpdateStatus((payload) => {
+      const data = payload.data as
+        | {
+            version?: unknown
+            percent?: unknown
+            transferred?: unknown
+            total?: unknown
+          }
+        | undefined
+
+      setUpdateMessage(payload.message)
+
+      switch (payload.event) {
+        case 'checking-for-update':
+          setUpdateState('checking')
+          setAvailableVersion(null)
+          setDownloadProgress(null)
+          break
+        case 'update-available': {
+          const versionCandidate =
+            data && typeof data.version === 'string'
+              ? data.version
+              : data && typeof data.version === 'number'
+                ? String(data.version)
+                : null
+          setUpdateState('available')
+          setAvailableVersion(versionCandidate)
+          setDownloadProgress(0)
+          break
+        }
+        case 'update-not-available':
+          setUpdateState('no-update')
+          setAvailableVersion(null)
+          setDownloadProgress(null)
+          break
+        case 'download-progress': {
+          let percentValue: number | null = null
+          if (data) {
+            if (typeof data.percent === 'number') {
+              percentValue = Math.round(data.percent)
+            } else if (typeof data.percent === 'string') {
+              const parsed = Number(data.percent)
+              percentValue = Number.isFinite(parsed) ? Math.round(parsed) : null
+            }
+          }
+          setUpdateState('downloading')
+          setDownloadProgress(percentValue)
+          break
+        }
+        case 'update-downloaded': {
+          const versionCandidate =
+            data && typeof data.version === 'string'
+              ? data.version
+              : data && typeof data.version === 'number'
+                ? String(data.version)
+                : null
+          setUpdateState('downloaded')
+          setAvailableVersion((prev) => versionCandidate ?? prev)
+          setDownloadProgress(100)
+          break
+        }
+        case 'update-error':
+          setUpdateState('error')
+          setAvailableVersion(null)
+          setDownloadProgress(null)
+          break
+        default:
+          break
+      }
+    })
+
+    return () => {
+      unsubscribe?.()
     }
   }, [])
   const iconVariants = {
@@ -58,6 +153,109 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     } catch (error) {
       toast.error('Произошла ошибка')
       console.error(error)
+    }
+  }
+
+  const hasAvailableUpdate = Boolean(availableVersion)
+  const isInstallReady = hasAvailableUpdate && updateState === 'downloaded'
+  const isActiveProcess =
+    updateState === 'checking' || updateState === 'downloading' || updateState === 'installing'
+  const shouldAnimateUpdateIcon = isActiveProcess
+  const updateButtonLabel = (() => {
+    if (updateState === 'installing') {
+      return 'Установка обновления...'
+    }
+    return hasAvailableUpdate ? 'Установить обновление' : 'Проверить обновления'
+  })()
+  const updateDescription = (() => {
+    if (updateState === 'checking') {
+      return updateMessage || 'Выполняется проверка обновлений...'
+    }
+    if (updateState === 'available') {
+      return (
+        updateMessage ||
+        `Найдена новая версия${availableVersion ? ` v${availableVersion}` : ''}. Начинаем загрузку.`
+      )
+    }
+    if (updateState === 'downloading') {
+      if (updateMessage) {
+        return updateMessage
+      }
+      if (downloadProgress !== null) {
+        return `Загрузка обновления${availableVersion ? ` v${availableVersion}` : ''}: ${downloadProgress}%`
+      }
+      return updateMessage || 'Загрузка обновления...'
+    }
+    if (updateState === 'downloaded') {
+      return updateMessage || 'Обновление готово к установке'
+    }
+    if (updateState === 'no-update') {
+      return updateMessage || 'Новых обновлений не найдено'
+    }
+    if (updateState === 'error') {
+      return updateMessage || 'Не удалось проверить обновления'
+    }
+    if (updateState === 'installing') {
+      return updateMessage || 'Устанавливаем обновление...'
+    }
+    return updateMessage || 'Проверить наличие новой версии приложения'
+  })()
+  const updateDescriptionClass =
+    updateState === 'error' ? 'text-destructive' : 'text-muted-foreground'
+
+  const handleUpdateAction = async () => {
+    if (!window.electronAPI?.checkForUpdates) {
+      toast.error('Функция обновления недоступна')
+      return
+    }
+
+    if (hasAvailableUpdate) {
+      if (!isInstallReady) {
+        toast.info('Подождите, обновление ещё загружается')
+        return
+      }
+
+      try {
+        setUpdateState('installing')
+        setUpdateMessage('Установка обновления...')
+        const result = await window.electronAPI.installUpdate()
+        if (!result.success) {
+          const message = result.error || 'Не удалось установить обновление'
+          setUpdateState('error')
+          setUpdateMessage(message)
+          toast.error(message)
+        } else {
+          toast.success('Приложение перезапустится для установки обновления')
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Не удалось установить обновление'
+        setUpdateState('error')
+        setUpdateMessage(message)
+        toast.error(message)
+      }
+
+      return
+    }
+
+    try {
+      setUpdateState('checking')
+      setUpdateMessage('Проверка обновлений...')
+      setAvailableVersion(null)
+      setDownloadProgress(null)
+      const result = await window.electronAPI.checkForUpdates()
+      if (!result.success) {
+        const message =
+          result.error || 'Не удалось выполнить проверку обновлений. Повторите попытку позже.'
+        setUpdateState('error')
+        setUpdateMessage(message)
+        toast.error(message)
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Не удалось выполнить проверку обновлений'
+      setUpdateState('error')
+      setUpdateMessage(message)
+      toast.error(message)
     }
   }
 
@@ -118,6 +316,41 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="font-medium">Восстановить из резервной копии</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       Заменить данные из файла backup
+                    </div>
+                  </div>
+                </div>
+              </Button>
+            </div>
+          </div>
+
+          {/* Update Section */}
+          <div className="surface-section space-y-4">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-[hsl(var(--primary))]" />
+              <h3 className="font-semibold text-base">Обновление приложения</h3>
+            </div>
+
+            <div className="grid gap-3">
+              <Button
+                onClick={handleUpdateAction}
+                variant="outline"
+                className="w-full justify-start h-auto py-3 hover:bg-muted/40 transition-colors group"
+                disabled={
+                  updateState === 'checking' ||
+                  updateState === 'downloading' ||
+                  updateState === 'installing'
+                }
+              >
+                <div className="flex items-start gap-3 w-full">
+                  <div className={`${iconVariants.info} w-10 h-10`}>
+                    <RefreshCw
+                      className={`w-5 h-5 ${shouldAnimateUpdateIcon ? 'animate-spin' : ''}`}
+                    />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{updateButtonLabel}</div>
+                    <div className={`text-xs mt-1 ${updateDescriptionClass}`}>
+                      {updateDescription}
                     </div>
                   </div>
                 </div>

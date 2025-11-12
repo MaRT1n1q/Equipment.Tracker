@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
 
@@ -10,6 +10,9 @@ autoUpdater.logger = log
 autoUpdater.autoDownload = true // Автоматически загружать обновления
 autoUpdater.autoInstallOnAppQuit = true // Автоматически устанавливать при выходе
 
+let mainWindowRef: BrowserWindow | null = null
+let manualCheckInProgress = false
+
 export function initAutoUpdater(window: BrowserWindow | null) {
   // Только в production режиме
   if (!app.isPackaged) {
@@ -18,6 +21,7 @@ export function initAutoUpdater(window: BrowserWindow | null) {
   }
 
   log.info('Auto-updater initialized')
+  mainWindowRef = window
 
   // Проверяем обновления при запуске
   autoUpdater.checkForUpdatesAndNotify()
@@ -38,7 +42,10 @@ export function initAutoUpdater(window: BrowserWindow | null) {
 
   autoUpdater.on('update-available', (info) => {
     log.info('Update available:', info)
-    sendStatusToWindow(window, 'update-available', `Доступно обновление v${info.version}`)
+    sendStatusToWindow(window, 'update-available', `Доступно обновление v${info.version}`, {
+      version: info.version,
+      releaseNotes: info.releaseNotes,
+    })
 
     // Показываем уведомление пользователю
     if (window) {
@@ -75,7 +82,10 @@ export function initAutoUpdater(window: BrowserWindow | null) {
 
   autoUpdater.on('update-downloaded', (info) => {
     log.info('Update downloaded:', info)
-    sendStatusToWindow(window, 'update-downloaded', `Обновление v${info.version} загружено`)
+    sendStatusToWindow(window, 'update-downloaded', `Обновление v${info.version} загружено`, {
+      version: info.version,
+      downloadedAt: new Date().toISOString(),
+    })
 
     // Спрашиваем пользователя, хочет ли он установить сейчас
     if (window) {
@@ -145,4 +155,63 @@ export function checkForUpdates() {
 export function installUpdateNow() {
   log.info('Installing update now')
   autoUpdater.quitAndInstall()
+}
+
+export function registerUpdaterHandlers() {
+  ipcMain.handle('check-for-updates', async () => {
+    if (!app.isPackaged) {
+      return {
+        success: false,
+        error: 'Проверка обновлений доступна только в собранной версии приложения',
+      }
+    }
+
+    if (manualCheckInProgress) {
+      return {
+        success: false,
+        error: 'Проверка уже выполняется',
+      }
+    }
+
+    const window = mainWindowRef
+
+    try {
+      manualCheckInProgress = true
+      if (window) {
+        sendStatusToWindow(window, 'checking-for-update', 'Проверка обновлений...')
+      }
+
+      await autoUpdater.checkForUpdates()
+      return { success: true }
+    } catch (error) {
+      log.error('Manual update check failed:', error)
+      const message = (error as Error).message || 'Не удалось проверить обновление'
+      if (window) {
+        sendStatusToWindow(window, 'update-error', `Ошибка обновления: ${message}`)
+      }
+      return { success: false, error: message }
+    } finally {
+      manualCheckInProgress = false
+    }
+  })
+
+  ipcMain.handle('install-update', async () => {
+    if (!app.isPackaged) {
+      return {
+        success: false,
+        error: 'Установка обновлений недоступна в режиме разработки',
+      }
+    }
+
+    try {
+      autoUpdater.quitAndInstall()
+      return { success: true }
+    } catch (error) {
+      log.error('Failed to install update immediately:', error)
+      return {
+        success: false,
+        error: (error as Error).message || 'Не удалось установить обновление',
+      }
+    }
+  })
 }

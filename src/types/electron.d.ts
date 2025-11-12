@@ -5,6 +5,7 @@ import type {
   EmployeeExit,
   Request,
   UpdateRequestData,
+  UpdateStatusPayload,
 } from './ipc'
 
 declare global {
@@ -12,6 +13,9 @@ declare global {
     electronAPI: {
       // App info
       getAppVersion: () => string
+      checkForUpdates: () => Promise<ApiResponse>
+      installUpdate: () => Promise<ApiResponse>
+      onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => () => void
       // Requests API
       getRequests: () => Promise<ApiResponse<Request[]>>
       createRequest: (data: CreateRequestData) => Promise<ApiResponse>

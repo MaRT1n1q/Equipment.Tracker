@@ -82,3 +82,9 @@ export interface ApiResponse<T = unknown> {
   error?: string
   id?: number
 }
+
+export interface UpdateStatusPayload {
+  event: string
+  message: string
+  data?: Record<string, unknown>
+}

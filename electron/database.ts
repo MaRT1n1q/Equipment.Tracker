@@ -164,6 +164,10 @@ function ensureNumericId(insertResult: unknown): number {
 }
 
 async function seedRequests(database: Knex) {
+  if (mockRequestSeeds.length === 0) {
+    return
+  }
+
   const now = Date.now()
 
   await database.transaction(async (trx) => {
@@ -200,6 +204,10 @@ async function seedRequests(database: Knex) {
 }
 
 async function seedEmployeeExits(database: Knex) {
+  if (mockEmployeeExitSeeds.length === 0) {
+    return
+  }
+
   const now = Date.now()
 
   const rows = mockEmployeeExitSeeds.map((seed, index) => ({

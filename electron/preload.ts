@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { IpcRendererEvent } from 'electron'
 import type {
   ApiResponse,
   CreateEmployeeExitData,
@@ -6,11 +7,26 @@ import type {
   EmployeeExit,
   Request,
   UpdateRequestData,
+  UpdateStatusPayload,
 } from '../src/types/ipc'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // App info
   getAppVersion: (): string => ipcRenderer.sendSync('get-app-version'),
+
+  checkForUpdates: (): Promise<ApiResponse> => ipcRenderer.invoke('check-for-updates'),
+
+  installUpdate: (): Promise<ApiResponse> => ipcRenderer.invoke('install-update'),
+
+  onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: UpdateStatusPayload) => {
+      callback(payload)
+    }
+    ipcRenderer.on('update-status', listener)
+    return () => {
+      ipcRenderer.removeListener('update-status', listener)
+    }
+  },
 
   getRequests: (): Promise<ApiResponse<Request[]>> => ipcRenderer.invoke('get-requests'),
 
