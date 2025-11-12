@@ -43,6 +43,7 @@ export function DialogContent({ children, className }: DialogContentProps) {
       className={cn(
         'bg-card text-card-foreground rounded-lg shadow-lg border p-6',
         'animate-in fade-in-0 zoom-in-95',
+        'max-h-[calc(100vh-3rem)] overflow-y-auto',
         className
       )}
     >
