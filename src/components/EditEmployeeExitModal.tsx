@@ -58,7 +58,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
   const persistKey = exit
     ? `equipment-tracker:edit-exit-${exit.id}`
     : 'equipment-tracker:edit-exit:transient'
-  const initialDraft = useMemo(() => createDraftFromExit(exit), [exit?.id])
+  const initialDraft = useMemo(() => createDraftFromExit(exit), [exit])
   const [formDraft, setFormDraft] = usePersistentState<ExitFormDraft>(persistKey, initialDraft, {
     enabled: Boolean(exit),
     deserializer: (value) => {
