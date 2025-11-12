@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -6,44 +6,101 @@ import { Label } from './ui/label'
 import { toast } from 'sonner'
 import { Package, Plus, Trash2, UserMinus } from 'lucide-react'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
-import { formatExitEquipmentList, type ExitEquipmentItem } from '../lib/employeeExitEquipment'
+import {
+  createEmptyExitEquipmentItem,
+  formatExitEquipmentList,
+  type ExitEquipmentItem,
+} from '../lib/employeeExitEquipment'
+import { usePersistentState } from '../hooks/usePersistentState'
 
 interface AddEmployeeExitModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
+interface ExitFormDraft {
+  employeeName: string
+  login: string
+  sdNumber: string
+  exitDate: string
+  equipmentItems: ExitEquipmentItem[]
+}
+
+const createExitDraft = (): ExitFormDraft => ({
+  employeeName: '',
+  login: '',
+  sdNumber: '',
+  exitDate: '',
+  equipmentItems: [createEmptyExitEquipmentItem()],
+})
+
 export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalProps) {
-  const [employeeName, setEmployeeName] = useState('')
-  const [login, setLogin] = useState('')
-  const [sdNumber, setSdNumber] = useState('')
-  const [exitDate, setExitDate] = useState('')
-  const [equipmentItems, setEquipmentItems] = useState<ExitEquipmentItem[]>([
-    { name: '', serial: '' },
-  ])
+  const initialDraft = useMemo(createExitDraft, [])
+  const [formDraft, setFormDraft] = usePersistentState<ExitFormDraft>(
+    'equipment-tracker:add-exit-draft',
+    initialDraft,
+    {
+      deserializer: (value) => {
+        try {
+          const parsed = JSON.parse(value) as ExitFormDraft
+          return {
+            ...parsed,
+            equipmentItems:
+              parsed.equipmentItems && parsed.equipmentItems.length > 0
+                ? parsed.equipmentItems.map((item) => ({ ...item }))
+                : [createEmptyExitEquipmentItem()],
+          }
+        } catch (error) {
+          console.warn('Failed to deserialize employee exit draft', error)
+          return createExitDraft()
+        }
+      },
+    }
+  )
+  const { employeeName, login, sdNumber, exitDate, equipmentItems } = formDraft
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { createEmployeeExit } = useEmployeeExitActions()
 
+  const updateDraft = <K extends keyof ExitFormDraft>(key: K, value: ExitFormDraft[K]) => {
+    setFormDraft((draft) => ({ ...draft, [key]: value }))
+  }
+
+  const setEmployeeName = (value: string) => updateDraft('employeeName', value)
+  const setLogin = (value: string) => updateDraft('login', value)
+  const setSdNumber = (value: string) => updateDraft('sdNumber', value)
+  const setExitDate = (value: string) => updateDraft('exitDate', value)
+
   const resetForm = () => {
-    setEmployeeName('')
-    setLogin('')
-    setSdNumber('')
-    setExitDate('')
-    setEquipmentItems([{ name: '', serial: '' }])
+    setFormDraft(createExitDraft())
   }
 
   const addEquipmentItem = () => {
-    setEquipmentItems((items) => [...items, { name: '', serial: '' }])
+    setFormDraft((draft) => ({
+      ...draft,
+      equipmentItems: [...draft.equipmentItems, createEmptyExitEquipmentItem()],
+    }))
   }
 
   const removeEquipmentItem = (index: number) => {
-    setEquipmentItems((items) => (items.length <= 1 ? items : items.filter((_, i) => i !== index)))
+    setFormDraft((draft) => {
+      if (draft.equipmentItems.length <= 1) {
+        return draft
+      }
+
+      return {
+        ...draft,
+        equipmentItems: draft.equipmentItems.filter((_, i) => i !== index),
+      }
+    })
   }
 
   const updateEquipmentItem = (index: number, field: keyof ExitEquipmentItem, value: string) => {
-    setEquipmentItems((items) =>
-      items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    )
+    setFormDraft((draft) => ({
+      ...draft,
+      equipmentItems: draft.equipmentItems.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,14 +152,28 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
   }
 
   const handleClose = () => {
-    if (!isSubmitting) {
-      resetForm()
-      onClose()
+    if (isSubmitting) {
+      return
     }
+
+    resetForm()
+    onClose()
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      return
+    }
+
+    if (isSubmitting) {
+      return
+    }
+
+    onClose()
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <div className="flex items-center gap-3">

@@ -22,6 +22,7 @@ interface EditRequestModalProps {
 
 export function EditRequestModal({ open, onOpenChange, request }: EditRequestModalProps) {
   const [loading, setLoading] = useState(false)
+  const persistKey = request ? `equipment-tracker:edit-request-${request.id}` : undefined
 
   const firstInputRef = useRef<HTMLInputElement>(null)
   const { updateRequest } = useRequestActions()
@@ -45,11 +46,16 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     hasIncompleteEquipmentItems,
     resetForm,
     payload,
-  } = useRequestFormState()
+  } = useRequestFormState({ persistKey })
+  const previousRequestIdRef = useRef<number | null>(null)
 
-  // Load request data when modal opens
+  // Load request data when modal opens and when switching between requests
   useEffect(() => {
-    if (open && request) {
+    if (!open || !request) {
+      return
+    }
+
+    if (previousRequestIdRef.current !== request.id) {
       resetForm({
         employeeName: request.employee_name,
         login: request.login,
@@ -60,12 +66,12 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
             ? request.equipment_items
             : undefined,
       })
-
-      // Focus first field after a small delay
-      setTimeout(() => {
-        firstInputRef.current?.focus()
-      }, 100)
+      previousRequestIdRef.current = request.id
     }
+
+    setTimeout(() => {
+      firstInputRef.current?.focus()
+    }, 100)
   }, [open, request, resetForm])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,6 +112,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
         notes: payload.notes ?? '',
         equipmentItems: payload.equipment_items,
       })
+      previousRequestIdRef.current = request.id
       onOpenChange(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
@@ -117,22 +124,31 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
 
   if (!request) return null
 
+  const restoreInitialState = () => {
+    resetForm({
+      employeeName: request.employee_name,
+      login: request.login,
+      sdNumber: request.sd_number ?? '',
+      notes: request.notes || '',
+      equipmentItems:
+        request.equipment_items && request.equipment_items.length > 0
+          ? request.equipment_items
+          : undefined,
+    })
+  }
+
   const handleClose = () => {
     if (loading) {
       return
     }
 
-    resetForm()
+    restoreInitialState()
     onOpenChange(false)
   }
 
   const handleDialogChange = (nextOpen: boolean) => {
     if (!nextOpen && loading) {
       return
-    }
-
-    if (!nextOpen) {
-      resetForm()
     }
 
     onOpenChange(nextOpen)

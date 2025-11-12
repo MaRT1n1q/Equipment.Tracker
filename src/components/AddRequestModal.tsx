@@ -43,19 +43,17 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
     hasIncompleteEquipmentItems,
     resetForm,
     payload,
-  } = useRequestFormState()
+  } = useRequestFormState({ persistKey: 'equipment-tracker:add-request-draft' })
 
   // Auto-focus first field when modal opens
   useEffect(() => {
     if (open) {
-      resetForm()
-
       // Focus first field after a small delay
       setTimeout(() => {
         firstInputRef.current?.focus()
       }, 100)
     }
-  }, [open, resetForm])
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,10 +102,6 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
   const handleDialogChange = (nextOpen: boolean) => {
     if (!nextOpen && loading) {
       return
-    }
-
-    if (!nextOpen) {
-      resetForm()
     }
 
     onOpenChange(nextOpen)

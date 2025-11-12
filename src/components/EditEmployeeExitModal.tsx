@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -8,10 +8,12 @@ import { Package, Plus, Trash2, UserMinus } from 'lucide-react'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 import type { EmployeeExit } from '../types/ipc'
 import {
+  createEmptyExitEquipmentItem,
   formatExitEquipmentList,
   parseExitEquipmentList,
   type ExitEquipmentItem,
 } from '../lib/employeeExitEquipment'
+import { usePersistentState } from '../hooks/usePersistentState'
 
 interface EditEmployeeExitModalProps {
   exit: EmployeeExit | null
@@ -19,44 +21,119 @@ interface EditEmployeeExitModalProps {
   onClose: () => void
 }
 
+interface ExitFormDraft {
+  employeeName: string
+  login: string
+  sdNumber: string
+  exitDate: string
+  equipmentItems: ExitEquipmentItem[]
+}
+
+const createDraftFromExit = (exit?: EmployeeExit | null): ExitFormDraft => {
+  if (!exit) {
+    return {
+      employeeName: '',
+      login: '',
+      sdNumber: '',
+      exitDate: '',
+      equipmentItems: [createEmptyExitEquipmentItem()],
+    }
+  }
+
+  const parsedItems = parseExitEquipmentList(exit.equipment_list)
+
+  return {
+    employeeName: exit.employee_name,
+    login: exit.login,
+    sdNumber: exit.sd_number ?? '',
+    exitDate: exit.exit_date,
+    equipmentItems:
+      parsedItems.length > 0
+        ? parsedItems.map((item) => ({ ...item }))
+        : [createEmptyExitEquipmentItem()],
+  }
+}
+
 export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExitModalProps) {
-  const [employeeName, setEmployeeName] = useState('')
-  const [login, setLogin] = useState('')
-  const [sdNumber, setSdNumber] = useState('')
-  const [exitDate, setExitDate] = useState('')
-  const [equipmentItems, setEquipmentItems] = useState<ExitEquipmentItem[]>([
-    { name: '', serial: '' },
-  ])
+  const persistKey = exit
+    ? `equipment-tracker:edit-exit-${exit.id}`
+    : 'equipment-tracker:edit-exit:transient'
+  const initialDraft = useMemo(() => createDraftFromExit(exit), [exit?.id])
+  const [formDraft, setFormDraft] = usePersistentState<ExitFormDraft>(persistKey, initialDraft, {
+    enabled: Boolean(exit),
+    deserializer: (value) => {
+      try {
+        const parsed = JSON.parse(value) as ExitFormDraft
+        return {
+          ...parsed,
+          equipmentItems:
+            parsed.equipmentItems && parsed.equipmentItems.length > 0
+              ? parsed.equipmentItems.map((item) => ({ ...item }))
+              : [createEmptyExitEquipmentItem()],
+        }
+      } catch (error) {
+        console.warn('Failed to deserialize edit exit draft', error)
+        return createDraftFromExit(exit)
+      }
+    },
+  })
+  const { employeeName, login, sdNumber, exitDate, equipmentItems } = formDraft
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { updateEmployeeExit } = useEmployeeExitActions()
+  const previousExitIdRef = useRef<number | null>(null)
+
+  const setEmployeeName = (value: string) =>
+    setFormDraft((draft) => ({ ...draft, employeeName: value }))
+  const setLogin = (value: string) => setFormDraft((draft) => ({ ...draft, login: value }))
+  const setSdNumber = (value: string) => setFormDraft((draft) => ({ ...draft, sdNumber: value }))
+  const setExitDate = (value: string) => setFormDraft((draft) => ({ ...draft, exitDate: value }))
 
   const addEquipmentItem = () => {
-    setEquipmentItems((items) => [...items, { name: '', serial: '' }])
+    setFormDraft((draft) => ({
+      ...draft,
+      equipmentItems: [...draft.equipmentItems, createEmptyExitEquipmentItem()],
+    }))
   }
 
   const removeEquipmentItem = (index: number) => {
-    setEquipmentItems((items) => (items.length <= 1 ? items : items.filter((_, i) => i !== index)))
+    setFormDraft((draft) => {
+      if (draft.equipmentItems.length <= 1) {
+        return draft
+      }
+
+      return {
+        ...draft,
+        equipmentItems: draft.equipmentItems.filter((_, i) => i !== index),
+      }
+    })
   }
 
   const updateEquipmentItem = (index: number, field: keyof ExitEquipmentItem, value: string) => {
-    setEquipmentItems((items) =>
-      items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    )
+    setFormDraft((draft) => ({
+      ...draft,
+      equipmentItems: draft.equipmentItems.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }))
   }
 
   useEffect(() => {
-    if (exit && isOpen) {
-      setEmployeeName(exit.employee_name)
-      setLogin(exit.login)
-      setSdNumber(exit.sd_number ?? '')
-      setExitDate(exit.exit_date)
-      const parsed = parseExitEquipmentList(exit.equipment_list)
-      setEquipmentItems(parsed.length > 0 ? parsed : [{ name: '', serial: '' }])
+    if (!exit) {
+      return
     }
-  }, [exit, isOpen])
+
+    if (previousExitIdRef.current !== exit.id) {
+      setFormDraft(createDraftFromExit(exit))
+      previousExitIdRef.current = exit.id
+    }
+  }, [exit, setFormDraft])
 
   if (!exit) {
     return null
+  }
+
+  const restoreOriginalData = () => {
+    setFormDraft(createDraftFromExit(exit))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +177,14 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
       })
 
       toast.success('Запись о выходе обновлена')
+      setFormDraft({
+        employeeName: employeeName.trim(),
+        login: login.trim(),
+        sdNumber: sdNumber.trim(),
+        exitDate,
+        equipmentItems: validItems.map((item) => ({ ...item })),
+      })
+      previousExitIdRef.current = exit.id
       onClose()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
@@ -114,11 +199,24 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
       return
     }
 
+    restoreOriginalData()
+    onClose()
+  }
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      return
+    }
+
+    if (isSubmitting) {
+      return
+    }
+
     onClose()
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <div className="flex items-center gap-3">

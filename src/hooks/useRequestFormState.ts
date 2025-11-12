@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { EquipmentItem } from '../types/ipc'
+import { usePersistentState } from './usePersistentState'
 
 const createEmptyEquipmentItem = (): EquipmentItem => ({
   equipment_name: '',
@@ -13,52 +14,123 @@ interface UseRequestFormStateOptions {
   sdNumber?: string | null
   notes?: string
   equipmentItems?: EquipmentItem[]
+  persistKey?: string
 }
 
-export function useRequestFormState(options?: UseRequestFormStateOptions) {
-  const [employeeName, setEmployeeName] = useState(options?.employeeName ?? '')
-  const [login, setLogin] = useState(options?.login ?? '')
-  const [sdNumber, setSdNumber] = useState(options?.sdNumber ?? '')
-  const [notes, setNotes] = useState(options?.notes ?? '')
-  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>(() => {
-    if (options?.equipmentItems && options.equipmentItems.length > 0) {
-      return options.equipmentItems.map((item) => ({ ...item }))
-    }
+interface RequestFormState {
+  employeeName: string
+  login: string
+  sdNumber: string
+  notes: string
+  equipmentItems: EquipmentItem[]
+}
 
-    return [createEmptyEquipmentItem()]
+const REQUEST_FORM_TRANSIENT_KEY = 'equipment-tracker:request-form:transient'
+
+const createStateFromOptions = (options?: UseRequestFormStateOptions): RequestFormState => ({
+  employeeName: options?.employeeName ?? '',
+  login: options?.login ?? '',
+  sdNumber: options?.sdNumber ?? '',
+  notes: options?.notes ?? '',
+  equipmentItems:
+    options?.equipmentItems && options.equipmentItems.length > 0
+      ? options.equipmentItems.map((item) => ({ ...item }))
+      : [createEmptyEquipmentItem()],
+})
+
+export function useRequestFormState(options?: UseRequestFormStateOptions) {
+  const persistKey = options?.persistKey ?? REQUEST_FORM_TRANSIENT_KEY
+  const initialStateRef = useRef<RequestFormState | null>(null)
+
+  if (initialStateRef.current === null) {
+    initialStateRef.current = createStateFromOptions(options)
+  }
+
+  const initialState = initialStateRef.current
+
+  const [formState, setFormState] = usePersistentState<RequestFormState>(persistKey, initialState, {
+    enabled: Boolean(options?.persistKey),
+    deserializer: (value) => {
+      try {
+        const parsed = JSON.parse(value) as RequestFormState
+        return {
+          ...parsed,
+          equipmentItems:
+            parsed.equipmentItems && parsed.equipmentItems.length > 0
+              ? parsed.equipmentItems.map((item) => ({ ...item }))
+              : [createEmptyEquipmentItem()],
+        }
+      } catch (error) {
+        console.warn('Failed to deserialize request form state', error)
+        return createStateFromOptions()
+      }
+    },
   })
   const [employeeNameError, setEmployeeNameError] = useState(false)
   const [loginError, setLoginError] = useState(false)
 
-  const resetForm = useCallback((nextOptions?: UseRequestFormStateOptions) => {
-    setEmployeeName(nextOptions?.employeeName ?? '')
-    setLogin(nextOptions?.login ?? '')
-    setSdNumber(nextOptions?.sdNumber ?? '')
-    setNotes(nextOptions?.notes ?? '')
-    setEquipmentItems(() => {
-      if (nextOptions?.equipmentItems && nextOptions.equipmentItems.length > 0) {
-        return nextOptions.equipmentItems.map((item) => ({ ...item }))
-      }
+  const setEmployeeName = useCallback(
+    (value: string) => {
+      setFormState((state) => ({ ...state, employeeName: value }))
+    },
+    [setFormState]
+  )
 
-      return [createEmptyEquipmentItem()]
-    })
-    setEmployeeNameError(false)
-    setLoginError(false)
-  }, [])
+  const setLogin = useCallback(
+    (value: string) => {
+      setFormState((state) => ({ ...state, login: value }))
+    },
+    [setFormState]
+  )
+
+  const setSdNumber = useCallback(
+    (value: string) => {
+      setFormState((state) => ({ ...state, sdNumber: value }))
+    },
+    [setFormState]
+  )
+
+  const setNotes = useCallback(
+    (value: string) => {
+      setFormState((state) => ({ ...state, notes: value }))
+    },
+    [setFormState]
+  )
+
+  const setEquipmentItems = useCallback(
+    (updater: (items: EquipmentItem[]) => EquipmentItem[]) => {
+      setFormState((state) => ({ ...state, equipmentItems: updater(state.equipmentItems) }))
+    },
+    [setFormState]
+  )
+
+  const resetForm = useCallback(
+    (nextOptions?: UseRequestFormStateOptions) => {
+      const nextState = createStateFromOptions(nextOptions)
+      setFormState(nextState)
+      initialStateRef.current = nextState
+      setEmployeeNameError(false)
+      setLoginError(false)
+    },
+    [setFormState]
+  )
 
   const addEquipmentItem = useCallback(() => {
     setEquipmentItems((items) => [...items, createEmptyEquipmentItem()])
-  }, [])
+  }, [setEquipmentItems])
 
-  const removeEquipmentItem = useCallback((index: number) => {
-    setEquipmentItems((items) => {
-      if (items.length <= 1) {
-        return items
-      }
+  const removeEquipmentItem = useCallback(
+    (index: number) => {
+      setEquipmentItems((items) => {
+        if (items.length <= 1) {
+          return items
+        }
 
-      return items.filter((_, itemIndex) => itemIndex !== index)
-    })
-  }, [])
+        return items.filter((_, itemIndex) => itemIndex !== index)
+      })
+    },
+    [setEquipmentItems]
+  )
 
   const updateEquipmentItem = useCallback(
     (index: number, field: keyof EquipmentItem, value: string | number) => {
@@ -73,39 +145,42 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
         )
       )
     },
-    []
+    [setEquipmentItems]
   )
 
   const hasIncompleteEquipmentItems = useMemo(
-    () => equipmentItems.some((item) => !item.equipment_name.trim() || !item.serial_number.trim()),
-    [equipmentItems]
+    () =>
+      formState.equipmentItems.some(
+        (item) => !item.equipment_name.trim() || !item.serial_number.trim()
+      ),
+    [formState.equipmentItems]
   )
 
   const payload = useMemo(
     () => ({
-      employee_name: employeeName.trim(),
-      login: login.trim(),
-      sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
-      notes: notes.trim() || undefined,
-      equipment_items: equipmentItems,
+      employee_name: formState.employeeName.trim(),
+      login: formState.login.trim(),
+      sd_number: formState.sdNumber.trim() ? formState.sdNumber.trim() : undefined,
+      notes: formState.notes.trim() || undefined,
+      equipment_items: formState.equipmentItems,
     }),
-    [employeeName, equipmentItems, login, notes, sdNumber]
+    [formState]
   )
 
   return {
-    employeeName,
+    employeeName: formState.employeeName,
     setEmployeeName,
     employeeNameError,
     setEmployeeNameError,
-    login,
+    login: formState.login,
     setLogin,
     loginError,
     setLoginError,
-    sdNumber,
+    sdNumber: formState.sdNumber,
     setSdNumber,
-    notes,
+    notes: formState.notes,
     setNotes,
-    equipmentItems,
+    equipmentItems: formState.equipmentItems,
     addEquipmentItem,
     removeEquipmentItem,
     updateEquipmentItem,

@@ -3,6 +3,8 @@ export interface ExitEquipmentItem {
   serial: string
 }
 
+export const createEmptyExitEquipmentItem = (): ExitEquipmentItem => ({ name: '', serial: '' })
+
 export function parseExitEquipmentList(rawList: string | null | undefined): ExitEquipmentItem[] {
   if (!rawList) {
     return []
