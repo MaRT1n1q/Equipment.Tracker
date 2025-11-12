@@ -44,6 +44,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
     "@types/node": "^24.9.2",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
@@ -78,6 +79,7 @@
       "output": "release",
       "buildResources": "build"
     },
+    "afterSign": "build/after-sign.mjs",
     "publish": {
       "provider": "github",
       "owner": "MaRT1n1q",
@@ -105,6 +107,9 @@
     ],
     "mac": {
       "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
