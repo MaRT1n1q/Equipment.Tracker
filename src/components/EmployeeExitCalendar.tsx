@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, UserMinus } from 'lucide-react'
 import type { EmployeeExit } from '../types/ipc'
 import { cn } from '../lib/utils'
+import { parseExitEquipmentList, stringifyExitEquipmentItems } from '../lib/employeeExitEquipment'
 
 interface EmployeeExitCalendarProps {
   exits: EmployeeExit[]
@@ -297,32 +298,40 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
 
         {selectedExits.length > 0 ? (
           <ul className="space-y-3">
-            {selectedExits.map((exit) => (
-              <li
-                key={exit.id}
-                className="surface-section rounded-lg p-4 flex flex-col gap-2 border border-border/40"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-foreground">{exit.employee_name}</p>
-                    <p className="text-xs text-muted-foreground">Логин: {exit.login}</p>
+            {selectedExits.map((exit) => {
+              const equipmentItems = parseExitEquipmentList(exit.equipment_list)
+              const equipmentDetails =
+                equipmentItems.length > 0
+                  ? stringifyExitEquipmentItems(equipmentItems)
+                  : 'Оборудование не указано'
+
+              return (
+                <li
+                  key={exit.id}
+                  className="surface-section rounded-lg p-4 flex flex-col gap-2 border border-border/40"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-foreground">{exit.employee_name}</p>
+                      <p className="text-xs text-muted-foreground">Логин: {exit.login}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        'text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide',
+                        exit.is_completed === 1
+                          ? 'bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]'
+                          : 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]'
+                      )}
+                    >
+                      {exit.is_completed === 1 ? 'Завершено' : 'Ожидает'}
+                    </span>
                   </div>
-                  <span
-                    className={cn(
-                      'text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide',
-                      exit.is_completed === 1
-                        ? 'bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]'
-                        : 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]'
-                    )}
-                  >
-                    {exit.is_completed === 1 ? 'Завершено' : 'Ожидает'}
-                  </span>
-                </div>
-                <div className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-                  {exit.equipment_list}
-                </div>
-              </li>
-            ))}
+                  <div className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                    {equipmentDetails}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         ) : (
           <div className="surface-section rounded-lg p-6 text-center text-sm text-muted-foreground">
