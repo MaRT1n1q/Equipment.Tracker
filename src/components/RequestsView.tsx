@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { AlertTriangle, Plus } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { Button } from './ui/button'
@@ -25,6 +25,8 @@ interface RequestsViewProps {
   onEdit: (request: Request) => void
   onAddRequest: () => void
   onScheduleReturn: (request: Request) => void
+  highlightRequestId?: number | null
+  onHighlightConsumed?: () => void
 }
 
 export function RequestsView({
@@ -35,6 +37,8 @@ export function RequestsView({
   onEdit,
   onAddRequest,
   onScheduleReturn,
+  highlightRequestId,
+  onHighlightConsumed,
 }: RequestsViewProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,6 +82,20 @@ export function RequestsView({
     }
   )
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+  useEffect(() => {
+    if (!highlightRequestId) {
+      return
+    }
+
+    if (statusFilter !== 'all') {
+      setStatusFilter('all')
+    }
+
+    if (searchQuery !== '') {
+      setSearchQuery('')
+    }
+  }, [highlightRequestId, statusFilter, setStatusFilter, searchQuery, setSearchQuery])
 
   useKeyboardShortcut(
     { key: 'f', ctrlKey: true, shiftKey: true },
@@ -248,6 +266,8 @@ export function RequestsView({
             onEdit={onEdit}
             onScheduleReturn={onScheduleReturn}
             density={tableDensity}
+            highlightRequestId={highlightRequestId}
+            onHighlightConsumed={onHighlightConsumed}
           />
         </>
       )}

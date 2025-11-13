@@ -4,7 +4,7 @@ import { AddEmployeeExitModal } from './AddEmployeeExitModal'
 import { EditEmployeeExitModal } from './EditEmployeeExitModal'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
 import { Button } from './ui/button'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useDebounce } from '../hooks/useDebounce'
 import { toast } from 'sonner'
 import { SearchAndFilters } from './SearchAndFilters'
@@ -21,9 +21,16 @@ const EXIT_DENSITY_STORAGE_KEY = 'equipment-tracker:exit-density'
 interface EmployeeExitViewProps {
   isModalOpen: boolean
   onModalOpenChange: (open: boolean) => void
+  highlightExitId?: number | null
+  onHighlightConsumed?: () => void
 }
 
-export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExitViewProps) {
+export function EmployeeExitView({
+  isModalOpen,
+  onModalOpenChange,
+  highlightExitId,
+  onHighlightConsumed,
+}: EmployeeExitViewProps) {
   const { data: exits = [], isLoading, isError, refetch: refetchExits } = useEmployeeExitsQuery()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [selectedExit, setSelectedExit] = useState<EmployeeExit | null>(null)
@@ -61,6 +68,20 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
     }
   )
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+  useEffect(() => {
+    if (!highlightExitId) {
+      return
+    }
+
+    if (statusFilter !== 'all') {
+      setStatusFilter('all')
+    }
+
+    if (searchQuery !== '') {
+      setSearchQuery('')
+    }
+  }, [highlightExitId, statusFilter, setStatusFilter, searchQuery, setSearchQuery])
 
   useKeyboardShortcut(
     { key: 'f', ctrlKey: true, shiftKey: true },
@@ -270,6 +291,8 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
               isFiltered={Boolean(searchQuery || statusFilter !== 'all')}
               density={tableDensity}
               onEdit={handleEdit}
+              highlightExitId={highlightExitId}
+              onHighlightConsumed={onHighlightConsumed}
             />
           </>
         )}

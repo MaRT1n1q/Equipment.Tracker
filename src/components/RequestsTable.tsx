@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Request } from '../types/ipc'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
@@ -25,6 +25,7 @@ import {
   CalendarClock,
   AlertTriangle,
   Ban,
+  ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
@@ -35,6 +36,8 @@ interface RequestsTableProps {
   onEdit: (request: Request) => void
   onScheduleReturn: (request: Request) => void
   density?: 'comfortable' | 'dense'
+  highlightRequestId?: number | null
+  onHighlightConsumed?: () => void
 }
 
 export function RequestsTable({
@@ -42,10 +45,13 @@ export function RequestsTable({
   onEdit,
   onScheduleReturn,
   density = 'comfortable',
+  highlightRequestId,
+  onHighlightConsumed,
 }: RequestsTableProps) {
   const { toggleIssued, deleteRequest, restoreRequest, completeReturn, cancelReturn } =
     useRequestActions()
   const isDense = density === 'dense'
+  const [expandedReturns, setExpandedReturns] = useState<Record<number, boolean>>({})
   const [commentModal, setCommentModal] = useState<{
     employeeName: string
     login?: string | null
@@ -76,6 +82,27 @@ export function RequestsTable({
       icon: 'bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))]',
       pill: 'status-pill status-pill--danger',
       accent: 'text-[hsl(var(--destructive))]',
+    },
+  } as const
+
+  const returnStatusStyles = {
+    success: {
+      container:
+        'border-[hsl(var(--success)/0.35)] bg-gradient-to-br from-[hsl(var(--success)/0.08)] via-transparent to-transparent dark:from-[hsl(var(--success)/0.12)]',
+      icon: 'bg-[hsl(var(--success)/0.18)] text-[hsl(var(--success))]',
+      hint: 'text-[hsl(var(--success))] dark:text-[hsl(var(--success))]',
+    },
+    info: {
+      container:
+        'border-[hsl(var(--primary)/0.35)] bg-gradient-to-br from-[hsl(var(--primary)/0.08)] via-transparent to-transparent dark:from-[hsl(var(--primary)/0.12)]',
+      icon: 'bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))]',
+      hint: 'text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))]',
+    },
+    danger: {
+      container:
+        'border-[hsl(var(--destructive)/0.35)] bg-gradient-to-br from-[hsl(var(--destructive)/0.08)] via-transparent to-transparent dark:from-[hsl(var(--destructive)/0.12)]',
+      icon: 'bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))]',
+      hint: 'text-[hsl(var(--destructive))] dark:text-[hsl(var(--destructive))]',
     },
   } as const
 
@@ -144,12 +171,48 @@ export function RequestsTable({
 
     try {
       await cancelReturn(id)
+      setExpandedReturns((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
       toast.success('Сдача оборудования отменена')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
       toast.error(message)
     }
   }
+
+  const handleToggleReturnCard = (id: number, current: boolean) => {
+    setExpandedReturns((prev) => ({
+      ...prev,
+      [id]: !current,
+    }))
+  }
+
+  useEffect(() => {
+    if (!highlightRequestId) {
+      return
+    }
+
+    const element = document.querySelector<HTMLElement>(`[data-request-id="${highlightRequestId}"]`)
+
+    if (!element) {
+      return
+    }
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setExpandedReturns((prev) => ({
+      ...prev,
+      [highlightRequestId]: true,
+    }))
+
+    const timeoutId = window.setTimeout(() => {
+      onHighlightConsumed?.()
+    }, 2000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [highlightRequestId, onHighlightConsumed])
 
   const formatDate = (isoString: string) => {
     const date = new Date(isoString)
@@ -253,6 +316,27 @@ export function RequestsTable({
 
           const variant = statusVariants[statusKey]
           const equipmentItems = request.equipment_items ?? []
+          const returnKey = hasReturn
+            ? isReturnCompleted
+              ? 'success'
+              : isReturnOverdue
+                ? 'danger'
+                : 'info'
+            : null
+          const returnStyles = returnKey ? returnStatusStyles[returnKey] : null
+          const isHighlighted = highlightRequestId === request.id
+          const isReturnExpanded = expandedReturns[request.id] ?? (isReturnOverdue ? true : false)
+          const summaryTone = (() => {
+            if (isReturnOverdue) {
+              return 'text-[hsl(var(--destructive))]'
+            }
+
+            if (isReturnCompleted) {
+              return returnStyles?.hint ?? 'text-[hsl(var(--primary))]'
+            }
+
+            return 'text-muted-foreground'
+          })()
           const StatusIcon = (() => {
             if (hasReturn && isReturnCompleted) {
               return CheckCircle2
@@ -268,6 +352,26 @@ export function RequestsTable({
 
             return isIssued ? CheckCircle2 : Clock
           })()
+          const ReturnIcon = (() => {
+            if (!hasReturn) {
+              return CalendarClock
+            }
+
+            if (isReturnCompleted) {
+              return CheckCircle2
+            }
+
+            if (isReturnOverdue) {
+              return AlertTriangle
+            }
+
+            return CalendarClock
+          })()
+          const summaryLine = isReturnCompleted
+            ? request.return_completed_at
+              ? `Оборудование принято ${formatDate(request.return_completed_at)}`
+              : 'Сдача отмечена как завершённая'
+            : `Плановая дата: ${formatReturnDate(returnDueDate)}`
 
           const statusLabel = (() => {
             if (hasReturn && isReturnCompleted) {
@@ -322,9 +426,12 @@ export function RequestsTable({
           return (
             <div
               key={request.id}
+              data-request-id={request.id}
               className={cn(
                 'group relative overflow-hidden surface-card animate-fade-in',
-                'transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-medium'
+                'transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-medium',
+                isHighlighted &&
+                  'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-background'
               )}
               style={{ animationDelay: `${index * 40}ms` }}
             >
@@ -479,70 +586,18 @@ export function RequestsTable({
                     ) : (
                       <p className="ml-6 text-sm text-muted-foreground">Нет оборудования</p>
                     )}
-
-                    {hasReturn && (
-                      <div className="surface-section border border-border/60 rounded-lg p-4 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <Undo2 className="h-4 w-4 text-[hsl(var(--primary))]" />
-                            <span>Сдача оборудования</span>
-                          </div>
-                          <span
-                            className={cn(
-                              'status-pill',
-                              isReturnCompleted
-                                ? 'status-pill--success'
-                                : isReturnOverdue
-                                  ? 'status-pill--danger'
-                                  : 'status-pill--info'
-                            )}
-                          >
-                            {statusLabel}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
-                          <CalendarClock className="h-4 w-4 text-orange-500" />
-                          <span>Плановая дата: {formatReturnDate(returnDueDate)}</span>
-                        </div>
-                        <div className="pl-0 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-                          {request.return_equipment || fallbackEquipmentFromItems(equipmentItems)}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex w-full justify-end gap-2 sm:w-auto sm:justify-start">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onScheduleReturn(request)}
-                    >
-                      <Undo2 className="h-4 w-4" />
-                      {hasReturn ? 'Изменить сдачу' : 'Запланировать сдачу'}
-                    </Button>
-                    {hasReturn && !isReturnCompleted && (
+                    {!hasReturn && (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCompleteReturn(request.id, true)}
-                        className="border-[hsl(var(--success)/0.4)] text-[hsl(var(--success))] hover:bg-[hsl(var(--success)/0.12)]"
+                        onClick={() => onScheduleReturn(request)}
                       >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Завершить сдачу
-                      </Button>
-                    )}
-                    {hasReturn && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCancelReturn(request.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Ban className="h-4 w-4" />
-                        Отменить
+                        <Undo2 className="h-4 w-4" />
+                        Запланировать сдачу
                       </Button>
                     )}
                     <Button
@@ -566,6 +621,111 @@ export function RequestsTable({
                     </Button>
                   </div>
                 </div>
+
+                {hasReturn && (
+                  <div
+                    className={cn(
+                      'mt-3 w-full rounded-2xl border p-4 transition-colors',
+                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+                      returnStyles?.container ?? 'border-border/60 bg-muted/20'
+                    )}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        aria-expanded={isReturnExpanded}
+                        onClick={() => handleToggleReturnCard(request.id, isReturnExpanded)}
+                        className="flex flex-1 min-w-0 items-start gap-3 text-left"
+                      >
+                        <span
+                          className={cn(
+                            'inline-flex h-9 w-9 items-center justify-center rounded-lg',
+                            returnStyles?.icon ??
+                              'bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))]'
+                          )}
+                        >
+                          <ReturnIcon className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 space-y-1">
+                          <p className="text-sm font-semibold text-foreground">
+                            Сдача оборудования
+                          </p>
+                          <p className={cn('text-xs', summaryTone)}>{summaryLine}</p>
+                          {!isReturnExpanded && isReturnOverdue && (
+                            <p className="text-xs font-medium text-[hsl(var(--destructive))]">
+                              Просрочено. Назначьте новую дату или отметьте сдачу.
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                      <div
+                        className="flex cursor-pointer items-center gap-2"
+                        role="presentation"
+                        onClick={() => handleToggleReturnCard(request.id, isReturnExpanded)}
+                      >
+                        <span
+                          className={cn(
+                            'status-pill',
+                            isReturnCompleted
+                              ? 'status-pill--success'
+                              : isReturnOverdue
+                                ? 'status-pill--danger'
+                                : 'status-pill--info'
+                          )}
+                        >
+                          {statusLabel}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            'h-4 w-4 text-muted-foreground transition-transform',
+                            isReturnExpanded && 'rotate-180'
+                          )}
+                        />
+                      </div>
+                    </div>
+                    {isReturnExpanded && (
+                      <div className="mt-4 space-y-3">
+                        <div className="rounded-lg border border-dashed border-border/60 bg-background/40 p-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                          {request.return_equipment || fallbackEquipmentFromItems(equipmentItems)}
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onScheduleReturn(request)}
+                            className="border-[hsl(var(--primary)/0.4)]"
+                          >
+                            <Undo2 className="h-4 w-4" />
+                            Изменить сдачу
+                          </Button>
+                          {!isReturnCompleted && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCompleteReturn(request.id, true)}
+                              className="border-[hsl(var(--success)/0.4)] text-[hsl(var(--success))] hover:bg-[hsl(var(--success)/0.12)]"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              Завершить сдачу
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCancelReturn(request.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Ban className="h-4 w-4" />
+                            Отменить
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )

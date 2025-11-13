@@ -1,15 +1,40 @@
-import { useMemo } from 'react'
-import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users, Search } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
 import { EmployeeExitCalendar } from './EmployeeExitCalendar'
+import { Input } from './ui/input'
+import { cn } from '../lib/utils'
+import { useDebounce } from '../hooks/useDebounce'
 
 interface DashboardProps {
   requests: Request[]
+  onSelectRequest?: (id: number) => void
+  onSelectEmployeeExit?: (id: number) => void
 }
 
-export function Dashboard({ requests }: DashboardProps) {
+type SearchResult =
+  | {
+      type: 'request'
+      id: number
+      title: string
+      description: string
+      meta?: string
+    }
+  | {
+      type: 'employeeExit'
+      id: number
+      title: string
+      description: string
+      meta?: string
+    }
+
+export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: DashboardProps) {
   const { data: employeeExits = [] } = useEmployeeExitsQuery()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const searchContainerRef = useRef<HTMLDivElement>(null)
+  const debouncedQuery = useDebounce(searchQuery, 200)
   const returnEvents = useMemo(
     () =>
       requests
@@ -111,8 +136,187 @@ export function Dashboard({ requests }: DashboardProps) {
     },
   ]
 
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const query = debouncedQuery.trim().toLowerCase()
+
+    if (!query) {
+      return []
+    }
+
+    const requestMatches = requests.reduce<SearchResult[]>((acc, request) => {
+      const equipmentText = (request.equipment_items ?? [])
+        .map((item) => `${item.equipment_name} ${item.serial_number ?? ''}`)
+        .join(' ')
+      const haystack = [
+        request.employee_name,
+        request.login,
+        request.sd_number ?? '',
+        request.notes ?? '',
+        equipmentText,
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      if (!haystack.includes(query)) {
+        return acc
+      }
+
+      const status =
+        request.return_required === 1 ? 'На сдачу' : request.is_issued ? 'Выдано' : 'В ожидании'
+
+      acc.push({
+        type: 'request',
+        id: request.id,
+        title: request.employee_name,
+        description: request.sd_number ? `Заявка • SD ${request.sd_number}` : 'Заявка',
+        meta: `${status} • ${request.login}`,
+      })
+
+      return acc
+    }, [])
+
+    const exitMatches = employeeExits.reduce<SearchResult[]>((acc, exit) => {
+      const formattedDate = new Date(exit.exit_date).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+      const haystack = [
+        exit.employee_name,
+        exit.login,
+        exit.sd_number ?? '',
+        formattedDate,
+        exit.equipment_list,
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      if (!haystack.includes(query)) {
+        return acc
+      }
+
+      const status = exit.is_completed === 1 ? 'Завершено' : 'Ожидает'
+
+      acc.push({
+        type: 'employeeExit',
+        id: exit.id,
+        title: exit.employee_name,
+        description: exit.sd_number
+          ? `Выход сотрудника • SD ${exit.sd_number}`
+          : 'Выход сотрудника',
+        meta: `${status} • ${formattedDate}`,
+      })
+
+      return acc
+    }, [])
+
+    return [...requestMatches, ...exitMatches].slice(0, 15)
+  }, [debouncedQuery, requests, employeeExits])
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!searchContainerRef.current) {
+        return
+      }
+
+      if (!searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
+
+  const handleSelectResult = (result: SearchResult) => {
+    if (result.type === 'request') {
+      onSelectRequest?.(result.id)
+    } else {
+      onSelectEmployeeExit?.(result.id)
+    }
+
+    setIsSearchOpen(false)
+    setSearchQuery('')
+  }
+
   return (
     <div className="space-y-8">
+      <div ref={searchContainerRef} className="relative">
+        <div className="relative flex items-center">
+          <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value)
+              setIsSearchOpen(true)
+            }}
+            onFocus={() => setIsSearchOpen(true)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setIsSearchOpen(false)
+                setSearchQuery('')
+                return
+              }
+
+              if (event.key === 'Enter' && searchResults.length > 0) {
+                event.preventDefault()
+                handleSelectResult(searchResults[0])
+              }
+            }}
+            placeholder="Поиск по заявкам и выходам сотрудников..."
+            className="h-12 rounded-xl bg-muted/40 pl-9 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition focus:border-[hsl(var(--primary)/0.35)] focus:bg-background"
+          />
+        </div>
+
+        {isSearchOpen && searchQuery.trim().length > 0 && (
+          <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-border/60 bg-popover shadow-2xl">
+            {searchResults.length === 0 ? (
+              <div className="px-4 py-5 text-sm text-muted-foreground">Ничего не найдено</div>
+            ) : (
+              <ul className="max-h-72 overflow-y-auto py-2">
+                {searchResults.map((result, index) => (
+                  <li
+                    key={`${result.type}-${result.id}`}
+                    className={cn(
+                      'cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-muted/40',
+                      index % 2 === 1 && 'bg-muted/10'
+                    )}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelectResult(result)}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+                          {result.type === 'request' ? (
+                            <Package className="h-4 w-4" />
+                          ) : (
+                            <UserMinus className="h-4 w-4" />
+                          )}
+                        </span>
+                        <div className="min-w-0 space-y-1">
+                          <p className="truncate font-medium text-foreground">{result.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {result.description}
+                          </p>
+                          {result.meta && (
+                            <p className="truncate text-xs text-muted-foreground/80">
+                              {result.meta}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground/80 whitespace-nowrap">
+                        {result.type === 'request' ? 'Заявка' : 'Выход'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
       <EmployeeExitCalendar exits={employeeExits} returns={returnEvents} />
 
       {/* Requests Section */}

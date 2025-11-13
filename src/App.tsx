@@ -31,6 +31,8 @@ function App() {
   const [isEmployeeExitModalOpen, setIsEmployeeExitModalOpen] = useState(false)
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
   const [returnTargetRequest, setReturnTargetRequest] = useState<Request | null>(null)
+  const [highlightRequestId, setHighlightRequestId] = useState<number | null>(null)
+  const [highlightExitId, setHighlightExitId] = useState<number | null>(null)
   const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
     deserializer: (value) => (isAppView(value) ? value : 'dashboard'),
@@ -69,6 +71,23 @@ function App() {
     if (!nextOpen) {
       setReturnTargetRequest(null)
     }
+  }
+
+  const handleNavigateToRequest = (id: number) => {
+    setCurrentView('requests')
+    setHighlightRequestId(null)
+    setTimeout(() => {
+      setHighlightRequestId(id)
+    }, 0)
+  }
+
+  const handleNavigateToEmployeeExit = (id: number) => {
+    setIsEmployeeExitModalOpen(false)
+    setCurrentView('employee-exit')
+    setHighlightExitId(null)
+    setTimeout(() => {
+      setHighlightExitId(id)
+    }, 0)
   }
 
   useKeyboardShortcut(
@@ -117,7 +136,11 @@ function App() {
                 </div>
               ) : (
                 <div className="animate-fade-in space-y-6">
-                  <Dashboard requests={requests} />
+                  <Dashboard
+                    requests={requests}
+                    onSelectRequest={handleNavigateToRequest}
+                    onSelectEmployeeExit={handleNavigateToEmployeeExit}
+                  />
                 </div>
               )
             ) : currentView === 'requests' ? (
@@ -130,6 +153,8 @@ function App() {
                   onEdit={handleEdit}
                   onAddRequest={() => setIsModalOpen(true)}
                   onScheduleReturn={handleScheduleReturn}
+                  highlightRequestId={highlightRequestId}
+                  onHighlightConsumed={() => setHighlightRequestId(null)}
                 />
               </div>
             ) : (
@@ -137,6 +162,8 @@ function App() {
                 <EmployeeExitView
                   isModalOpen={isEmployeeExitModalOpen}
                   onModalOpenChange={setIsEmployeeExitModalOpen}
+                  highlightExitId={highlightExitId}
+                  onHighlightConsumed={() => setHighlightExitId(null)}
                 />
               </div>
             )}

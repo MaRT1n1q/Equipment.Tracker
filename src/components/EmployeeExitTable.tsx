@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { EmployeeExit } from '../types/ipc'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
@@ -28,6 +29,8 @@ interface EmployeeExitTableProps {
   isFiltered?: boolean
   density?: 'comfortable' | 'dense'
   onEdit: (exit: EmployeeExit) => void
+  highlightExitId?: number | null
+  onHighlightConsumed?: () => void
 }
 
 export function EmployeeExitTable({
@@ -35,6 +38,8 @@ export function EmployeeExitTable({
   isFiltered = false,
   density = 'comfortable',
   onEdit,
+  highlightExitId,
+  onHighlightConsumed,
 }: EmployeeExitTableProps) {
   const { updateExitCompleted, deleteEmployeeExit } = useEmployeeExitActions()
   const isDense = density === 'dense'
@@ -117,6 +122,26 @@ export function EmployeeExitTable({
     }
   }
 
+  useEffect(() => {
+    if (!highlightExitId) {
+      return
+    }
+
+    const element = document.querySelector<HTMLElement>(`[data-exit-id="${highlightExitId}"]`)
+
+    if (!element) {
+      return
+    }
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    const timeoutId = window.setTimeout(() => {
+      onHighlightConsumed?.()
+    }, 2000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [highlightExitId, onHighlightConsumed])
+
   if (exits.length === 0) {
     if (isFiltered) {
       return (
@@ -172,13 +197,17 @@ export function EmployeeExitTable({
             : isOverdue
               ? 'Отметьте выдачу или скорректируйте дату, чтобы убрать просрочку.'
               : 'Отметьте завершение, когда оборудование будет передано.'
+          const isHighlighted = highlightExitId === exit.id
 
           return (
             <div
               key={exit.id}
+              data-exit-id={exit.id}
               className={cn(
                 'group relative overflow-hidden surface-card animate-fade-in',
-                'transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-medium'
+                'transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--primary)/0.3)] hover:shadow-medium',
+                isHighlighted &&
+                  'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-background'
               )}
               style={{ animationDelay: `${index * 40}ms` }}
             >
