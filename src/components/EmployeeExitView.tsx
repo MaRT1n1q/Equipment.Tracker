@@ -116,7 +116,13 @@ export function EmployeeExitView({ isModalOpen, onModalOpenChange }: EmployeeExi
       })
     }
 
-    return list.sort((a, b) => new Date(a.exit_date).getTime() - new Date(b.exit_date).getTime())
+    return list.sort((a, b) => {
+      if (statusFilter === 'all' && a.is_completed !== b.is_completed) {
+        return a.is_completed - b.is_completed
+      }
+
+      return new Date(a.exit_date).getTime() - new Date(b.exit_date).getTime()
+    })
   }, [exits, statusFilter, debouncedSearchQuery])
 
   const handleExport = async () => {
