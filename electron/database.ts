@@ -60,6 +60,12 @@ async function ensureSchema(database: Knex) {
       table.integer('is_issued').defaultTo(0)
       table.string('issued_at')
       table.text('notes')
+      table.integer('return_required').notNullable().defaultTo(0)
+      table.string('return_due_date')
+      table.text('return_equipment')
+      table.integer('return_completed').notNullable().defaultTo(0)
+      table.string('return_completed_at')
+      table.string('return_scheduled_at')
     })
   } else {
     const hasLoginColumn = await database.schema.hasColumn('requests', 'login')
@@ -75,6 +81,56 @@ async function ensureSchema(database: Knex) {
     if (!hasSdNumberColumn) {
       await database.schema.alterTable('requests', (table) => {
         table.string('sd_number')
+      })
+    }
+
+    const hasReturnRequiredColumn = await database.schema.hasColumn('requests', 'return_required')
+    if (!hasReturnRequiredColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.integer('return_required').notNullable().defaultTo(0)
+      })
+      await database('requests').update({ return_required: 0 })
+    }
+
+    const hasReturnDueDateColumn = await database.schema.hasColumn('requests', 'return_due_date')
+    if (!hasReturnDueDateColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.string('return_due_date')
+      })
+    }
+
+    const hasReturnEquipmentColumn = await database.schema.hasColumn('requests', 'return_equipment')
+    if (!hasReturnEquipmentColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.text('return_equipment')
+      })
+    }
+
+    const hasReturnCompletedColumn = await database.schema.hasColumn('requests', 'return_completed')
+    if (!hasReturnCompletedColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.integer('return_completed').notNullable().defaultTo(0)
+      })
+      await database('requests').update({ return_completed: 0 })
+    }
+
+    const hasReturnCompletedAtColumn = await database.schema.hasColumn(
+      'requests',
+      'return_completed_at'
+    )
+    if (!hasReturnCompletedAtColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.string('return_completed_at')
+      })
+    }
+
+    const hasReturnScheduledAtColumn = await database.schema.hasColumn(
+      'requests',
+      'return_scheduled_at'
+    )
+    if (!hasReturnScheduledAtColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.string('return_scheduled_at')
       })
     }
   }

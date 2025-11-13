@@ -14,6 +14,7 @@ import { useRequestsQuery } from './hooks/useRequests'
 import { usePersistentState } from './hooks/usePersistentState'
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
 import { cn } from './lib/utils'
+import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 
 type AppView = 'dashboard' | 'requests' | 'employee-exit'
 
@@ -28,6 +29,8 @@ function App() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingRequest, setEditingRequest] = useState<Request | null>(null)
   const [isEmployeeExitModalOpen, setIsEmployeeExitModalOpen] = useState(false)
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
+  const [returnTargetRequest, setReturnTargetRequest] = useState<Request | null>(null)
   const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
     deserializer: (value) => (isAppView(value) ? value : 'dashboard'),
@@ -54,6 +57,18 @@ function App() {
   const handleEdit = (request: Request) => {
     setEditingRequest(request)
     setIsEditModalOpen(true)
+  }
+
+  const handleScheduleReturn = (request: Request) => {
+    setReturnTargetRequest(request)
+    setIsReturnModalOpen(true)
+  }
+
+  const handleReturnModalOpenChange = (nextOpen: boolean) => {
+    setIsReturnModalOpen(nextOpen)
+    if (!nextOpen) {
+      setReturnTargetRequest(null)
+    }
   }
 
   useKeyboardShortcut(
@@ -114,6 +129,7 @@ function App() {
                   onRetry={() => refetchRequests()}
                   onEdit={handleEdit}
                   onAddRequest={() => setIsModalOpen(true)}
+                  onScheduleReturn={handleScheduleReturn}
                 />
               </div>
             ) : (
@@ -134,6 +150,12 @@ function App() {
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         request={editingRequest}
+      />
+
+      <ScheduleReturnModal
+        open={isReturnModalOpen && Boolean(returnTargetRequest)}
+        onOpenChange={handleReturnModalOpenChange}
+        request={returnTargetRequest}
       />
     </div>
   )

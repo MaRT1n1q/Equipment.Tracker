@@ -4,6 +4,7 @@ import type {
   CreateRequestData,
   EmployeeExit,
   Request,
+  ScheduleRequestReturnData,
   UpdateRequestData,
   UpdateStatusPayload,
 } from './ipc'
@@ -24,6 +25,9 @@ declare global {
       createRequest: (data: CreateRequestData) => Promise<ApiResponse>
       updateRequest: (id: number, data: UpdateRequestData) => Promise<ApiResponse>
       updateIssued: (id: number, is_issued: boolean) => Promise<ApiResponse>
+      scheduleRequestReturn: (id: number, data: ScheduleRequestReturnData) => Promise<ApiResponse>
+      completeRequestReturn: (id: number, completed: boolean) => Promise<ApiResponse>
+      cancelRequestReturn: (id: number) => Promise<ApiResponse>
       deleteRequest: (id: number) => Promise<ApiResponse<Request>>
       restoreRequest: (request: Request) => Promise<ApiResponse>
       createBackup: () => Promise<ApiResponse<{ path: string }>>

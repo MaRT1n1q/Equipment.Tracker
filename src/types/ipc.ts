@@ -36,6 +36,12 @@ export const requestRecordSchema = z.object({
   is_issued: z.number().int(),
   issued_at: z.string().nullable(),
   notes: z.string().nullable(),
+  return_required: z.number().int().default(0),
+  return_due_date: z.string().nullable().default(null),
+  return_equipment: z.string().nullable().default(null),
+  return_completed: z.number().int().default(0),
+  return_completed_at: z.string().nullable().default(null),
+  return_scheduled_at: z.string().nullable().default(null),
   equipment_items: z.array(
     equipmentItemRecordSchema.pick({
       id: true,
@@ -47,6 +53,15 @@ export const requestRecordSchema = z.object({
 })
 
 export const restoreRequestSchema = requestRecordSchema
+
+export const scheduleRequestReturnSchema = z.object({
+  due_date: z
+    .string()
+    .trim()
+    .min(1, 'Дата сдачи обязательна')
+    .regex(/\d{4}-\d{2}-\d{2}/, 'Дата должна быть в формате ГГГГ-ММ-ДД'),
+  equipment: z.string().trim().min(1, 'Укажите оборудование, которое нужно сдать'),
+})
 
 export const createEmployeeExitSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
@@ -73,6 +88,7 @@ export type EquipmentItem = z.infer<typeof equipmentItemRecordSchema>
 export type CreateRequestData = z.infer<typeof createRequestSchema>
 export type UpdateRequestData = z.infer<typeof updateRequestSchema>
 export type Request = z.infer<typeof requestRecordSchema>
+export type ScheduleRequestReturnData = z.infer<typeof scheduleRequestReturnSchema>
 export type CreateEmployeeExitData = z.infer<typeof createEmployeeExitSchema>
 export type EmployeeExit = z.infer<typeof employeeExitRecordSchema>
 

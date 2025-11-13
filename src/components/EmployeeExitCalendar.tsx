@@ -1,17 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, UserMinus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCcw, UserMinus } from 'lucide-react'
 import type { EmployeeExit } from '../types/ipc'
 import { cn } from '../lib/utils'
 import { parseExitEquipmentList, stringifyExitEquipmentItems } from '../lib/employeeExitEquipment'
 
 interface EmployeeExitCalendarProps {
   exits: EmployeeExit[]
+  returns: RequestReturnEvent[]
+}
+
+interface RequestReturnEvent {
+  id: number
+  requestId: number
+  employeeName: string
+  login: string
+  sdNumber: string | null
+  dueDate: string
+  equipmentList: string
+  isCompleted: boolean
 }
 
 type CalendarDay = {
   date: Date
   inCurrentMonth: boolean
   key: string
+}
+
+type CalendarEvent = {
+  kind: 'exit' | 'return'
+  id: string
+  sourceId: number
+  employeeName: string
+  login: string
+  sdNumber: string | null
+  equipmentList: string
+  date: Date
+  dateKey: string
+  rawDate: string
+  status: 'pending' | 'completed'
+  isOverdue: boolean
 }
 
 const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -55,7 +82,7 @@ function getMonthGrid(date: Date): CalendarDay[] {
   const monthStart = getMonthStart(date)
   const { year, month } = { year: monthStart.getFullYear(), month: monthStart.getMonth() }
 
-  const firstWeekdayIndex = (monthStart.getDay() + 6) % 7 // Monday = 0
+  const firstWeekdayIndex = (monthStart.getDay() + 6) % 7
   const gridStart = new Date(year, month, 1 - firstWeekdayIndex)
 
   const days: CalendarDay[] = []
@@ -90,52 +117,101 @@ function moveMonth(date: Date, offset: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + offset, 1)
 }
 
-export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
+export function EmployeeExitCalendar({ exits, returns }: EmployeeExitCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => getMonthStart(new Date()))
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date())
 
-  const exitsByDay = useMemo(() => {
-    const map = new Map<string, EmployeeExit[]>()
+  const calendarEvents = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const aggregate: CalendarEvent[] = []
 
     exits.forEach((exit) => {
       const date = parseDate(exit.exit_date)
-      const key = formatDateKey(date)
-      const current = map.get(key) ?? []
-      current.push(exit)
-      map.set(key, current)
+      date.setHours(0, 0, 0, 0)
+
+      aggregate.push({
+        kind: 'exit',
+        id: `exit-${exit.id}`,
+        sourceId: exit.id,
+        employeeName: exit.employee_name,
+        login: exit.login,
+        sdNumber: exit.sd_number ?? null,
+        equipmentList: exit.equipment_list,
+        date,
+        dateKey: formatDateKey(date),
+        rawDate: exit.exit_date,
+        status: exit.is_completed === 1 ? 'completed' : 'pending',
+        isOverdue: exit.is_completed === 0 && date.getTime() < today.getTime(),
+      })
     })
 
+    returns.forEach((item) => {
+      const date = parseDate(item.dueDate)
+      date.setHours(0, 0, 0, 0)
+
+      aggregate.push({
+        kind: 'return',
+        id: `return-${item.id}`,
+        sourceId: item.requestId,
+        employeeName: item.employeeName,
+        login: item.login,
+        sdNumber: item.sdNumber,
+        equipmentList: item.equipmentList,
+        date,
+        dateKey: formatDateKey(date),
+        rawDate: item.dueDate,
+        status: item.isCompleted ? 'completed' : 'pending',
+        isOverdue: !item.isCompleted && date.getTime() < today.getTime(),
+      })
+    })
+
+    return aggregate.sort((a, b) => a.date.getTime() - b.date.getTime())
+  }, [exits, returns])
+
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>()
+
+    calendarEvents.forEach((event) => {
+      const current = map.get(event.dateKey) ?? []
+      current.push(event)
+      map.set(event.dateKey, current)
+    })
+
+    map.forEach((events) => events.sort((a, b) => a.employeeName.localeCompare(b.employeeName)))
+
     return map
-  }, [exits])
+  }, [calendarEvents])
 
   const selectedKey = selectedDate ? formatDateKey(selectedDate) : null
+  const todayKey = formatDateKey(new Date())
 
   useEffect(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const todayKey = formatDateKey(today)
+    const todayDateKey = formatDateKey(today)
 
-    if (selectedKey && exitsByDay.has(selectedKey)) {
+    if (selectedKey && eventsByDay.has(selectedKey)) {
       return
     }
 
-    if (exits.length === 0) {
-      if (selectedKey !== todayKey) {
+    if (calendarEvents.length === 0) {
+      if (selectedKey !== todayDateKey) {
         setSelectedDate(new Date(today))
       }
       return
     }
 
-    if (exitsByDay.has(todayKey)) {
-      if (selectedKey !== todayKey) {
+    if (eventsByDay.has(todayDateKey)) {
+      if (selectedKey !== todayDateKey) {
         setSelectedDate(new Date(today))
       }
       return
     }
 
-    const upcoming = [...exits]
-      .map((exit) => parseDate(exit.exit_date))
-      .sort((a, b) => a.getTime() - b.getTime())
+    const upcoming = calendarEvents
+      .map((event) => new Date(event.date))
       .find((date) => date.getTime() >= today.getTime())
 
     if (upcoming) {
@@ -146,8 +222,8 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
       return
     }
 
-    const recent = [...exits]
-      .map((exit) => parseDate(exit.exit_date))
+    const recent = calendarEvents
+      .map((event) => new Date(event.date))
       .sort((a, b) => b.getTime() - a.getTime())[0]
 
     if (recent) {
@@ -155,13 +231,41 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
       if (recentKey !== selectedKey) {
         setSelectedDate(new Date(recent))
       }
-    } else if (selectedKey !== todayKey) {
+    } else if (selectedKey !== todayDateKey) {
       setSelectedDate(new Date(today))
     }
-  }, [exits, exitsByDay, selectedKey])
+  }, [calendarEvents, eventsByDay, selectedKey])
 
   const calendarDays = useMemo(() => getMonthGrid(currentMonth), [currentMonth])
-  const selectedExits = selectedKey ? (exitsByDay.get(selectedKey) ?? []) : []
+  const selectedEvents = selectedKey ? (eventsByDay.get(selectedKey) ?? []) : []
+
+  const getEventTone = (event: CalendarEvent) => {
+    if (event.kind === 'return') {
+      if (event.status === 'completed') {
+        return 'success'
+      }
+      if (event.isOverdue) {
+        return 'danger'
+      }
+      return 'info'
+    }
+
+    return event.status === 'completed' ? 'success' : 'warning'
+  }
+
+  const toneBadgeClasses: Record<string, string> = {
+    success: 'bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success)/1.2)]',
+    warning: 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning)/1.2)]',
+    danger: 'bg-[hsl(var(--destructive)/0.15)] text-[hsl(var(--destructive)/1.2)]',
+    info: 'bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary)/1.2)]',
+  }
+
+  const tonePillClasses: Record<string, string> = {
+    success: 'bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]',
+    warning: 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]',
+    danger: 'bg-[hsl(var(--destructive)/0.15)] text-[hsl(var(--destructive))]',
+    info: 'bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))]',
+  }
 
   return (
     <div className="space-y-6">
@@ -206,8 +310,8 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
           <div className="grid grid-cols-7 gap-2">
             {calendarDays.map((day) => {
               const key = day.key
-              const exitsForDay = exitsByDay.get(key) ?? []
-              const isToday = key === formatDateKey(new Date())
+              const eventsForDay = eventsByDay.get(key) ?? []
+              const isToday = key === todayKey
               const isSelected = key === selectedKey
 
               return (
@@ -242,30 +346,32 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
                     )}
                   </div>
                   <div className="mt-2 flex-1">
-                    {exitsForDay.length > 0 ? (
+                    {eventsForDay.length > 0 ? (
                       <div className="space-y-1 max-h-20 overflow-hidden">
-                        {exitsForDay.slice(0, 2).map((exit) => (
-                          <div
-                            key={exit.id}
-                            className={cn(
-                              'flex items-center gap-2 text-xs rounded-md px-2 py-1 truncate',
-                              exit.is_completed === 1
-                                ? 'bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success)/1.2)]'
-                                : 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning)/1.2)]'
-                            )}
-                          >
-                            <span className="truncate">{exit.employee_name}</span>
-                          </div>
-                        ))}
-                        {exitsForDay.length > 2 && (
+                        {eventsForDay.slice(0, 2).map((event) => {
+                          const tone = getEventTone(event)
+
+                          return (
+                            <div
+                              key={event.id}
+                              className={cn(
+                                'flex items-center gap-2 text-xs rounded-md px-2 py-1 truncate',
+                                toneBadgeClasses[tone]
+                              )}
+                            >
+                              <span className="truncate">{event.employeeName}</span>
+                            </div>
+                          )
+                        })}
+                        {eventsForDay.length > 2 && (
                           <div className="text-[10px] text-muted-foreground">
-                            + ещё {exitsForDay.length - 2}
+                            + ещё {eventsForDay.length - 2}
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="h-full rounded-md border border-dashed border-border/40 text-[10px] text-muted-foreground flex items-center justify-center">
-                        Нет выходов
+                        Нет событий
                       </div>
                     )}
                   </div>
@@ -286,46 +392,84 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
                 : 'Выберите дату в календаре, чтобы увидеть подробности.'}
             </p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[hsl(var(--warning))]" /> Ожидают
+              <span className="h-2 w-2 rounded-full bg-[hsl(var(--warning))]" /> Выходы в ожидании
             </span>
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[hsl(var(--success))]" /> Завершены
+              <span className="h-2 w-2 rounded-full bg-[hsl(var(--primary))]" /> Возвраты
+              запланированы
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[hsl(var(--success))]" /> Завершено
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[hsl(var(--destructive))]" /> Просрочено
             </span>
           </div>
         </div>
 
-        {selectedExits.length > 0 ? (
+        {selectedEvents.length > 0 ? (
           <ul className="space-y-3">
-            {selectedExits.map((exit) => {
-              const equipmentItems = parseExitEquipmentList(exit.equipment_list)
+            {selectedEvents.map((event) => {
+              const tone = getEventTone(event)
+              const equipmentItems = parseExitEquipmentList(event.equipmentList)
               const equipmentDetails =
                 equipmentItems.length > 0
                   ? stringifyExitEquipmentItems(equipmentItems)
                   : 'Оборудование не указано'
 
+              const statusText = (() => {
+                if (event.kind === 'return') {
+                  if (tone === 'success') {
+                    return 'Сдача завершена'
+                  }
+                  if (tone === 'danger') {
+                    return 'Сдача просрочена'
+                  }
+                  return 'Сдача запланирована'
+                }
+
+                return tone === 'success' ? 'Завершено' : 'Ожидает'
+              })()
+
+              const infoLine =
+                event.kind === 'return'
+                  ? `Плановая сдача: ${getLongDateLabel(event.date)}`
+                  : `Дата выхода: ${getLongDateLabel(event.date)}`
+
               return (
                 <li
-                  key={exit.id}
+                  key={event.id}
                   className="surface-section rounded-lg p-4 flex flex-col gap-2 border border-border/40"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-foreground">{exit.employee_name}</p>
-                      <p className="text-xs text-muted-foreground">Логин: {exit.login}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground flex items-center gap-2">
+                        {event.kind === 'return' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))] px-2 py-0.5 text-[11px] uppercase tracking-wide">
+                            <RefreshCcw className="h-3 w-3" /> Сдача техники
+                          </span>
+                        )}
+                        <span className="truncate">{event.employeeName}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">Логин: {event.login}</p>
+                      {event.sdNumber && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          SD: {event.sdNumber}
+                        </p>
+                      )}
                     </div>
                     <span
                       className={cn(
                         'text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide',
-                        exit.is_completed === 1
-                          ? 'bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]'
-                          : 'bg-[hsl(var(--warning)/0.15)] text-[hsl(var(--warning))]'
+                        tonePillClasses[tone]
                       )}
                     >
-                      {exit.is_completed === 1 ? 'Завершено' : 'Ожидает'}
+                      {statusText}
                     </span>
                   </div>
+                  <div className="text-xs text-muted-foreground">{infoLine}</div>
                   <div className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
                     {equipmentDetails}
                   </div>
@@ -335,7 +479,7 @@ export function EmployeeExitCalendar({ exits }: EmployeeExitCalendarProps) {
           </ul>
         ) : (
           <div className="surface-section rounded-lg p-6 text-center text-sm text-muted-foreground">
-            На выбранную дату выходы не запланированы.
+            На выбранную дату событий не запланировано.
           </div>
         )}
       </div>

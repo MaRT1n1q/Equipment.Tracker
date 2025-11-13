@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
@@ -9,6 +10,25 @@ interface DashboardProps {
 
 export function Dashboard({ requests }: DashboardProps) {
   const { data: employeeExits = [] } = useEmployeeExitsQuery()
+  const returnEvents = useMemo(
+    () =>
+      requests
+        .filter((request) => request.return_required === 1 && Boolean(request.return_due_date))
+        .map((request) => ({
+          id: request.id,
+          requestId: request.id,
+          employeeName: request.employee_name,
+          login: request.login,
+          sdNumber: request.sd_number ?? null,
+          dueDate: request.return_due_date as string,
+          equipmentList:
+            request.return_equipment && request.return_equipment.trim().length > 0
+              ? request.return_equipment
+              : buildEquipmentFallback(request),
+          isCompleted: request.return_completed === 1,
+        })),
+    [requests]
+  )
   const stats = {
     total: requests.length,
     issued: requests.filter((r) => r.is_issued === 1).length,
@@ -93,7 +113,7 @@ export function Dashboard({ requests }: DashboardProps) {
 
   return (
     <div className="space-y-8">
-      <EmployeeExitCalendar exits={employeeExits} />
+      <EmployeeExitCalendar exits={employeeExits} returns={returnEvents} />
 
       {/* Requests Section */}
       <div>
@@ -164,4 +184,19 @@ export function Dashboard({ requests }: DashboardProps) {
       </div>
     </div>
   )
+}
+
+function buildEquipmentFallback(request: Request): string {
+  if (!request.equipment_items || request.equipment_items.length === 0) {
+    return 'Оборудование не указано'
+  }
+
+  return request.equipment_items
+    .map((item) => {
+      const base = item.equipment_name
+      const serial = item.serial_number ? ` — ${item.serial_number}` : ''
+      const quantity = item.quantity > 1 ? ` ×${item.quantity}` : ''
+      return `${base}${serial}${quantity}`
+    })
+    .join('\n')
 }

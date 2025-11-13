@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CreateRequestData, Request, UpdateRequestData } from '../types/ipc'
+import type {
+  CreateRequestData,
+  Request,
+  ScheduleRequestReturnData,
+  UpdateRequestData,
+} from '../types/ipc'
 
 const REQUESTS_QUERY_KEY = ['requests'] as const
 
@@ -22,6 +27,16 @@ type UpdatePayload = {
 }
 
 type ToggleIssuedPayload = {
+  id: number
+  value: boolean
+}
+
+type ScheduleReturnPayload = {
+  id: number
+  data: ScheduleRequestReturnData
+}
+
+type UpdateReturnCompletionPayload = {
   id: number
   value: boolean
 }
@@ -97,12 +112,48 @@ export function useRequestActions() {
     onSuccess: invalidate,
   })
 
+  const scheduleReturnMutation = useMutation<void, Error, ScheduleReturnPayload>({
+    mutationFn: async ({ id, data }) => {
+      const result = await window.electronAPI.scheduleRequestReturn(id, data)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось запланировать сдачу оборудования')
+      }
+    },
+    onSuccess: invalidate,
+  })
+
+  const completeReturnMutation = useMutation<void, Error, UpdateReturnCompletionPayload>({
+    mutationFn: async ({ id, value }) => {
+      const result = await window.electronAPI.completeRequestReturn(id, value)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось отметить сдачу оборудования')
+      }
+    },
+    onSuccess: invalidate,
+  })
+
+  const cancelReturnMutation = useMutation<void, Error, number>({
+    mutationFn: async (id) => {
+      const result = await window.electronAPI.cancelRequestReturn(id)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось отменить сдачу оборудования')
+      }
+    },
+    onSuccess: invalidate,
+  })
+
   return {
     createRequest: createMutation.mutateAsync,
     updateRequest: updateMutation.mutateAsync,
     toggleIssued: toggleIssuedMutation.mutateAsync,
     deleteRequest: deleteMutation.mutateAsync,
     restoreRequest: restoreMutation.mutateAsync,
+    scheduleReturn: scheduleReturnMutation.mutateAsync,
+    completeReturn: completeReturnMutation.mutateAsync,
+    cancelReturn: cancelReturnMutation.mutateAsync,
   }
 }
 

@@ -21,6 +21,10 @@ import {
   Hash,
   CheckCircle2,
   Clock,
+  Undo2,
+  CalendarClock,
+  AlertTriangle,
+  Ban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
@@ -29,11 +33,18 @@ import { cn } from '../lib/utils'
 interface RequestsTableProps {
   requests: Request[]
   onEdit: (request: Request) => void
+  onScheduleReturn: (request: Request) => void
   density?: 'comfortable' | 'dense'
 }
 
-export function RequestsTable({ requests, onEdit, density = 'comfortable' }: RequestsTableProps) {
-  const { toggleIssued, deleteRequest, restoreRequest } = useRequestActions()
+export function RequestsTable({
+  requests,
+  onEdit,
+  onScheduleReturn,
+  density = 'comfortable',
+}: RequestsTableProps) {
+  const { toggleIssued, deleteRequest, restoreRequest, completeReturn, cancelReturn } =
+    useRequestActions()
   const isDense = density === 'dense'
   const [commentModal, setCommentModal] = useState<{
     employeeName: string
@@ -53,6 +64,18 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
       icon: 'bg-[hsl(var(--warning)/0.18)] text-[hsl(var(--warning))]',
       pill: 'status-pill status-pill--warning',
       accent: 'text-[hsl(var(--warning))]',
+    },
+    info: {
+      rail: 'bg-[hsl(var(--primary)/0.55)]',
+      icon: 'bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))]',
+      pill: 'status-pill status-pill--info',
+      accent: 'text-[hsl(var(--primary))]',
+    },
+    danger: {
+      rail: 'bg-[hsl(var(--destructive)/0.6)]',
+      icon: 'bg-[hsl(var(--destructive)/0.18)] text-[hsl(var(--destructive))]',
+      pill: 'status-pill status-pill--danger',
+      accent: 'text-[hsl(var(--destructive))]',
     },
   } as const
 
@@ -99,6 +122,35 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
     }
   }
 
+  const handleCompleteReturn = async (id: number, nextValue: boolean) => {
+    try {
+      await completeReturn({ id, value: nextValue })
+      toast.success(
+        nextValue
+          ? 'Сдача оборудования отмечена как выполненная'
+          : 'Статус сдачи возвращён в ожидание'
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
+    }
+  }
+
+  const handleCancelReturn = async (id: number) => {
+    const confirmed = window.confirm('Отменить запланированную сдачу оборудования?')
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await cancelReturn(id)
+      toast.success('Сдача оборудования отменена')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
+    }
+  }
+
   const formatDate = (isoString: string) => {
     const date = new Date(isoString)
     return date.toLocaleString('ru-RU', {
@@ -108,6 +160,34 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  const formatReturnDate = (isoDate: string | null | undefined) => {
+    if (!isoDate) {
+      return '—'
+    }
+
+    const date = new Date(isoDate)
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  const fallbackEquipmentFromItems = (items: Request['equipment_items']) => {
+    if (!items || items.length === 0) {
+      return 'Оборудование не указано'
+    }
+
+    return items
+      .map((item) => {
+        const base = item.equipment_name
+        const serial = item.serial_number ? ` — ${item.serial_number}` : ''
+        const quantity = item.quantity > 1 ? ` ×${item.quantity}` : ''
+        return `${base}${serial}${quantity}`
+      })
+      .join('\n')
   }
 
   if (requests.length === 0) {
@@ -146,9 +226,98 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
       <div className={cn('space-y-4', { 'space-y-3': isDense })}>
         {requests.map((request, index) => {
           const isIssued = Boolean(request.is_issued)
-          const variant = statusVariants[isIssued ? 'success' : 'warning']
+          const hasReturn = request.return_required === 1
+          const isReturnCompleted = request.return_completed === 1
+          const returnDueDate = request.return_due_date ?? undefined
+          const returnDateValue = returnDueDate ? new Date(returnDueDate) : null
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const isReturnOverdue =
+            hasReturn && !isReturnCompleted && returnDateValue !== null && returnDateValue < today
+
+          const statusKey = (() => {
+            if (hasReturn && isReturnCompleted) {
+              return 'success' as const
+            }
+
+            if (hasReturn && isReturnOverdue) {
+              return 'danger' as const
+            }
+
+            if (hasReturn) {
+              return 'info' as const
+            }
+
+            return isIssued ? ('success' as const) : ('warning' as const)
+          })()
+
+          const variant = statusVariants[statusKey]
           const equipmentItems = request.equipment_items ?? []
-          const StatusIcon = isIssued ? CheckCircle2 : Clock
+          const StatusIcon = (() => {
+            if (hasReturn && isReturnCompleted) {
+              return CheckCircle2
+            }
+
+            if (hasReturn && isReturnOverdue) {
+              return AlertTriangle
+            }
+
+            if (hasReturn) {
+              return Undo2
+            }
+
+            return isIssued ? CheckCircle2 : Clock
+          })()
+
+          const statusLabel = (() => {
+            if (hasReturn && isReturnCompleted) {
+              return 'Сдача завершена'
+            }
+
+            if (hasReturn && isReturnOverdue) {
+              return 'Сдача просрочена'
+            }
+
+            if (hasReturn) {
+              return 'Ожидает сдачи'
+            }
+
+            return isIssued ? 'Выдано' : 'В ожидании'
+          })()
+
+          const statusTitle = (() => {
+            if (hasReturn && isReturnCompleted) {
+              return 'Сдача выполнена'
+            }
+
+            if (hasReturn && isReturnOverdue) {
+              return 'Сдача просрочена'
+            }
+
+            if (hasReturn) {
+              return 'Сдача запланирована'
+            }
+
+            return isIssued ? 'Выдано' : 'Ожидает выдачи'
+          })()
+
+          const statusHint = (() => {
+            if (hasReturn && isReturnCompleted) {
+              return 'Снимите отметку, если оборудование ещё не вернули'
+            }
+
+            if (hasReturn && isReturnOverdue) {
+              return 'Назначьте новую дату или отметьте сдачу, чтобы снять просрочку'
+            }
+
+            if (hasReturn) {
+              return 'Отметьте сдачу, когда техника вернётся на склад'
+            }
+
+            return isIssued
+              ? 'Снимите, если техника не передана'
+              : 'Отметьте при передаче сотруднику'
+          })()
 
           return (
             <div
@@ -195,7 +364,7 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                         )}
                       </div>
                       <span className={cn(variant.pill, 'ml-auto', isDense && 'px-2.5 py-0.5')}>
-                        {isIssued ? 'Выдано' : 'В ожидании'}
+                        {statusLabel}
                       </span>
                     </div>
 
@@ -244,22 +413,34 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                     )}
                   >
                     <Checkbox
-                      checked={isIssued}
-                      onCheckedChange={() => handleToggleIssued(request.id, isIssued)}
+                      checked={hasReturn ? isReturnCompleted : isIssued}
+                      onCheckedChange={(nextValue) => {
+                        if (hasReturn) {
+                          const nextCompleted = Boolean(nextValue)
+                          handleCompleteReturn(request.id, nextCompleted)
+                          return
+                        }
+
+                        handleToggleIssued(request.id, isIssued)
+                      }}
                       aria-label={
-                        isIssued ? 'Отменить отметку о выдаче' : 'Отметить, что оборудование выдано'
+                        hasReturn
+                          ? isReturnCompleted
+                            ? 'Снять отметку о сдаче оборудования'
+                            : 'Отметить сдачу оборудования'
+                          : isIssued
+                            ? 'Отменить отметку о выдаче'
+                            : 'Отметить, что оборудование выдано'
                       }
-                      className="h-4 w-4 border-[hsl(var(--primary)/0.35)] text-primary-foreground data-[state=checked]:bg-[hsl(var(--primary))]"
+                      className={cn(
+                        'h-4 w-4 text-primary-foreground data-[state=checked]:bg-[hsl(var(--primary))]',
+                        hasReturn &&
+                          'border-[hsl(var(--primary)/0.35)] data-[state=checked]:bg-[hsl(var(--primary))]'
+                      )}
                     />
                     <div className="flex flex-col leading-tight">
-                      <span className="font-semibold text-foreground">
-                        {isIssued ? 'Выдано' : 'Ожидает выдачи'}
-                      </span>
-                      <span className="text-[0.7rem] opacity-80">
-                        {isIssued
-                          ? 'Снимите, если техника не передана'
-                          : 'Отметьте при передаче сотруднику'}
-                      </span>
+                      <span className="font-semibold text-foreground">{statusTitle}</span>
+                      <span className="text-[0.7rem] opacity-80">{statusHint}</span>
                     </div>
                   </label>
                 </div>
@@ -298,9 +479,72 @@ export function RequestsTable({ requests, onEdit, density = 'comfortable' }: Req
                     ) : (
                       <p className="ml-6 text-sm text-muted-foreground">Нет оборудования</p>
                     )}
+
+                    {hasReturn && (
+                      <div className="surface-section border border-border/60 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Undo2 className="h-4 w-4 text-[hsl(var(--primary))]" />
+                            <span>Сдача оборудования</span>
+                          </div>
+                          <span
+                            className={cn(
+                              'status-pill',
+                              isReturnCompleted
+                                ? 'status-pill--success'
+                                : isReturnOverdue
+                                  ? 'status-pill--danger'
+                                  : 'status-pill--info'
+                            )}
+                          >
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+                          <CalendarClock className="h-4 w-4 text-orange-500" />
+                          <span>Плановая дата: {formatReturnDate(returnDueDate)}</span>
+                        </div>
+                        <div className="pl-0 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                          {request.return_equipment || fallbackEquipmentFromItems(equipmentItems)}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex w-full justify-end gap-2 sm:w-auto sm:justify-start">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onScheduleReturn(request)}
+                    >
+                      <Undo2 className="h-4 w-4" />
+                      {hasReturn ? 'Изменить сдачу' : 'Запланировать сдачу'}
+                    </Button>
+                    {hasReturn && !isReturnCompleted && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCompleteReturn(request.id, true)}
+                        className="border-[hsl(var(--success)/0.4)] text-[hsl(var(--success))] hover:bg-[hsl(var(--success)/0.12)]"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Завершить сдачу
+                      </Button>
+                    )}
+                    {hasReturn && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCancelReturn(request.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Ban className="h-4 w-4" />
+                        Отменить
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="outline"

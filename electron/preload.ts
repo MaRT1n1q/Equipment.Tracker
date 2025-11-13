@@ -6,6 +6,7 @@ import type {
   CreateRequestData,
   EmployeeExit,
   Request,
+  ScheduleRequestReturnData,
   UpdateRequestData,
   UpdateStatusPayload,
 } from '../src/types/ipc'
@@ -45,6 +46,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   updateIssued: (id: number, is_issued: boolean): Promise<ApiResponse> =>
     ipcRenderer.invoke('update-issued', id, is_issued),
+
+  scheduleRequestReturn: (id: number, data: ScheduleRequestReturnData): Promise<ApiResponse> =>
+    ipcRenderer.invoke('schedule-request-return', id, data),
+
+  completeRequestReturn: (id: number, completed: boolean): Promise<ApiResponse> =>
+    ipcRenderer.invoke('complete-request-return', id, completed),
+
+  cancelRequestReturn: (id: number): Promise<ApiResponse> =>
+    ipcRenderer.invoke('cancel-request-return', id),
 
   deleteRequest: (id: number): Promise<ApiResponse> => ipcRenderer.invoke('delete-request', id),
 

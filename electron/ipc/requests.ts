@@ -6,6 +6,7 @@ import {
   requestIdSchema,
   requestRecordSchema,
   restoreRequestSchema,
+  scheduleRequestReturnSchema,
   updateRequestSchema,
 } from '../../src/types/ipc'
 
@@ -70,6 +71,12 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           sd_number: data.sd_number ?? null,
           created_at: createdAt,
           notes: data.notes ?? null,
+          return_required: 0,
+          return_due_date: null,
+          return_equipment: null,
+          return_completed: 0,
+          return_completed_at: null,
+          return_scheduled_at: null,
         })) as number | Array<number> | { [key: string]: number }
 
         const insertValue = Array.isArray(requestInsertResult)
@@ -223,6 +230,12 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           is_issued: request.is_issued,
           issued_at: request.issued_at,
           notes: request.notes,
+          return_required: request.return_required,
+          return_due_date: request.return_due_date,
+          return_equipment: request.return_equipment,
+          return_completed: request.return_completed,
+          return_completed_at: request.return_completed_at,
+          return_scheduled_at: request.return_scheduled_at,
         })
 
         const equipmentRows = request.equipment_items.map((item) => ({
@@ -236,6 +249,91 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           await trx('equipment_items').insert(equipmentRows)
         }
       })
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('schedule-request-return', async (_event, rawId, rawPayload) => {
+    try {
+      const id = requestIdSchema.parse(rawId)
+      const data = scheduleRequestReturnSchema.parse(rawPayload)
+
+      const database = getDatabase()
+      const existing = await database('requests').where({ id }).first()
+
+      if (!existing) {
+        return { success: false, error: 'Заявка не найдена' }
+      }
+
+      await database('requests').where({ id }).update({
+        return_required: 1,
+        return_due_date: data.due_date,
+        return_equipment: data.equipment,
+        return_completed: 0,
+        return_completed_at: null,
+        return_scheduled_at: new Date().toISOString(),
+      })
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('complete-request-return', async (_event, rawId, rawCompleted) => {
+    try {
+      const id = requestIdSchema.parse(rawId)
+      const isCompleted = issuedStatusSchema.parse(rawCompleted)
+      const database = getDatabase()
+      const existing = (await database('requests').where({ id }).first()) as
+        | Record<string, any>
+        | undefined
+
+      if (!existing) {
+        return { success: false, error: 'Заявка не найдена' }
+      }
+
+      const updatePayload: Record<string, any> = {
+        return_completed: isCompleted ? 1 : 0,
+        return_completed_at: isCompleted ? new Date().toISOString() : null,
+      }
+
+      if (isCompleted && existing.is_issued !== 1) {
+        updatePayload.is_issued = 1
+        updatePayload.issued_at = existing.issued_at ?? new Date().toISOString()
+      }
+
+      const updated = await database('requests').where({ id }).update(updatePayload)
+
+      if (updated === 0) {
+        return { success: false, error: 'Заявка не найдена' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('cancel-request-return', async (_event, rawId) => {
+    try {
+      const id = requestIdSchema.parse(rawId)
+      const database = getDatabase()
+      const updated = await database('requests').where({ id }).update({
+        return_required: 0,
+        return_due_date: null,
+        return_equipment: null,
+        return_completed: 0,
+        return_completed_at: null,
+        return_scheduled_at: null,
+      })
+
+      if (updated === 0) {
+        return { success: false, error: 'Заявка не найдена' }
+      }
 
       return { success: true }
     } catch (error) {

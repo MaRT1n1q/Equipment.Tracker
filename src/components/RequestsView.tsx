@@ -13,7 +13,7 @@ const REQUESTS_FILTER_STORAGE_KEY = 'equipment-tracker:requests-filter'
 const REQUESTS_DENSITY_STORAGE_KEY = 'equipment-tracker:requests-density'
 const REQUESTS_TIPS_STORAGE_KEY = 'equipment-tracker:requests-tips-dismissed'
 
-type RequestFilter = 'all' | 'issued' | 'not-issued'
+type RequestFilter = 'all' | 'issued' | 'not-issued' | 'return-pending' | 'return-completed'
 
 type TableDensity = 'comfortable' | 'dense'
 
@@ -24,6 +24,7 @@ interface RequestsViewProps {
   onRetry: () => void
   onEdit: (request: Request) => void
   onAddRequest: () => void
+  onScheduleReturn: (request: Request) => void
 }
 
 export function RequestsView({
@@ -33,6 +34,7 @@ export function RequestsView({
   onRetry,
   onEdit,
   onAddRequest,
+  onScheduleReturn,
 }: RequestsViewProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -50,7 +52,11 @@ export function RequestsView({
     {
       serializer: (value) => value,
       deserializer: (value) =>
-        value === 'issued' || value === 'not-issued' || value === 'all'
+        value === 'issued' ||
+        value === 'not-issued' ||
+        value === 'all' ||
+        value === 'return-pending' ||
+        value === 'return-completed'
           ? (value as RequestFilter)
           : 'all',
     }
@@ -94,9 +100,19 @@ export function RequestsView({
     let filtered = [...requests]
 
     if (statusFilter === 'issued') {
-      filtered = filtered.filter((request) => request.is_issued === 1)
+      filtered = filtered.filter(
+        (request) => request.is_issued === 1 && request.return_required !== 1
+      )
     } else if (statusFilter === 'not-issued') {
       filtered = filtered.filter((request) => request.is_issued === 0)
+    } else if (statusFilter === 'return-pending') {
+      filtered = filtered.filter(
+        (request) => request.return_required === 1 && request.return_completed === 0
+      )
+    } else if (statusFilter === 'return-completed') {
+      filtered = filtered.filter(
+        (request) => request.return_required === 1 && request.return_completed === 1
+      )
     }
 
     const query = debouncedSearchQuery.trim().toLowerCase()
@@ -181,6 +197,8 @@ export function RequestsView({
                 { value: 'all', label: 'Все' },
                 { value: 'not-issued', label: 'Не выданные' },
                 { value: 'issued', label: 'Выданные' },
+                { value: 'return-pending', label: 'На сдачу' },
+                { value: 'return-completed', label: 'Сданные' },
               ]}
               activeFilter={statusFilter}
               onFilterChange={setStatusFilter}
@@ -217,7 +235,7 @@ export function RequestsView({
                 items: [
                   'Ctrl+N — моментальное создание новой заявки.',
                   'Ctrl+F — поиск по ФИО, логину, номеру SD, оборудованию и серийному номеру.',
-                  'Фильтр «Не выданные» помогает отслеживать ожидающие заявки.',
+                  'Отдельный фильтр «На сдачу» показывает заявки, где ждут возврата техники.',
                   'Кнопка редактирования и чекбокс статуса всегда под рукой.',
                 ],
                 onDismiss: dismissQuickHelp,
@@ -225,7 +243,12 @@ export function RequestsView({
             />
           </div>
 
-          <RequestsTable requests={filteredRequests} onEdit={onEdit} density={tableDensity} />
+          <RequestsTable
+            requests={filteredRequests}
+            onEdit={onEdit}
+            onScheduleReturn={onScheduleReturn}
+            density={tableDensity}
+          />
         </>
       )}
     </div>
