@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import https from 'node:https'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
 import type { IncomingMessage } from 'node:http'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
@@ -35,38 +34,53 @@ let manualUpdateInfo: ManualUpdateInfo | null = null
 let manualDownloadPath: string | null = null
 let manualDownloadInProgress = false
 
-function isMacAppSigned(): boolean {
-  if (process.platform !== 'darwin') {
+function getCurrentVersion(): string | null {
+  return sanitizeVersion(app.getVersion())
+}
+
+function parseVersionSegment(segment: string): number {
+  const numericPart = segment.match(/\d+/)?.[0]
+  if (!numericPart) {
+    return 0
+  }
+
+  const parsed = Number.parseInt(numericPart, 10)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function isVersionNewer(currentVersion: string | null, candidateVersion: string | null): boolean {
+  if (!candidateVersion) {
+    return false
+  }
+
+  if (!currentVersion) {
     return true
   }
 
-  try {
-    const executablePath = app.getPath('exe')
-    const appBundlePath = path.resolve(executablePath, '..', '..', '..')
-    const result = spawnSync('codesign', [
-      '--verify',
-      '--deep',
-      '--strict',
-      '--verbose=2',
-      appBundlePath,
-    ])
+  const currentSegments = currentVersion.split('.')
+  const candidateSegments = candidateVersion.split('.')
+  const maxLength = Math.max(currentSegments.length, candidateSegments.length)
 
-    if (result.error) {
-      log.warn('codesign verification failed to execute:', result.error)
-      return false
-    }
+  for (let index = 0; index < maxLength; index += 1) {
+    const current = parseVersionSegment(currentSegments[index] ?? '0')
+    const candidate = parseVersionSegment(candidateSegments[index] ?? '0')
 
-    if (result.status === 0) {
+    if (candidate > current) {
       return true
     }
 
-    log.warn('codesign verification failed:', result.stderr?.toString() ?? 'unknown error')
-    return false
-  } catch (error) {
-    log.warn('Failed to verify macOS code signature:', error)
-    return false
+    if (candidate < current) {
+      return false
+    }
   }
+
+  return false
 }
+
+// NOTE: macOS codesign verification temporarily disabled; re-enable when notarized builds are ready.
+// function isMacAppSigned(): boolean {
+//   ...
+// }
 
 function sanitizeVersion(raw?: string | null): string | null {
   if (!raw) {
@@ -209,10 +223,18 @@ function selectMacAsset(release: GitHubRelease): ManualUpdateInfo {
   }
 }
 
-async function ensureManualUpdateInfo(forceRefresh = false): Promise<ManualUpdateInfo> {
+async function ensureManualUpdateInfo(forceRefresh = false): Promise<ManualUpdateInfo | null> {
   if (!manualUpdateInfo || forceRefresh) {
     const release = await fetchLatestReleaseMetadata()
-    manualUpdateInfo = selectMacAsset(release)
+    const candidate = selectMacAsset(release)
+    const currentVersion = getCurrentVersion()
+
+    if (!isVersionNewer(currentVersion, candidate.version)) {
+      manualUpdateInfo = null
+      return null
+    }
+
+    manualUpdateInfo = candidate
   }
 
   return manualUpdateInfo
@@ -221,6 +243,10 @@ async function ensureManualUpdateInfo(forceRefresh = false): Promise<ManualUpdat
 async function prepareManualUpdateInfo(window: BrowserWindow | null, forceRefresh = false) {
   try {
     const info = await ensureManualUpdateInfo(forceRefresh)
+    if (!info) {
+      sendStatusToWindow(window, 'update-not-available', 'Приложение обновлено до последней версии')
+      return
+    }
     const sizeLabel = info.size ? formatBytes(info.size) : undefined
     const detail = sizeLabel
       ? `Размер файла: ${sizeLabel}`
@@ -256,6 +282,14 @@ async function fileExists(candidatePath: string): Promise<boolean> {
 
 async function downloadManualUpdateToDisk(window: BrowserWindow | null): Promise<string> {
   const info = await ensureManualUpdateInfo()
+  if (!info) {
+    sendStatusToWindow(
+      window,
+      'update-not-available',
+      'Обновление не требуется — установлена последняя версия'
+    )
+    throw new Error('Обновление не требуется')
+  }
   const downloadsDir = app.getPath('downloads')
   const targetPath = path.join(downloadsDir, info.assetName)
 
@@ -369,15 +403,22 @@ export function initAutoUpdater(window: BrowserWindow | null) {
   updateDownloaded = false
   downloadInProgress = false
 
-  if (process.platform === 'darwin' && !isMacAppSigned()) {
+  if (process.platform === 'darwin') {
     manualUpdateMode = true
-    log.warn('Auto-updater disabled: macOS сборка не подписана. Включён ручной режим обновлений.')
-    sendStatusToWindow(
-      window,
-      'manual-update-mode',
-      'Автообновление недоступно: приложение не подписано. Скачайте обновление вручную.'
-    )
+    log.warn('Auto-updater disabled: macOS сборка работает в ручном режиме обновлений.')
     void prepareManualUpdateInfo(window)
+      .catch((error) => {
+        log.warn('Manual update info preparation failed:', error)
+      })
+      .finally(() => {
+        if (mainWindowRef) {
+          sendStatusToWindow(
+            mainWindowRef,
+            'manual-update-mode',
+            'Автообновление недоступно: macOS сборка работает в ручном режиме. Скачайте обновление вручную.'
+          )
+        }
+      })
     return
   }
 

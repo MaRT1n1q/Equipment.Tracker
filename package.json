@@ -21,7 +21,7 @@
     "electron": "electron .",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "postinstall": "electron-builder install-app-deps",
-    "format": "prettier . --write",
+    "format": "prettier . --write && prettier . --check",
     "format:check": "prettier . --check",
     "build:ci": "tsc --noEmit && vite build",
     "prepare": "husky"
