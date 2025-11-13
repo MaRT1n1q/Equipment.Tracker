@@ -4,6 +4,7 @@ import fsPromises from 'node:fs/promises'
 import https from 'node:https'
 import path from 'node:path'
 import type { IncomingMessage } from 'node:http'
+import { execFile } from 'node:child_process'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
 
@@ -240,6 +241,82 @@ async function ensureManualUpdateInfo(forceRefresh = false): Promise<ManualUpdat
   return manualUpdateInfo
 }
 
+async function removeMacQuarantineAttribute(
+  window: BrowserWindow | null,
+  filePath: string
+): Promise<boolean | null> {
+  if (process.platform !== 'darwin') {
+    return null
+  }
+
+  return await new Promise<boolean>((resolve) => {
+    execFile('xattr', ['-d', 'com.apple.quarantine', filePath], (error) => {
+      if (error) {
+        log.warn('Failed to remove quarantine attribute:', error)
+        sendStatusToWindow(
+          window,
+          'manual-download-warning',
+          'Не удалось снять карантинный атрибут Gatekeeper. Снимите его вручную через Терминал.'
+        )
+        resolve(false)
+        return
+      }
+
+      log.info('Quarantine attribute removed from', filePath)
+      sendStatusToWindow(
+        window,
+        'manual-download-quarantine-removed',
+        'Защитный атрибут macOS снят автоматически. Можно запускать установщик.'
+      )
+      resolve(true)
+    })
+  })
+}
+
+async function launchMacInstaller(
+  window: BrowserWindow | null,
+  filePath: string
+): Promise<boolean | null> {
+  if (process.platform !== 'darwin') {
+    return null
+  }
+
+  const extension = path.extname(filePath).toLowerCase()
+  const autoOpenExtensions = new Set(['.dmg', '.pkg', '.zip'])
+  if (!autoOpenExtensions.has(extension)) {
+    return null
+  }
+
+  try {
+    const result = await shell.openPath(filePath)
+    if (result) {
+      log.warn('Failed to open installer automatically:', result)
+      sendStatusToWindow(
+        window,
+        'manual-install-open-failed',
+        'Не удалось автоматически открыть установщик. Откройте файл вручную.'
+      )
+      return false
+    }
+
+    log.info('Installer opened automatically for', filePath)
+    sendStatusToWindow(
+      window,
+      'manual-install-opened',
+      'Установщик открыт автоматически. Завершите обновление в появившемся окне.'
+    )
+    return true
+  } catch (error) {
+    log.warn('Failed to open installer automatically:', error)
+    sendStatusToWindow(
+      window,
+      'manual-install-open-failed',
+      'Не удалось автоматически открыть установщик. Откройте файл вручную.'
+    )
+    return false
+  }
+}
+
 async function prepareManualUpdateInfo(window: BrowserWindow | null, forceRefresh = false) {
   try {
     const info = await ensureManualUpdateInfo(forceRefresh)
@@ -362,16 +439,31 @@ async function downloadManualUpdateToDisk(window: BrowserWindow | null): Promise
       response.pipe(writeStream)
     })
 
-    sendStatusToWindow(
-      window,
-      'manual-download-complete',
-      `Обновление v${info.version} загружено. Откройте файл для установки.`,
-      {
-        path: targetPath,
-        version: info.version,
-        assetName: info.assetName,
-      }
-    )
+    const quarantineResult = await removeMacQuarantineAttribute(window, targetPath)
+    const installerOpened = quarantineResult ? await launchMacInstaller(window, targetPath) : null
+
+    const detail: Record<string, unknown> = {
+      path: targetPath,
+      version: info.version,
+      assetName: info.assetName,
+    }
+
+    if (quarantineResult !== null) {
+      detail.quarantineRemoved = quarantineResult
+    }
+
+    if (installerOpened !== null) {
+      detail.installerOpened = installerOpened
+    }
+
+    const completionMessage =
+      quarantineResult === false
+        ? `Обновление v${info.version} загружено. Gatekeeper все еще блокирует файл — снимите атрибут вручную перед установкой.`
+        : installerOpened
+          ? `Обновление v${info.version} загружено. Установщик открыт автоматически.`
+          : `Обновление v${info.version} загружено. Откройте файл для установки.`
+
+    sendStatusToWindow(window, 'manual-download-complete', completionMessage, detail)
 
     shell.showItemInFolder(targetPath)
     return targetPath

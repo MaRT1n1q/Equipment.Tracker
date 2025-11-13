@@ -200,6 +200,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           setDownloadProgress(null)
           setManualDownloadPath(null)
           break
+        case 'manual-download-warning':
+          toast.warning(payload.message)
+          break
+        case 'manual-download-quarantine-removed':
+          toast.success(payload.message)
+          break
+        case 'manual-install-opened':
+          toast.success(payload.message)
+          break
+        case 'manual-install-open-failed':
+          toast.warning(payload.message)
+          break
         default:
           break
       }
