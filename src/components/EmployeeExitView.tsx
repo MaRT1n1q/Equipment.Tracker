@@ -2,36 +2,45 @@ import { AlertTriangle, Download, Plus } from 'lucide-react'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
 import { EditEmployeeExitModal } from './EditEmployeeExitModal'
-import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
+import { useEmployeeExitSummaryQuery, useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
 import { Button } from './ui/button'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useDebounce } from '../hooks/useDebounce'
 import { toast } from 'sonner'
 import { SearchAndFilters } from './SearchAndFilters'
 import { usePersistentState } from '../hooks/usePersistentState'
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
 import type { EmployeeExit } from '../types/ipc'
-import { parseExitEquipmentList } from '../lib/employeeExitEquipment'
+import { ListPagination } from './ListPagination'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
 const EXIT_FILTER_STORAGE_KEY = 'equipment-tracker:exit-filter'
 const EXIT_DENSITY_STORAGE_KEY = 'equipment-tracker:exit-density'
+const EXIT_PAGE_SIZE_STORAGE_KEY = 'equipment-tracker:exit-page-size'
+const EXIT_PAGE_SIZE_OPTIONS = [25, 50, 100]
+const DEFAULT_EXIT_PAGE_SIZE = 25
 
 interface EmployeeExitViewProps {
   isModalOpen: boolean
   onModalOpenChange: (open: boolean) => void
   highlightExitId?: number | null
+  highlightSearchQuery?: string | null
   onHighlightConsumed?: () => void
+}
+
+export type EmployeeExitSelection = {
+  id: number
+  searchHint?: string
 }
 
 export function EmployeeExitView({
   isModalOpen,
   onModalOpenChange,
   highlightExitId,
+  highlightSearchQuery,
   onHighlightConsumed,
 }: EmployeeExitViewProps) {
-  const { data: exits = [], isLoading, isError, refetch: refetchExits } = useEmployeeExitsQuery()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [selectedExit, setSelectedExit] = useState<EmployeeExit | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -68,6 +77,55 @@ export function EmployeeExitView({
     }
   )
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = usePersistentState<number>(
+    EXIT_PAGE_SIZE_STORAGE_KEY,
+    DEFAULT_EXIT_PAGE_SIZE,
+    {
+      serializer: (value) => String(value),
+      deserializer: (value) => {
+        const next = Number(value)
+        return Number.isFinite(next) && EXIT_PAGE_SIZE_OPTIONS.includes(next)
+          ? next
+          : DEFAULT_EXIT_PAGE_SIZE
+      },
+    }
+  )
+  const isFiltered = Boolean(debouncedSearchQuery.trim() || statusFilter !== 'all')
+
+  const listParams = useMemo(
+    () => ({
+      page,
+      pageSize,
+      search: debouncedSearchQuery.trim() ? debouncedSearchQuery.trim() : undefined,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    }),
+    [page, pageSize, debouncedSearchQuery, statusFilter]
+  )
+
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch: refetchExits,
+  } = useEmployeeExitsQuery(listParams)
+  const { data: exitSummary } = useEmployeeExitSummaryQuery()
+  const exits = data?.items ?? []
+  const meta = data?.meta ?? {
+    page,
+    pageSize,
+    total: 0,
+    pageCount: 1,
+    hasMore: false,
+  }
+  const serverPage = data?.meta?.page
+
+  useEffect(() => {
+    if (typeof serverPage === 'number' && serverPage !== page) {
+      setPage(serverPage)
+    }
+  }, [serverPage, page])
 
   useEffect(() => {
     if (!highlightExitId) {
@@ -81,7 +139,22 @@ export function EmployeeExitView({
     if (searchQuery !== '') {
       setSearchQuery('')
     }
+    setPage(1)
   }, [highlightExitId, statusFilter, setStatusFilter, searchQuery, setSearchQuery])
+
+  useEffect(() => {
+    if (!highlightExitId) {
+      return
+    }
+
+    if (highlightSearchQuery !== undefined && highlightSearchQuery !== null) {
+      setSearchQuery(highlightSearchQuery)
+    }
+  }, [highlightExitId, highlightSearchQuery, setSearchQuery])
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearchQuery, statusFilter, pageSize])
 
   useKeyboardShortcut(
     { key: 'f', ctrlKey: true, shiftKey: true },
@@ -100,62 +173,51 @@ export function EmployeeExitView({
     [searchInputRef]
   )
 
-  // Statistics
-  const totalExits = exits.length
-  const filteredExits = useMemo(() => {
-    let list = [...exits]
+  const fetchAllFilteredExits = async (): Promise<EmployeeExit[]> => {
+    const collected: EmployeeExit[] = []
+    const pageSizeForExport = 100
+    let nextPage = 1
 
-    if (statusFilter === 'completed') {
-      list = list.filter((exit) => exit.is_completed === 1)
-    } else if (statusFilter === 'pending') {
-      list = list.filter((exit) => exit.is_completed === 0)
-    }
-
-    const query = debouncedSearchQuery.trim().toLowerCase()
-
-    if (query) {
-      list = list.filter((exit) => {
-        const date = new Date(exit.exit_date)
-        const formattedDate = date.toLocaleDateString('ru-RU', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric',
-        })
-
-        const equipmentItems = parseExitEquipmentList(exit.equipment_list)
-
-        return (
-          exit.employee_name.toLowerCase().includes(query) ||
-          exit.login.toLowerCase().includes(query) ||
-          (exit.sd_number && exit.sd_number.toLowerCase().includes(query)) ||
-          formattedDate.toLowerCase().includes(query) ||
-          equipmentItems.some(
-            (item) =>
-              item.name.toLowerCase().includes(query) || item.serial.toLowerCase().includes(query)
-          )
-        )
+    while (true) {
+      const response = await window.electronAPI.getEmployeeExits({
+        page: nextPage,
+        pageSize: pageSizeForExport,
+        search: searchQuery.trim() ? searchQuery.trim() : undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
       })
-    }
 
-    return list.sort((a, b) => {
-      if (statusFilter === 'all' && a.is_completed !== b.is_completed) {
-        return a.is_completed - b.is_completed
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Не удалось подготовить данные для экспорта')
       }
 
-      return new Date(a.exit_date).getTime() - new Date(b.exit_date).getTime()
-    })
-  }, [exits, statusFilter, debouncedSearchQuery])
+      collected.push(...response.data.items)
 
-  const handleExport = async () => {
-    if (filteredExits.length === 0) {
-      toast.error('Нет записей для экспорта')
-      return
+      if (!response.data.meta.hasMore) {
+        break
+      }
+
+      nextPage += 1
+
+      if (nextPage > response.data.meta.pageCount) {
+        break
+      }
     }
 
+    return collected
+  }
+
+  const handleExport = async () => {
     setIsExporting(true)
 
     try {
-      const result = await window.electronAPI.exportEmployeeExits(filteredExits)
+      const exportData = await fetchAllFilteredExits()
+
+      if (exportData.length === 0) {
+        toast.error('Нет записей для экспорта')
+        return
+      }
+
+      const result = await window.electronAPI.exportEmployeeExits(exportData)
 
       if (result.success) {
         toast.success('CSV-файл сохранён')
@@ -239,7 +301,7 @@ export function EmployeeExitView({
                     variant="outline"
                     size="sm"
                     onClick={handleExport}
-                    disabled={isExporting || filteredExits.length === 0}
+                    disabled={isExporting || meta.total === 0}
                     className="flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
@@ -248,18 +310,19 @@ export function EmployeeExitView({
                 }
                 summary={
                   <span className="status-pill status-pill--info text-xs">
-                    {searchQuery || statusFilter !== 'all' ? (
+                    {isFiltered ? (
                       <>
-                        Найдено{' '}
-                        <span className="font-semibold text-foreground">
-                          {filteredExits.length}
-                        </span>{' '}
-                        из {totalExits}
+                        Найдено <span className="font-semibold text-foreground">{meta.total}</span>
+                        {isFetching && (
+                          <span className="ml-2 text-muted-foreground">(обновление...)</span>
+                        )}
                       </>
                     ) : (
                       <>
                         Всего записей{' '}
-                        <span className="font-semibold text-foreground">{totalExits}</span>
+                        <span className="font-semibold text-foreground">
+                          {exitSummary?.totals.total ?? meta.total}
+                        </span>
                       </>
                     )}
                   </span>
@@ -287,13 +350,29 @@ export function EmployeeExitView({
             </div>
 
             <EmployeeExitTable
-              exits={filteredExits}
-              isFiltered={Boolean(searchQuery || statusFilter !== 'all')}
+              exits={exits}
+              isFiltered={isFiltered}
               density={tableDensity}
               onEdit={handleEdit}
               highlightExitId={highlightExitId}
               onHighlightConsumed={onHighlightConsumed}
             />
+
+            {meta.total > 0 && (
+              <ListPagination
+                page={meta.page}
+                pageCount={meta.pageCount}
+                pageSize={meta.pageSize}
+                total={meta.total}
+                pageSizeOptions={EXIT_PAGE_SIZE_OPTIONS}
+                isFetching={isFetching}
+                onPageChange={(nextPage: number) => setPage(nextPage)}
+                onPageSizeChange={(nextSize: number) => {
+                  setPageSize(nextSize)
+                  setPage(1)
+                }}
+              />
+            )}
           </>
         )}
       </div>

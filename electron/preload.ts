@@ -5,7 +5,13 @@ import type {
   CreateEmployeeExitData,
   CreateRequestData,
   EmployeeExit,
+  EmployeeExitListParams,
+  EmployeeExitSummary,
+  PaginatedEmployeeExitsResponse,
+  PaginatedRequestsResponse,
   Request,
+  RequestListParams,
+  RequestSummary,
   ScheduleRequestReturnData,
   UpdateRequestData,
   UpdateStatusPayload,
@@ -36,7 +42,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
-  getRequests: (): Promise<ApiResponse<Request[]>> => ipcRenderer.invoke('get-requests'),
+  getRequests: (params?: RequestListParams): Promise<ApiResponse<PaginatedRequestsResponse>> =>
+    ipcRenderer.invoke('get-requests', params),
+
+  getRequestSummary: (): Promise<ApiResponse<RequestSummary>> =>
+    ipcRenderer.invoke('get-requests-summary'),
 
   createRequest: (data: CreateRequestData): Promise<ApiResponse> =>
     ipcRenderer.invoke('create-request', data),
@@ -66,8 +76,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restoreBackup: (): Promise<ApiResponse> => ipcRenderer.invoke('restore-backup'),
 
   // Employee Exit API
-  getEmployeeExits: (): Promise<ApiResponse<EmployeeExit[]>> =>
-    ipcRenderer.invoke('get-employee-exits'),
+  getEmployeeExits: (
+    params?: EmployeeExitListParams
+  ): Promise<ApiResponse<PaginatedEmployeeExitsResponse>> =>
+    ipcRenderer.invoke('get-employee-exits', params),
+
+  getEmployeeExitSummary: (): Promise<ApiResponse<EmployeeExitSummary>> =>
+    ipcRenderer.invoke('get-employee-exits-summary'),
 
   createEmployeeExit: (data: CreateEmployeeExitData): Promise<ApiResponse> =>
     ipcRenderer.invoke('create-employee-exit', data),

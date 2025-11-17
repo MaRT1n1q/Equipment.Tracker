@@ -3,12 +3,71 @@ import type { Knex } from 'knex'
 import {
   createEmployeeExitSchema,
   employeeExitRecordSchema,
+  employeeExitSummarySchema,
   issuedStatusSchema,
+  paginatedEmployeeExitQuerySchema,
+  paginatedEmployeeExitsResponseSchema,
   requestIdSchema,
 } from '../../src/types/ipc'
 import fs from 'fs'
 
 type GetDatabase = () => Knex
+
+const DEFAULT_PAGE_SIZE = 25
+const MAX_PAGE_SIZE = 200
+
+function normalizeNumber(value: number | string | bigint | null | undefined): number {
+  if (value === null || value === undefined) {
+    return 0
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value === 'bigint') {
+    return Number(value)
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function applyExitStatusFilter(query: Knex.QueryBuilder, status?: string) {
+  if (!status || status === 'all') {
+    return query
+  }
+
+  if (status === 'pending') {
+    query.where({ is_completed: 0 })
+    return query
+  }
+
+  if (status === 'completed') {
+    query.where({ is_completed: 1 })
+    return query
+  }
+
+  return query
+}
+
+function applyExitSearchFilter(query: Knex.QueryBuilder, search?: string) {
+  const term = search?.trim()
+  if (!term) {
+    return query
+  }
+
+  const likeTerm = `%${term.replace(/[%_]/g, '\\$&')}%`
+  query.where((builder) => {
+    builder
+      .whereLike('employee_name', likeTerm)
+      .orWhereLike('login', likeTerm)
+      .orWhereLike('sd_number', likeTerm)
+      .orWhereLike('exit_date', likeTerm)
+      .orWhereLike('equipment_list', likeTerm)
+  })
+  return query
+}
 
 function createCsvValue(value: string | number | null | undefined): string {
   if (value === null || value === undefined) {
@@ -40,20 +99,91 @@ export function registerEmployeeExitHandlers(
     }
   }
 
-  ipcMain.handle('get-employee-exits', async () => {
+  ipcMain.handle('get-employee-exits', async (_event, rawParams) => {
     try {
+      const params = paginatedEmployeeExitQuerySchema.parse(rawParams ?? {})
       const database = getDatabase()
-      const exits = (await database('employee_exits')
-        .select('*')
-        .orderBy('exit_date', 'desc')) as Array<Record<string, any>>
+      const pageSize = Math.min(Math.max(params.pageSize ?? DEFAULT_PAGE_SIZE, 5), MAX_PAGE_SIZE)
+      const requestedPage = Math.max(params.page ?? 1, 1)
 
-      const payload = exits.map((exit) =>
+      const baseQuery = database('employee_exits')
+      applyExitStatusFilter(baseQuery, params.status)
+      applyExitSearchFilter(baseQuery, params.search)
+
+      const countRow = await baseQuery.clone().count({ count: '*' }).first()
+      const total = normalizeNumber(countRow?.count)
+      const pageCount = Math.max(1, Math.ceil(total / pageSize))
+      const page = Math.min(requestedPage, pageCount)
+      const offset = (page - 1) * pageSize
+
+      const exits = (await baseQuery
+        .clone()
+        .orderBy('exit_date', 'desc')
+        .offset(offset)
+        .limit(pageSize)) as Array<Record<string, any>>
+
+      const items = exits.map((exit) =>
         employeeExitRecordSchema.parse({
           ...exit,
           sd_number: exit.sd_number ?? null,
         })
       )
-      return { success: true, data: payload }
+
+      return {
+        success: true,
+        data: paginatedEmployeeExitsResponseSchema.parse({
+          items,
+          meta: {
+            page,
+            pageSize,
+            total,
+            pageCount,
+            hasMore: page < pageCount,
+          },
+        }),
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('get-employee-exits-summary', async () => {
+    try {
+      const database = getDatabase()
+      const [totalRow, completedRow] = await Promise.all([
+        database('employee_exits').count({ count: '*' }).first(),
+        database('employee_exits').where({ is_completed: 1 }).count({ count: '*' }).first(),
+      ])
+
+      const exits = (await database('employee_exits')
+        .select(
+          'id',
+          'employee_name',
+          'login',
+          'sd_number',
+          'exit_date',
+          'equipment_list',
+          'created_at',
+          'is_completed'
+        )
+        .orderBy('exit_date', 'desc')) as Array<Record<string, any>>
+
+      const summary = employeeExitSummarySchema.parse({
+        totals: {
+          total: normalizeNumber(totalRow?.count),
+          completed: normalizeNumber(completedRow?.count),
+          pending: Math.max(
+            0,
+            normalizeNumber(totalRow?.count) - normalizeNumber(completedRow?.count)
+          ),
+        },
+        exits: exits.map((exit) => ({
+          ...exit,
+          sd_number: exit.sd_number ?? null,
+        })),
+      })
+
+      return { success: true, data: summary }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

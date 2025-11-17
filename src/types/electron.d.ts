@@ -3,7 +3,13 @@ import type {
   CreateEmployeeExitData,
   CreateRequestData,
   EmployeeExit,
+  EmployeeExitListParams,
+  EmployeeExitSummary,
+  PaginatedEmployeeExitsResponse,
+  PaginatedRequestsResponse,
   Request,
+  RequestListParams,
+  RequestSummary,
   ScheduleRequestReturnData,
   UpdateRequestData,
   UpdateStatusPayload,
@@ -21,7 +27,8 @@ declare global {
       openManualUpdateLocation: () => Promise<ApiResponse>
       onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => () => void
       // Requests API
-      getRequests: () => Promise<ApiResponse<Request[]>>
+      getRequests: (params?: RequestListParams) => Promise<ApiResponse<PaginatedRequestsResponse>>
+      getRequestSummary: () => Promise<ApiResponse<RequestSummary>>
       createRequest: (data: CreateRequestData) => Promise<ApiResponse>
       updateRequest: (id: number, data: UpdateRequestData) => Promise<ApiResponse>
       updateIssued: (id: number, is_issued: boolean) => Promise<ApiResponse>
@@ -33,7 +40,10 @@ declare global {
       createBackup: () => Promise<ApiResponse<{ path: string }>>
       restoreBackup: () => Promise<ApiResponse>
       // Employee Exit API
-      getEmployeeExits: () => Promise<ApiResponse<EmployeeExit[]>>
+      getEmployeeExits: (
+        params?: EmployeeExitListParams
+      ) => Promise<ApiResponse<PaginatedEmployeeExitsResponse>>
+      getEmployeeExitSummary: () => Promise<ApiResponse<EmployeeExitSummary>>
       createEmployeeExit: (data: CreateEmployeeExitData) => Promise<ApiResponse>
       updateEmployeeExit: (id: number, data: CreateEmployeeExitData) => Promise<ApiResponse>
       deleteEmployeeExit: (id: number) => Promise<ApiResponse<EmployeeExit>>

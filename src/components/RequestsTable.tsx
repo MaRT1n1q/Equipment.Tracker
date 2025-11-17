@@ -38,6 +38,7 @@ interface RequestsTableProps {
   density?: 'comfortable' | 'dense'
   highlightRequestId?: number | null
   onHighlightConsumed?: () => void
+  isFiltered?: boolean
 }
 
 export function RequestsTable({
@@ -47,6 +48,7 @@ export function RequestsTable({
   density = 'comfortable',
   highlightRequestId,
   onHighlightConsumed,
+  isFiltered = false,
 }: RequestsTableProps) {
   const { toggleIssued, deleteRequest, restoreRequest, completeReturn, cancelReturn } =
     useRequestActions()
@@ -254,6 +256,22 @@ export function RequestsTable({
   }
 
   if (requests.length === 0) {
+    if (isFiltered) {
+      return (
+        <div className="text-center py-16 px-4 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 mb-6">
+            <AlertTriangle className="h-12 w-12 text-purple-500" />
+          </div>
+          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+            Совпадений не найдено
+          </h3>
+          <p className="text-muted-foreground mb-2 max-w-md mx-auto">
+            Попробуйте изменить параметры поиска или фильтрации.
+          </p>
+        </div>
+      )
+    }
+
     return (
       <div className="text-center py-16 px-4 animate-fade-in">
         <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 mb-6">

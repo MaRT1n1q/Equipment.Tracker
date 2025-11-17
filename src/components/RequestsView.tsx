@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Plus } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { Button } from './ui/button'
@@ -7,40 +7,40 @@ import { RequestsTable } from './RequestsTable'
 import { SearchAndFilters } from './SearchAndFilters'
 import { usePersistentState } from '../hooks/usePersistentState'
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
+import { useRequestSummaryQuery, useRequestsQuery } from '../hooks/useRequests'
+import { ListPagination } from './ListPagination'
 
 const REQUESTS_SEARCH_STORAGE_KEY = 'equipment-tracker:requests-search'
 const REQUESTS_FILTER_STORAGE_KEY = 'equipment-tracker:requests-filter'
 const REQUESTS_DENSITY_STORAGE_KEY = 'equipment-tracker:requests-density'
 const REQUESTS_TIPS_STORAGE_KEY = 'equipment-tracker:requests-tips-dismissed'
+const REQUESTS_PAGE_SIZE_STORAGE_KEY = 'equipment-tracker:requests-page-size'
+const DEFAULT_PAGE_SIZE = 25
+const PAGE_SIZE_OPTIONS = [25, 50, 100]
 
 type RequestFilter = 'all' | 'issued' | 'not-issued' | 'return-pending' | 'return-completed'
 
 type TableDensity = 'comfortable' | 'dense'
 
 interface RequestsViewProps {
-  requests: Request[]
-  isLoading: boolean
-  isError: boolean
-  onRetry: () => void
   onEdit: (request: Request) => void
   onAddRequest: () => void
   onScheduleReturn: (request: Request) => void
   highlightRequestId?: number | null
+  highlightSearchQuery?: string | null
   onHighlightConsumed?: () => void
 }
 
 export function RequestsView({
-  requests,
-  isLoading,
-  isError,
-  onRetry,
   onEdit,
   onAddRequest,
   onScheduleReturn,
   highlightRequestId,
+  highlightSearchQuery,
   onHighlightConsumed,
 }: RequestsViewProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [page, setPage] = useState(1)
 
   const [searchQuery, setSearchQuery] = usePersistentState<string>(
     REQUESTS_SEARCH_STORAGE_KEY,
@@ -81,7 +81,50 @@ export function RequestsView({
       deserializer: (value) => value !== 'true' && value !== 'hidden' && value !== '0',
     }
   )
+  const [pageSize, setPageSize] = usePersistentState<number>(
+    REQUESTS_PAGE_SIZE_STORAGE_KEY,
+    DEFAULT_PAGE_SIZE,
+    {
+      serializer: (value) => String(value),
+      deserializer: (value) => {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) && PAGE_SIZE_OPTIONS.includes(parsed)
+          ? parsed
+          : DEFAULT_PAGE_SIZE
+      },
+    }
+  )
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const isFiltered = Boolean(debouncedSearchQuery.trim() || statusFilter !== 'all')
+
+  const requestParams = useMemo(
+    () => ({
+      page,
+      pageSize,
+      search: debouncedSearchQuery.trim() ? debouncedSearchQuery.trim() : undefined,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    }),
+    [page, pageSize, debouncedSearchQuery, statusFilter]
+  )
+
+  const { data, isLoading, isError, isFetching, refetch } = useRequestsQuery(requestParams)
+  const { data: requestSummary } = useRequestSummaryQuery()
+
+  const requests = data?.items ?? []
+  const meta = data?.meta ?? {
+    page,
+    pageSize,
+    total: 0,
+    pageCount: 1,
+    hasMore: false,
+  }
+  const serverPage = data?.meta?.page
+
+  useEffect(() => {
+    if (typeof serverPage === 'number' && serverPage !== page) {
+      setPage(serverPage)
+    }
+  }, [serverPage, page])
 
   useEffect(() => {
     if (!highlightRequestId) {
@@ -95,7 +138,22 @@ export function RequestsView({
     if (searchQuery !== '') {
       setSearchQuery('')
     }
+    setPage(1)
   }, [highlightRequestId, statusFilter, setStatusFilter, searchQuery, setSearchQuery])
+
+  useEffect(() => {
+    if (!highlightRequestId) {
+      return
+    }
+
+    if (highlightSearchQuery !== undefined && highlightSearchQuery !== null) {
+      setSearchQuery(highlightSearchQuery)
+    }
+  }, [highlightRequestId, highlightSearchQuery, setSearchQuery])
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearchQuery, statusFilter, pageSize])
 
   useKeyboardShortcut(
     { key: 'f', ctrlKey: true, shiftKey: true },
@@ -113,59 +171,6 @@ export function RequestsView({
     },
     [searchInputRef]
   )
-
-  const filteredRequests = useMemo(() => {
-    let filtered = [...requests]
-
-    if (statusFilter === 'issued') {
-      filtered = filtered.filter(
-        (request) => request.is_issued === 1 && request.return_required !== 1
-      )
-    } else if (statusFilter === 'not-issued') {
-      filtered = filtered.filter((request) => request.is_issued === 0)
-    } else if (statusFilter === 'return-pending') {
-      filtered = filtered.filter(
-        (request) => request.return_required === 1 && request.return_completed === 0
-      )
-    } else if (statusFilter === 'return-completed') {
-      filtered = filtered.filter(
-        (request) => request.return_required === 1 && request.return_completed === 1
-      )
-    }
-
-    const query = debouncedSearchQuery.trim().toLowerCase()
-
-    if (query) {
-      filtered = filtered.filter((request) => {
-        if (request.employee_name.toLowerCase().includes(query)) {
-          return true
-        }
-
-        if (request.login.toLowerCase().includes(query)) {
-          return true
-        }
-
-        if (
-          request.equipment_items &&
-          request.equipment_items.some(
-            (item) =>
-              item.equipment_name.toLowerCase().includes(query) ||
-              item.serial_number.toLowerCase().includes(query)
-          )
-        ) {
-          return true
-        }
-
-        if (request.sd_number && request.sd_number.toLowerCase().includes(query)) {
-          return true
-        }
-
-        return false
-      })
-    }
-
-    return filtered
-  }, [requests, statusFilter, debouncedSearchQuery])
 
   const dismissQuickHelp = () => {
     setShowQuickHelp(false)
@@ -199,7 +204,7 @@ export function RequestsView({
               Повторите попытку. Если ошибка не исчезнет, проверьте журнал приложения.
             </p>
           </div>
-          <Button onClick={onRetry} variant="outline">
+          <Button onClick={() => refetch()} variant="outline">
             Обновить данные
           </Button>
         </div>
@@ -224,18 +229,19 @@ export function RequestsView({
               onDensityChange={setTableDensity}
               summary={
                 <span className="status-pill status-pill--info text-xs">
-                  {searchQuery || statusFilter !== 'all' ? (
+                  {isFiltered ? (
                     <>
-                      Найдено{' '}
-                      <span className="font-semibold text-foreground">
-                        {filteredRequests.length}
-                      </span>{' '}
-                      из {requests.length}
+                      Найдено <span className="font-semibold text-foreground">{meta.total}</span>
+                      {isFetching && (
+                        <span className="ml-2 text-muted-foreground">(обновление...)</span>
+                      )}
                     </>
                   ) : (
                     <>
                       Всего заявок{' '}
-                      <span className="font-semibold text-foreground">{requests.length}</span>
+                      <span className="font-semibold text-foreground">
+                        {requestSummary?.totals.total ?? meta.total}
+                      </span>
                     </>
                   )}
                 </span>
@@ -262,13 +268,30 @@ export function RequestsView({
           </div>
 
           <RequestsTable
-            requests={filteredRequests}
+            requests={requests}
             onEdit={onEdit}
             onScheduleReturn={onScheduleReturn}
             density={tableDensity}
             highlightRequestId={highlightRequestId}
             onHighlightConsumed={onHighlightConsumed}
+            isFiltered={isFiltered}
           />
+
+          {meta.total > 0 && (
+            <ListPagination
+              page={meta.page}
+              pageCount={meta.pageCount}
+              pageSize={meta.pageSize}
+              total={meta.total}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              isFetching={isFetching}
+              onPageChange={(nextPage: number) => setPage(nextPage)}
+              onPageSizeChange={(nextSize: number) => {
+                setPageSize(nextSize)
+                setPage(1)
+              }}
+            />
+          )}
         </>
       )}
     </div>

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCcw, UserMinus } from 'lucide-react'
-import type { EmployeeExit } from '../types/ipc'
+import type { EmployeeExitSummary } from '../types/ipc'
 import { cn } from '../lib/utils'
 import { parseExitEquipmentList, stringifyExitEquipmentItems } from '../lib/employeeExitEquipment'
 
 interface EmployeeExitCalendarProps {
-  exits: EmployeeExit[]
+  exits: EmployeeExitSummary['exits']
   returns: RequestReturnEvent[]
 }
 

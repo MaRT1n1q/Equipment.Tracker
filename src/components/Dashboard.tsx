@@ -1,16 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users, Search } from 'lucide-react'
-import type { Request } from '../types/ipc'
-import { useEmployeeExitsQuery } from '../hooks/useEmployeeExits'
+import { useQuery } from '@tanstack/react-query'
+import {
+  Package,
+  PackageCheck,
+  Clock,
+  TrendingUp,
+  UserMinus,
+  Users,
+  Search,
+  AlertTriangle,
+} from 'lucide-react'
 import { EmployeeExitCalendar } from './EmployeeExitCalendar'
 import { Input } from './ui/input'
 import { cn } from '../lib/utils'
 import { useDebounce } from '../hooks/useDebounce'
+import { useEmployeeExitSummaryQuery } from '../hooks/useEmployeeExits'
+import { useRequestSummaryQuery } from '../hooks/useRequests'
+import { Button } from './ui/button'
+import { TableSkeleton } from './TableSkeleton'
+
+export type DashboardSelection = {
+  id: number
+  searchHint?: string
+}
 
 interface DashboardProps {
-  requests: Request[]
-  onSelectRequest?: (id: number) => void
-  onSelectEmployeeExit?: (id: number) => void
+  onSelectRequest?: (target: DashboardSelection) => void
+  onSelectEmployeeExit?: (target: DashboardSelection) => void
 }
 
 type SearchResult =
@@ -20,6 +36,7 @@ type SearchResult =
       title: string
       description: string
       meta?: string
+      searchHint?: string
     }
   | {
       type: 'employeeExit'
@@ -27,46 +44,99 @@ type SearchResult =
       title: string
       description: string
       meta?: string
+      searchHint?: string
     }
 
-export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: DashboardProps) {
-  const { data: employeeExits = [] } = useEmployeeExitsQuery()
+export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardProps) {
+  const {
+    data: requestSummary,
+    isLoading: isRequestSummaryLoading,
+    isError: isRequestSummaryError,
+    refetch: refetchRequestSummary,
+  } = useRequestSummaryQuery()
+  const {
+    data: employeeExitSummary,
+    isLoading: isEmployeeSummaryLoading,
+    isError: isEmployeeSummaryError,
+    refetch: refetchEmployeeSummary,
+  } = useEmployeeExitSummaryQuery()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const debouncedQuery = useDebounce(searchQuery, 200)
-  const returnEvents = useMemo(
-    () =>
-      requests
-        .filter((request) => request.return_required === 1 && Boolean(request.return_due_date))
-        .map((request) => ({
-          id: request.id,
-          requestId: request.id,
-          employeeName: request.employee_name,
-          login: request.login,
-          sdNumber: request.sd_number ?? null,
-          dueDate: request.return_due_date as string,
-          equipmentList:
-            request.return_equipment && request.return_equipment.trim().length > 0
-              ? request.return_equipment
-              : buildEquipmentFallback(request),
-          isCompleted: request.return_completed === 1,
-        })),
-    [requests]
-  )
-  const stats = {
-    total: requests.length,
-    issued: requests.filter((r) => r.is_issued === 1).length,
-    notIssued: requests.filter((r) => r.is_issued === 0).length,
-    thisMonth: requests.filter((r) => {
-      const date = new Date(r.created_at)
-      const now = new Date()
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-    }).length,
-    // Employee exits stats
-    totalExits: employeeExits.length,
-    completedExits: employeeExits.filter((e) => e.is_completed === 1).length,
-    pendingExits: employeeExits.filter((e) => e.is_completed === 0).length,
+  const trimmedQuery = debouncedQuery.trim()
+  const isSearchEnabled = trimmedQuery.length > 0
+
+  const { data: requestSearchResults } = useQuery({
+    queryKey: ['dashboard', 'requestSearch', trimmedQuery],
+    queryFn: async () => {
+      const response = await window.electronAPI.getRequests({
+        search: trimmedQuery,
+        page: 1,
+        pageSize: 50,
+      })
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Не удалось выполнить поиск по заявкам')
+      }
+
+      return response.data.items
+    },
+    enabled: isSearchEnabled,
+  })
+
+  const { data: employeeExitSearchResults } = useQuery({
+    queryKey: ['dashboard', 'exitSearch', trimmedQuery],
+    queryFn: async () => {
+      const response = await window.electronAPI.getEmployeeExits({
+        search: trimmedQuery,
+        page: 1,
+        pageSize: 50,
+      })
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Не удалось выполнить поиск по выходам')
+      }
+
+      return response.data.items
+    },
+    enabled: isSearchEnabled,
+  })
+
+  const returnEvents = useMemo(() => {
+    if (!requestSummary) {
+      return []
+    }
+
+    return requestSummary.returnEvents
+      .filter((event) => Boolean(event.return_due_date))
+      .map((event) => ({
+        id: event.id,
+        requestId: event.id,
+        employeeName: event.employee_name,
+        login: event.login,
+        sdNumber: event.sd_number ?? null,
+        dueDate: event.return_due_date as string,
+        equipmentList:
+          event.return_equipment && event.return_equipment.trim().length > 0
+            ? event.return_equipment
+            : 'Оборудование не указано',
+        isCompleted: event.return_completed === 1,
+      }))
+  }, [requestSummary])
+
+  const requestTotals = requestSummary?.totals ?? {
+    total: 0,
+    issued: 0,
+    notIssued: 0,
+    returnPending: 0,
+    returnCompleted: 0,
+    thisMonth: 0,
+  }
+  const exitTotals = employeeExitSummary?.totals ?? {
+    total: 0,
+    completed: 0,
+    pending: 0,
   }
 
   const accentStyles = {
@@ -91,25 +161,25 @@ export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: D
   const cards = [
     {
       title: 'Всего заявок',
-      value: stats.total,
+      value: requestTotals.total,
       icon: Package,
       accent: 'info' as const,
     },
     {
       title: 'Выдано',
-      value: stats.issued,
+      value: requestTotals.issued,
       icon: PackageCheck,
       accent: 'success' as const,
     },
     {
       title: 'В ожидании',
-      value: stats.notIssued,
+      value: requestTotals.notIssued,
       icon: Clock,
       accent: 'warning' as const,
     },
     {
       title: 'За этот месяц',
-      value: stats.thisMonth,
+      value: requestTotals.thisMonth,
       icon: TrendingUp,
       accent: 'info' as const,
     },
@@ -118,86 +188,54 @@ export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: D
   const exitCards = [
     {
       title: 'Всего выходов',
-      value: stats.totalExits,
+      value: exitTotals.total,
       icon: Users,
       accent: 'info' as const,
     },
     {
       title: 'Завершено',
-      value: stats.completedExits,
+      value: exitTotals.completed,
       icon: PackageCheck,
       accent: 'success' as const,
     },
     {
       title: 'В ожидании',
-      value: stats.pendingExits,
+      value: exitTotals.pending,
       icon: UserMinus,
       accent: 'warning' as const,
     },
   ]
 
   const searchResults = useMemo<SearchResult[]>(() => {
-    const query = debouncedQuery.trim().toLowerCase()
+    const query = trimmedQuery.toLowerCase()
 
     if (!query) {
       return []
     }
 
-    const requestMatches = requests.reduce<SearchResult[]>((acc, request) => {
-      const equipmentText = (request.equipment_items ?? [])
-        .map((item) => `${item.equipment_name} ${item.serial_number ?? ''}`)
-        .join(' ')
-      const haystack = [
-        request.employee_name,
-        request.login,
-        request.sd_number ?? '',
-        request.notes ?? '',
-        equipmentText,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      if (!haystack.includes(query)) {
-        return acc
-      }
-
+    const requestMatches = (requestSearchResults ?? []).map<SearchResult>((request) => {
       const status =
         request.return_required === 1 ? 'На сдачу' : request.is_issued ? 'Выдано' : 'В ожидании'
 
-      acc.push({
+      return {
         type: 'request',
         id: request.id,
         title: request.employee_name,
         description: request.sd_number ? `Заявка • SD ${request.sd_number}` : 'Заявка',
         meta: `${status} • ${request.login}`,
-      })
+        searchHint: request.employee_name,
+      }
+    })
 
-      return acc
-    }, [])
-
-    const exitMatches = employeeExits.reduce<SearchResult[]>((acc, exit) => {
+    const exitMatches = (employeeExitSearchResults ?? []).map<SearchResult>((exit) => {
       const formattedDate = new Date(exit.exit_date).toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
       })
-      const haystack = [
-        exit.employee_name,
-        exit.login,
-        exit.sd_number ?? '',
-        formattedDate,
-        exit.equipment_list,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      if (!haystack.includes(query)) {
-        return acc
-      }
-
       const status = exit.is_completed === 1 ? 'Завершено' : 'Ожидает'
 
-      acc.push({
+      return {
         type: 'employeeExit',
         id: exit.id,
         title: exit.employee_name,
@@ -205,13 +243,12 @@ export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: D
           ? `Выход сотрудника • SD ${exit.sd_number}`
           : 'Выход сотрудника',
         meta: `${status} • ${formattedDate}`,
-      })
-
-      return acc
-    }, [])
+        searchHint: exit.employee_name,
+      }
+    })
 
     return [...requestMatches, ...exitMatches].slice(0, 15)
-  }, [debouncedQuery, requests, employeeExits])
+  }, [trimmedQuery, requestSearchResults, employeeExitSearchResults])
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -230,13 +267,43 @@ export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: D
 
   const handleSelectResult = (result: SearchResult) => {
     if (result.type === 'request') {
-      onSelectRequest?.(result.id)
+      onSelectRequest?.({ id: result.id, searchHint: result.searchHint })
     } else {
-      onSelectEmployeeExit?.(result.id)
+      onSelectEmployeeExit?.({ id: result.id, searchHint: result.searchHint })
     }
 
     setIsSearchOpen(false)
     setSearchQuery('')
+  }
+
+  const isLoading = isRequestSummaryLoading || isEmployeeSummaryLoading
+  const isError = isRequestSummaryError || isEmployeeSummaryError
+
+  if (isLoading) {
+    return <TableSkeleton />
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
+        <AlertTriangle className="h-6 w-6 text-destructive" />
+        <div>
+          <h3 className="text-lg font-semibold">Не удалось загрузить сводные данные</h3>
+          <p className="text-sm text-muted-foreground">
+            Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или журнал.
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            refetchRequestSummary()
+            refetchEmployeeSummary()
+          }}
+          variant="outline"
+        >
+          Повторить попытку
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -317,7 +384,7 @@ export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: D
         )}
       </div>
 
-      <EmployeeExitCalendar exits={employeeExits} returns={returnEvents} />
+      <EmployeeExitCalendar exits={employeeExitSummary?.exits ?? []} returns={returnEvents} />
 
       {/* Requests Section */}
       <div>
@@ -388,19 +455,4 @@ export function Dashboard({ requests, onSelectRequest, onSelectEmployeeExit }: D
       </div>
     </div>
   )
-}
-
-function buildEquipmentFallback(request: Request): string {
-  if (!request.equipment_items || request.equipment_items.length === 0) {
-    return 'Оборудование не указано'
-  }
-
-  return request.equipment_items
-    .map((item) => {
-      const base = item.equipment_name
-      const serial = item.serial_number ? ` — ${item.serial_number}` : ''
-      const quantity = item.quantity > 1 ? ` ×${item.quantity}` : ''
-      return `${base}${serial}${quantity}`
-    })
-    .join('\n')
 }

@@ -3,8 +3,10 @@ import type { Knex } from 'knex'
 import {
   createRequestSchema,
   issuedStatusSchema,
+  paginatedRequestQuerySchema,
   requestIdSchema,
   requestRecordSchema,
+  requestSummarySchema,
   restoreRequestSchema,
   scheduleRequestReturnSchema,
   updateRequestSchema,
@@ -12,16 +14,120 @@ import {
 
 type GetDatabase = () => Knex
 
+const DEFAULT_PAGE_SIZE = 25
+const MAX_PAGE_SIZE = 200
+
+function normalizeNumber(value: number | string | bigint | null | undefined): number {
+  if (value === null || value === undefined) {
+    return 0
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value === 'bigint') {
+    return Number(value)
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function applyRequestStatusFilter(query: Knex.QueryBuilder, status?: string) {
+  if (!status || status === 'all') {
+    return query
+  }
+
+  if (status === 'issued') {
+    query.where({ is_issued: 1 }).whereNot({ return_required: 1 })
+    return query
+  }
+
+  if (status === 'not-issued') {
+    query.where({ is_issued: 0 })
+    return query
+  }
+
+  if (status === 'return-pending') {
+    query.where({ return_required: 1, return_completed: 0 })
+    return query
+  }
+
+  if (status === 'return-completed') {
+    query.where({ return_required: 1, return_completed: 1 })
+    return query
+  }
+
+  return query
+}
+
+function applyRequestSearchFilter(query: Knex.QueryBuilder, search?: string) {
+  const term = search?.trim()
+  if (!term) {
+    return query
+  }
+
+  const likeTerm = `%${term.replace(/[%_]/g, '\\$&')}%`
+
+  query.where((builder) => {
+    builder
+      .whereLike('employee_name', likeTerm)
+      .orWhereLike('login', likeTerm)
+      .orWhereLike('sd_number', likeTerm)
+      .orWhereExists(function searchEquipment() {
+        this.select(1)
+          .from('equipment_items')
+          .whereRaw('equipment_items.request_id = requests.id')
+          .andWhere((equipmentBuilder) => {
+            equipmentBuilder
+              .whereLike('equipment_name', likeTerm)
+              .orWhereLike('serial_number', likeTerm)
+          })
+      })
+  })
+
+  return query
+}
+
 export function registerRequestHandlers(getDatabase: GetDatabase) {
-  ipcMain.handle('get-requests', async () => {
+  ipcMain.handle('get-requests', async (_event, rawParams) => {
     try {
+      const params = paginatedRequestQuerySchema.parse(rawParams ?? {})
       const database = getDatabase()
-      const requests = (await database('requests')
-        .select('*')
-        .orderBy('created_at', 'desc')) as Array<Record<string, any>>
+      const pageSize = Math.min(Math.max(params.pageSize ?? DEFAULT_PAGE_SIZE, 5), MAX_PAGE_SIZE)
+      const requestedPage = Math.max(params.page ?? 1, 1)
+
+      const baseQuery = database('requests')
+      applyRequestStatusFilter(baseQuery, params.status)
+      applyRequestSearchFilter(baseQuery, params.search)
+
+      const countRow = await baseQuery.clone().count({ count: '*' }).first()
+      const total = normalizeNumber(countRow?.count)
+      const pageCount = Math.max(1, Math.ceil(total / pageSize))
+      const page = Math.min(requestedPage, pageCount)
+      const offset = (page - 1) * pageSize
+
+      const requests = (await baseQuery
+        .clone()
+        .orderBy('created_at', 'desc')
+        .offset(offset)
+        .limit(pageSize)) as Array<Record<string, any>>
 
       if (requests.length === 0) {
-        return { success: true, data: [] }
+        return {
+          success: true,
+          data: {
+            items: [],
+            meta: {
+              page,
+              pageSize,
+              total,
+              pageCount,
+              hasMore: false,
+            },
+          },
+        }
       }
 
       const requestIds = requests.map((request) => request.id)
@@ -52,7 +158,86 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         })
       })
 
-      return { success: true, data: payload }
+      return {
+        success: true,
+        data: {
+          items: payload,
+          meta: {
+            page,
+            pageSize,
+            total,
+            pageCount,
+            hasMore: page < pageCount,
+          },
+        },
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('get-requests-summary', async () => {
+    try {
+      const database = getDatabase()
+      const [totalRow, issuedRow, notIssuedRow, returnPendingRow, returnCompletedRow] =
+        await Promise.all([
+          database('requests').count({ count: '*' }).first(),
+          database('requests').where({ is_issued: 1 }).count({ count: '*' }).first(),
+          database('requests').where({ is_issued: 0 }).count({ count: '*' }).first(),
+          database('requests')
+            .where({ return_required: 1, return_completed: 0 })
+            .count({ count: '*' })
+            .first(),
+          database('requests')
+            .where({ return_required: 1, return_completed: 1 })
+            .count({ count: '*' })
+            .first(),
+        ])
+
+      const now = new Date()
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+      const thisMonthRow = await database('requests')
+        .where('created_at', '>=', monthStart)
+        .count({ count: '*' })
+        .first()
+
+      const returnEvents = (await database('requests')
+        .select(
+          'id',
+          'employee_name',
+          'login',
+          'sd_number',
+          'return_due_date',
+          'return_equipment',
+          'return_completed'
+        )
+        .where({ return_required: 1 })
+        .orderBy([
+          { column: 'return_due_date', order: 'asc' },
+          { column: 'id', order: 'asc' },
+        ])) as Array<Record<string, any>>
+
+      const summary = requestSummarySchema.parse({
+        totals: {
+          total: normalizeNumber(totalRow?.count),
+          issued: normalizeNumber(issuedRow?.count),
+          notIssued: normalizeNumber(notIssuedRow?.count),
+          returnPending: normalizeNumber(returnPendingRow?.count),
+          returnCompleted: normalizeNumber(returnCompletedRow?.count),
+          thisMonth: normalizeNumber(thisMonthRow?.count),
+        },
+        returnEvents: returnEvents.map((event) => ({
+          id: event.id,
+          employee_name: event.employee_name,
+          login: event.login,
+          sd_number: event.sd_number ?? null,
+          return_due_date: event.return_due_date ?? null,
+          return_equipment: event.return_equipment ?? null,
+          return_completed: event.return_completed ?? 0,
+        })),
+      })
+
+      return { success: true, data: summary }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

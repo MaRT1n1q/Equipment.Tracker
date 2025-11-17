@@ -1,20 +1,17 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle } from 'lucide-react'
-import { Button } from './components/ui/button'
 import { AddRequestModal } from './components/AddRequestModal'
 import { EditRequestModal } from './components/EditRequestModal'
-import { TableSkeleton } from './components/TableSkeleton'
 import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
 import { EmployeeExitView } from './components/EmployeeExitView'
 import { RequestsView } from './components/RequestsView'
 import { Toaster } from 'sonner'
 import type { Request } from './types/ipc'
-import { useRequestsQuery } from './hooks/useRequests'
 import { usePersistentState } from './hooks/usePersistentState'
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
 import { cn } from './lib/utils'
 import { ScheduleReturnModal } from './components/ScheduleReturnModal'
+import type { DashboardSelection } from './components/Dashboard'
 
 type AppView = 'dashboard' | 'requests' | 'employee-exit'
 
@@ -33,6 +30,8 @@ function App() {
   const [returnTargetRequest, setReturnTargetRequest] = useState<Request | null>(null)
   const [highlightRequestId, setHighlightRequestId] = useState<number | null>(null)
   const [highlightExitId, setHighlightExitId] = useState<number | null>(null)
+  const [highlightRequestSearch, setHighlightRequestSearch] = useState<string | null>(null)
+  const [highlightExitSearch, setHighlightExitSearch] = useState<string | null>(null)
   const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
     deserializer: (value) => (isAppView(value) ? value : 'dashboard'),
@@ -45,8 +44,6 @@ function App() {
       deserializer: (value) => value === 'true',
     }
   )
-
-  const { data: requests = [], isLoading, isError, refetch: refetchRequests } = useRequestsQuery()
 
   // Устанавливаем CSS переменную для ширины сайдбара
   useEffect(() => {
@@ -73,18 +70,20 @@ function App() {
     }
   }
 
-  const handleNavigateToRequest = (id: number) => {
+  const handleNavigateToRequest = ({ id, searchHint }: DashboardSelection) => {
     setCurrentView('requests')
     setHighlightRequestId(null)
+    setHighlightRequestSearch(searchHint ?? null)
     setTimeout(() => {
       setHighlightRequestId(id)
     }, 0)
   }
 
-  const handleNavigateToEmployeeExit = (id: number) => {
+  const handleNavigateToEmployeeExit = ({ id, searchHint }: DashboardSelection) => {
     setIsEmployeeExitModalOpen(false)
     setCurrentView('employee-exit')
     setHighlightExitId(null)
+    setHighlightExitSearch(searchHint ?? null)
     setTimeout(() => {
       setHighlightExitId(id)
     }, 0)
@@ -118,43 +117,24 @@ function App() {
         <main className="custom-scrollbar flex-1 overflow-auto">
           <div className="px-8 py-8">
             {currentView === 'dashboard' ? (
-              isLoading ? (
-                <TableSkeleton />
-              ) : isError ? (
-                <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
-                  <div>
-                    <h3 className="text-lg font-semibold">Не удалось загрузить заявки</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или
-                      обратитесь к администратору.
-                    </p>
-                  </div>
-                  <Button onClick={() => refetchRequests()} variant="outline">
-                    Повторить попытку
-                  </Button>
-                </div>
-              ) : (
-                <div className="animate-fade-in space-y-6">
-                  <Dashboard
-                    requests={requests}
-                    onSelectRequest={handleNavigateToRequest}
-                    onSelectEmployeeExit={handleNavigateToEmployeeExit}
-                  />
-                </div>
-              )
+              <div className="animate-fade-in space-y-6">
+                <Dashboard
+                  onSelectRequest={handleNavigateToRequest}
+                  onSelectEmployeeExit={handleNavigateToEmployeeExit}
+                />
+              </div>
             ) : currentView === 'requests' ? (
               <div className="animate-fade-in">
                 <RequestsView
-                  requests={requests}
-                  isLoading={isLoading}
-                  isError={isError}
-                  onRetry={() => refetchRequests()}
                   onEdit={handleEdit}
                   onAddRequest={() => setIsModalOpen(true)}
                   onScheduleReturn={handleScheduleReturn}
                   highlightRequestId={highlightRequestId}
-                  onHighlightConsumed={() => setHighlightRequestId(null)}
+                  highlightSearchQuery={highlightRequestSearch}
+                  onHighlightConsumed={() => {
+                    setHighlightRequestId(null)
+                    setHighlightRequestSearch(null)
+                  }}
                 />
               </div>
             ) : (
@@ -163,7 +143,11 @@ function App() {
                   isModalOpen={isEmployeeExitModalOpen}
                   onModalOpenChange={setIsEmployeeExitModalOpen}
                   highlightExitId={highlightExitId}
-                  onHighlightConsumed={() => setHighlightExitId(null)}
+                  highlightSearchQuery={highlightExitSearch}
+                  onHighlightConsumed={() => {
+                    setHighlightExitId(null)
+                    setHighlightExitSearch(null)
+                  }}
                 />
               </div>
             )}

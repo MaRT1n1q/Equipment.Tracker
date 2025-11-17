@@ -3,6 +3,16 @@ import { z } from 'zod'
 export const requestIdSchema = z.number().int().positive()
 export const issuedStatusSchema = z.boolean()
 
+export const requestStatusFilterSchema = z.enum([
+  'all',
+  'issued',
+  'not-issued',
+  'return-pending',
+  'return-completed',
+])
+
+export const employeeExitStatusFilterSchema = z.enum(['all', 'pending', 'completed'])
+
 export const equipmentItemInputSchema = z.object({
   equipment_name: z.string().trim().min(1, 'Название оборудования обязательно'),
   serial_number: z.string().trim().min(1, 'Серийный номер обязателен'),
@@ -83,6 +93,81 @@ export const updateExitCompletedSchema = z.object({
   is_completed: z.boolean(),
 })
 
+export const paginationParamsSchema = z.object({
+  page: z.number().int().min(1).optional(),
+  pageSize: z.number().int().min(5).max(200).optional(),
+})
+
+export const paginatedRequestQuerySchema = paginationParamsSchema.extend({
+  search: z.string().trim().min(1).optional(),
+  status: requestStatusFilterSchema.optional(),
+})
+
+export const paginatedEmployeeExitQuerySchema = paginationParamsSchema.extend({
+  search: z.string().trim().min(1).optional(),
+  status: employeeExitStatusFilterSchema.optional(),
+})
+
+export const paginatedResponseMetaSchema = z.object({
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().min(0),
+  pageCount: z.number().int().min(0),
+  hasMore: z.boolean(),
+})
+
+export const paginatedRequestsResponseSchema = z.object({
+  items: z.array(requestRecordSchema),
+  meta: paginatedResponseMetaSchema,
+})
+
+export const paginatedEmployeeExitsResponseSchema = z.object({
+  items: z.array(employeeExitRecordSchema),
+  meta: paginatedResponseMetaSchema,
+})
+
+export const requestSummarySchema = z.object({
+  totals: z.object({
+    total: z.number().int().min(0),
+    issued: z.number().int().min(0),
+    notIssued: z.number().int().min(0),
+    returnPending: z.number().int().min(0),
+    returnCompleted: z.number().int().min(0),
+    thisMonth: z.number().int().min(0),
+  }),
+  returnEvents: z.array(
+    z.object({
+      id: z.number().int().positive(),
+      employee_name: z.string(),
+      login: z.string(),
+      sd_number: z.string().nullable(),
+      return_due_date: z.string().nullable(),
+      return_equipment: z.string().nullable(),
+      return_completed: z.number().int(),
+    })
+  ),
+})
+
+export const employeeExitSummarySchema = z.object({
+  totals: z.object({
+    total: z.number().int().min(0),
+    completed: z.number().int().min(0),
+    pending: z.number().int().min(0),
+  }),
+  exits: z.array(
+    employeeExitRecordSchema.pick({
+      id: true,
+      employee_name: true,
+      login: true,
+      sd_number: true,
+      exit_date: true,
+      equipment_list: true,
+      created_at: true,
+      is_completed: true,
+    })
+  ),
+})
+
 export type EquipmentItemInput = z.infer<typeof equipmentItemInputSchema>
 export type EquipmentItem = z.infer<typeof equipmentItemRecordSchema>
 export type CreateRequestData = z.infer<typeof createRequestSchema>
@@ -91,6 +176,27 @@ export type Request = z.infer<typeof requestRecordSchema>
 export type ScheduleRequestReturnData = z.infer<typeof scheduleRequestReturnSchema>
 export type CreateEmployeeExitData = z.infer<typeof createEmployeeExitSchema>
 export type EmployeeExit = z.infer<typeof employeeExitRecordSchema>
+export type RequestStatusFilter = z.infer<typeof requestStatusFilterSchema>
+export type EmployeeExitStatusFilter = z.infer<typeof employeeExitStatusFilterSchema>
+export type RequestListParams = z.infer<typeof paginatedRequestQuerySchema>
+export type EmployeeExitListParams = z.infer<typeof paginatedEmployeeExitQuerySchema>
+
+export interface PaginatedData<T> {
+  items: T[]
+  meta: {
+    page: number
+    pageSize: number
+    total: number
+    pageCount: number
+    hasMore: boolean
+  }
+}
+
+export type PaginatedRequestsResponse = z.infer<typeof paginatedRequestsResponseSchema>
+export type PaginatedEmployeeExitsResponse = z.infer<typeof paginatedEmployeeExitsResponseSchema>
+export type RequestSummary = z.infer<typeof requestSummarySchema>
+export type EmployeeExitSummary = z.infer<typeof employeeExitSummarySchema>
+export type RequestReturnEvent = RequestSummary['returnEvents'][number]
 
 export interface ApiResponse<T = unknown> {
   success: boolean

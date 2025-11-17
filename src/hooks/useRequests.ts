@@ -1,21 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateRequestData,
+  PaginatedRequestsResponse,
   Request,
+  RequestListParams,
+  RequestSummary,
   ScheduleRequestReturnData,
   UpdateRequestData,
 } from '../types/ipc'
 
-const REQUESTS_QUERY_KEY = ['requests'] as const
+export const REQUESTS_QUERY_KEY = ['requests'] as const
+export const REQUEST_SUMMARY_QUERY_KEY = ['requestSummary'] as const
 
-async function fetchRequests(): Promise<Request[]> {
-  const response = await window.electronAPI.getRequests()
+async function fetchRequests(params: RequestListParams): Promise<PaginatedRequestsResponse> {
+  const response = await window.electronAPI.getRequests(params)
 
   if (!response.success || !response.data) {
     throw new Error(
       response.error ||
         'Не удалось загрузить заявки. Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или обратитесь к администратору.'
     )
+  }
+
+  return response.data
+}
+
+async function fetchRequestSummary(): Promise<RequestSummary> {
+  const response = await window.electronAPI.getRequestSummary()
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || 'Не удалось загрузить сводку заявок')
   }
 
   return response.data
@@ -43,17 +57,29 @@ type UpdateReturnCompletionPayload = {
 
 type RestorePayload = Request
 
-export function useRequestsQuery() {
+export function useRequestsQuery(params: RequestListParams) {
   return useQuery({
-    queryKey: REQUESTS_QUERY_KEY,
-    queryFn: fetchRequests,
+    queryKey: [...REQUESTS_QUERY_KEY, params] as const,
+    queryFn: () => fetchRequests(params),
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+export function useRequestSummaryQuery() {
+  return useQuery({
+    queryKey: REQUEST_SUMMARY_QUERY_KEY,
+    queryFn: fetchRequestSummary,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
 export function useRequestActions() {
   const queryClient = useQueryClient()
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: REQUESTS_QUERY_KEY })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: REQUESTS_QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: REQUEST_SUMMARY_QUERY_KEY })
+  }
 
   const createMutation = useMutation<void, Error, CreateRequestData>({
     mutationFn: async (payload) => {
@@ -156,5 +182,3 @@ export function useRequestActions() {
     cancelReturn: cancelReturnMutation.mutateAsync,
   }
 }
-
-export { REQUESTS_QUERY_KEY }

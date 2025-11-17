@@ -1,13 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CreateEmployeeExitData, EmployeeExit } from '../types/ipc'
+import type {
+  CreateEmployeeExitData,
+  EmployeeExit,
+  EmployeeExitListParams,
+  EmployeeExitSummary,
+  PaginatedEmployeeExitsResponse,
+} from '../types/ipc'
 
-const EMPLOYEE_EXITS_QUERY_KEY = ['employeeExits'] as const
+export const EMPLOYEE_EXITS_QUERY_KEY = ['employeeExits'] as const
+export const EMPLOYEE_EXIT_SUMMARY_QUERY_KEY = ['employeeExitSummary'] as const
 
-async function fetchEmployeeExits(): Promise<EmployeeExit[]> {
-  const response = await window.electronAPI.getEmployeeExits()
+async function fetchEmployeeExits(
+  params: EmployeeExitListParams
+): Promise<PaginatedEmployeeExitsResponse> {
+  const response = await window.electronAPI.getEmployeeExits(params)
 
   if (!response.success || !response.data) {
     throw new Error(response.error || 'Не удалось загрузить записи выходов')
+  }
+
+  return response.data
+}
+
+async function fetchEmployeeExitSummary(): Promise<EmployeeExitSummary> {
+  const response = await window.electronAPI.getEmployeeExitSummary()
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || 'Не удалось загрузить сводку выходов')
   }
 
   return response.data
@@ -23,17 +42,29 @@ type UpdateCompletedPayload = {
   value: boolean
 }
 
-export function useEmployeeExitsQuery() {
+export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
   return useQuery({
-    queryKey: EMPLOYEE_EXITS_QUERY_KEY,
-    queryFn: fetchEmployeeExits,
+    queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params] as const,
+    queryFn: () => fetchEmployeeExits(params),
+    placeholderData: (previousData) => previousData,
+  })
+}
+
+export function useEmployeeExitSummaryQuery() {
+  return useQuery({
+    queryKey: EMPLOYEE_EXIT_SUMMARY_QUERY_KEY,
+    queryFn: fetchEmployeeExitSummary,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
 export function useEmployeeExitActions() {
   const queryClient = useQueryClient()
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: EMPLOYEE_EXITS_QUERY_KEY })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: EMPLOYEE_EXITS_QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: EMPLOYEE_EXIT_SUMMARY_QUERY_KEY })
+  }
 
   const createMutation = useMutation<void, Error, CreateEmployeeExitData>({
     mutationFn: async (payload) => {
@@ -88,5 +119,3 @@ export function useEmployeeExitActions() {
     updateExitCompleted: updateCompletedMutation.mutateAsync,
   }
 }
-
-export { EMPLOYEE_EXITS_QUERY_KEY }
