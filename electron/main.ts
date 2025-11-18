@@ -86,7 +86,16 @@ if (!gotTheLock) {
     initAutoUpdater(mainWindow)
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+      // На macOS при клике на иконку в Dock показываем окно, если оно скрыто
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore()
+        }
+        if (!mainWindow.isVisible()) {
+          mainWindow.show()
+        }
+        mainWindow.focus()
+      } else if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()
       }
     })

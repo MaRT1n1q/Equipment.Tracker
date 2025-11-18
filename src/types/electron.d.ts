@@ -23,8 +23,6 @@ declare global {
       checkForUpdates: () => Promise<ApiResponse>
       downloadUpdate: () => Promise<ApiResponse>
       installUpdate: () => Promise<ApiResponse>
-      downloadManualUpdate: () => Promise<ApiResponse<{ path: string }>>
-      openManualUpdateLocation: () => Promise<ApiResponse>
       onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => () => void
       // Requests API
       getRequests: (params?: RequestListParams) => Promise<ApiResponse<PaginatedRequestsResponse>>

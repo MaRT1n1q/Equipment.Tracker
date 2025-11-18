@@ -1,9 +1,5 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import fs from 'node:fs'
-import fsPromises from 'node:fs/promises'
-import https from 'node:https'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
-import type { IncomingMessage } from 'node:http'
 import { execFile } from 'node:child_process'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
@@ -19,463 +15,27 @@ autoUpdater.autoInstallOnAppQuit = false // Устанавливаем вруч�
 let mainWindowRef: BrowserWindow | null = null
 let manualCheckInProgress = false
 let updaterEnabled = false
-let manualUpdateMode = false
 let updateAvailableVersion: string | null = null
 let updateDownloaded = false
 let downloadInProgress = false
 
-interface ManualUpdateInfo {
-  version: string
-  assetName: string
-  downloadUrl: string
-  size?: number
-}
-
-let manualUpdateInfo: ManualUpdateInfo | null = null
-let manualDownloadPath: string | null = null
-let manualDownloadInProgress = false
-
-function getCurrentVersion(): string | null {
-  return sanitizeVersion(app.getVersion())
-}
-
-function parseVersionSegment(segment: string): number {
-  const numericPart = segment.match(/\d+/)?.[0]
-  if (!numericPart) {
-    return 0
-  }
-
-  const parsed = Number.parseInt(numericPart, 10)
-  return Number.isNaN(parsed) ? 0 : parsed
-}
-
-function isVersionNewer(currentVersion: string | null, candidateVersion: string | null): boolean {
-  if (!candidateVersion) {
-    return false
-  }
-
-  if (!currentVersion) {
-    return true
-  }
-
-  const currentSegments = currentVersion.split('.')
-  const candidateSegments = candidateVersion.split('.')
-  const maxLength = Math.max(currentSegments.length, candidateSegments.length)
-
-  for (let index = 0; index < maxLength; index += 1) {
-    const current = parseVersionSegment(currentSegments[index] ?? '0')
-    const candidate = parseVersionSegment(candidateSegments[index] ?? '0')
-
-    if (candidate > current) {
-      return true
-    }
-
-    if (candidate < current) {
-      return false
-    }
-  }
-
-  return false
-}
-
-// NOTE: macOS codesign verification temporarily disabled; re-enable when notarized builds are ready.
-// function isMacAppSigned(): boolean {
-//   ...
-// }
-
-function sanitizeVersion(raw?: string | null): string | null {
-  if (!raw) {
-    return null
-  }
-
-  const trimmed = raw.trim()
-  if (!trimmed) {
-    return null
-  }
-
-  return trimmed.startsWith('v') ? trimmed.slice(1) : trimmed
-}
-
-interface GitHubAsset {
-  name: string
-  browser_download_url: string
-  size?: number
-}
-
-interface GitHubRelease {
-  tag_name?: string
-  name?: string
-  assets?: GitHubAsset[]
-}
-
-function requestWithRedirect(
-  urlString: string,
-  headers: Record<string, string>,
-  maxRedirects = 5
-): Promise<IncomingMessage> {
-  return new Promise((resolve, reject) => {
-    const urlObject = new URL(urlString)
-    const request = https.get(
-      {
-        protocol: urlObject.protocol,
-        hostname: urlObject.hostname,
-        path: `${urlObject.pathname}${urlObject.search}`,
-        headers: {
-          'User-Agent': 'EquipmentTrackerApp',
-          ...headers,
-        },
-      },
-      (response) => {
-        const status = response.statusCode ?? 0
-        if (status >= 300 && status < 400 && response.headers.location) {
-          if (maxRedirects <= 0) {
-            response.resume()
-            reject(new Error('Слишком много перенаправлений при обращении к серверу обновлений'))
-            return
-          }
-
-          const redirectUrl = new URL(response.headers.location, urlString).toString()
-          response.resume()
-          requestWithRedirect(redirectUrl, headers, maxRedirects - 1)
-            .then(resolve)
-            .catch(reject)
-          return
-        }
-
-        if (status < 200 || status >= 300) {
-          response.resume()
-          reject(new Error(`Сервер обновлений вернул статус ${status}`))
-          return
-        }
-
-        resolve(response)
-      }
-    )
-
-    request.on('error', (error) => {
-      reject(error)
-    })
-  })
-}
-
-async function fetchLatestReleaseMetadata(): Promise<GitHubRelease> {
-  const response = await requestWithRedirect(
-    'https://api.github.com/repos/MaRT1n1q/Equipment.Tracker/releases/latest',
-    {
-      Accept: 'application/vnd.github+json',
-    }
-  )
-
-  return new Promise<GitHubRelease>((resolve, reject) => {
-    const chunks: Buffer[] = []
-    response.on('data', (chunk: Buffer) => {
-      chunks.push(chunk)
-    })
-
-    response.on('end', () => {
-      try {
-        const payload = Buffer.concat(chunks).toString('utf-8')
-        const json = JSON.parse(payload) as GitHubRelease
-        resolve(json)
-      } catch (error) {
-        reject(error)
-      }
-    })
-
-    response.on('error', (error) => {
-      reject(error)
-    })
-  })
-}
-
-function selectMacAsset(release: GitHubRelease): ManualUpdateInfo {
-  const assets = release.assets ?? []
-  if (assets.length === 0) {
-    throw new Error('В последнем релизе отсутствуют файлы обновления для macOS')
-  }
-
-  const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
-  const selectors: Array<(asset: GitHubAsset) => boolean> = [
-    (asset) => asset.name.endsWith('.dmg') && asset.name.includes(`mac-${arch}`),
-    (asset) => asset.name.endsWith('.dmg') && asset.name.includes('mac'),
-    (asset) => asset.name.endsWith('.zip') && asset.name.includes(`mac-${arch}`),
-    (asset) => asset.name.endsWith('.zip') && asset.name.includes('mac'),
-  ]
-
-  let selected: GitHubAsset | undefined
-  for (const predicate of selectors) {
-    selected = assets.find(predicate)
-    if (selected) {
-      break
-    }
-  }
-
-  if (!selected) {
-    throw new Error('Не удалось подобрать файл обновления для macOS')
-  }
-
-  const version = sanitizeVersion(release.tag_name) ?? sanitizeVersion(release.name) ?? 'unknown'
-
-  return {
-    version,
-    assetName: selected.name,
-    downloadUrl: selected.browser_download_url,
-    size: selected.size,
-  }
-}
-
-async function ensureManualUpdateInfo(forceRefresh = false): Promise<ManualUpdateInfo | null> {
-  if (!manualUpdateInfo || forceRefresh) {
-    const release = await fetchLatestReleaseMetadata()
-    const candidate = selectMacAsset(release)
-    const currentVersion = getCurrentVersion()
-
-    if (!isVersionNewer(currentVersion, candidate.version)) {
-      manualUpdateInfo = null
-      return null
-    }
-
-    manualUpdateInfo = candidate
-  }
-
-  return manualUpdateInfo
-}
-
-async function removeMacQuarantineAttribute(
-  window: BrowserWindow | null,
-  filePath: string
-): Promise<boolean | null> {
+async function removeMacQuarantineAttribute(filePath: string): Promise<void> {
   if (process.platform !== 'darwin') {
-    return null
+    return
   }
 
-  return await new Promise<boolean>((resolve) => {
+  return await new Promise<void>((resolve, reject) => {
     execFile('xattr', ['-d', 'com.apple.quarantine', filePath], (error) => {
       if (error) {
         log.warn('Failed to remove quarantine attribute:', error)
-        sendStatusToWindow(
-          window,
-          'manual-download-warning',
-          'Не удалось снять карантинный атрибут Gatekeeper. Снимите его вручную через Терминал.'
-        )
-        resolve(false)
+        reject(error)
         return
       }
 
       log.info('Quarantine attribute removed from', filePath)
-      sendStatusToWindow(
-        window,
-        'manual-download-quarantine-removed',
-        'Защитный атрибут macOS снят автоматически. Можно запускать установщик.'
-      )
-      resolve(true)
+      resolve()
     })
   })
-}
-
-async function launchMacInstaller(
-  window: BrowserWindow | null,
-  filePath: string
-): Promise<boolean | null> {
-  if (process.platform !== 'darwin') {
-    return null
-  }
-
-  const extension = path.extname(filePath).toLowerCase()
-  const autoOpenExtensions = new Set(['.dmg', '.pkg', '.zip'])
-  if (!autoOpenExtensions.has(extension)) {
-    return null
-  }
-
-  try {
-    const result = await shell.openPath(filePath)
-    if (result) {
-      log.warn('Failed to open installer automatically:', result)
-      sendStatusToWindow(
-        window,
-        'manual-install-open-failed',
-        'Не удалось автоматически открыть установщик. Откройте файл вручную.'
-      )
-      return false
-    }
-
-    log.info('Installer opened automatically for', filePath)
-    sendStatusToWindow(
-      window,
-      'manual-install-opened',
-      'Установщик открыт автоматически. Завершите обновление в появившемся окне.'
-    )
-    return true
-  } catch (error) {
-    log.warn('Failed to open installer automatically:', error)
-    sendStatusToWindow(
-      window,
-      'manual-install-open-failed',
-      'Не удалось автоматически открыть установщик. Откройте файл вручную.'
-    )
-    return false
-  }
-}
-
-async function prepareManualUpdateInfo(window: BrowserWindow | null, forceRefresh = false) {
-  try {
-    const info = await ensureManualUpdateInfo(forceRefresh)
-    if (!info) {
-      sendStatusToWindow(window, 'update-not-available', 'Приложение обновлено до последней версии')
-      return
-    }
-    const sizeLabel = info.size ? formatBytes(info.size) : undefined
-    const detail = sizeLabel
-      ? `Размер файла: ${sizeLabel}`
-      : 'Размер файла будет известен после начала загрузки'
-
-    sendStatusToWindow(
-      window,
-      'manual-update-info',
-      `Доступно обновление v${info.version}. Скачайте установщик вручную.`,
-      {
-        version: info.version,
-        assetName: info.assetName,
-        size: info.size,
-        detail,
-      }
-    )
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Не удалось получить информацию об обновлении'
-    log.warn('Failed to prepare manual update info:', error)
-    sendStatusToWindow(window, 'manual-update-error', message)
-  }
-}
-
-async function fileExists(candidatePath: string): Promise<boolean> {
-  try {
-    await fsPromises.access(candidatePath, fs.constants.F_OK)
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function downloadManualUpdateToDisk(window: BrowserWindow | null): Promise<string> {
-  const info = await ensureManualUpdateInfo()
-  if (!info) {
-    sendStatusToWindow(
-      window,
-      'update-not-available',
-      'Обновление не требуется — установлена последняя версия'
-    )
-    throw new Error('Обновление не требуется')
-  }
-  const downloadsDir = app.getPath('downloads')
-  const targetPath = path.join(downloadsDir, info.assetName)
-
-  manualDownloadPath = targetPath
-
-  if (await fileExists(targetPath)) {
-    await fsPromises.unlink(targetPath)
-  }
-
-  await fsPromises.mkdir(path.dirname(targetPath), { recursive: true })
-
-  sendStatusToWindow(
-    window,
-    'manual-download-started',
-    `Загрузка обновления v${info.version} началась`,
-    {
-      version: info.version,
-      assetName: info.assetName,
-    }
-  )
-
-  try {
-    const response = await requestWithRedirect(info.downloadUrl, {
-      Accept: 'application/octet-stream',
-    })
-
-    const totalBytes = Number(response.headers['content-length'] ?? info.size ?? 0)
-    let downloaded = 0
-
-    await new Promise<void>((resolve, reject) => {
-      const writeStream = fs.createWriteStream(targetPath)
-
-      response.on('data', (chunk: Buffer) => {
-        downloaded += chunk.length
-        if (totalBytes > 0) {
-          const percent = Math.min(100, Math.round((downloaded / totalBytes) * 100))
-          sendStatusToWindow(window, 'manual-download-progress', `Загрузка: ${percent}%`, {
-            percent,
-            downloaded,
-            total: totalBytes,
-          })
-        } else {
-          sendStatusToWindow(
-            window,
-            'manual-download-progress',
-            `Загружено ${formatBytes(downloaded)}`,
-            {
-              percent: null,
-              downloaded,
-              total: totalBytes,
-            }
-          )
-        }
-      })
-
-      response.on('error', (error) => {
-        writeStream.destroy()
-        reject(error)
-      })
-
-      writeStream.on('error', (error) => {
-        response.destroy()
-        reject(error)
-      })
-
-      writeStream.on('finish', () => {
-        resolve()
-      })
-
-      response.pipe(writeStream)
-    })
-
-    const quarantineResult = await removeMacQuarantineAttribute(window, targetPath)
-    const installerOpened = quarantineResult ? await launchMacInstaller(window, targetPath) : null
-
-    const detail: Record<string, unknown> = {
-      path: targetPath,
-      version: info.version,
-      assetName: info.assetName,
-    }
-
-    if (quarantineResult !== null) {
-      detail.quarantineRemoved = quarantineResult
-    }
-
-    if (installerOpened !== null) {
-      detail.installerOpened = installerOpened
-    }
-
-    const completionMessage =
-      quarantineResult === false
-        ? `Обновление v${info.version} загружено. Gatekeeper все еще блокирует файл — снимите атрибут вручную перед установкой.`
-        : installerOpened
-          ? `Обновление v${info.version} загружено. Установщик открыт автоматически.`
-          : `Обновление v${info.version} загружено. Откройте файл для установки.`
-
-    sendStatusToWindow(window, 'manual-download-complete', completionMessage, detail)
-
-    shell.showItemInFolder(targetPath)
-    return targetPath
-  } catch (error) {
-    if (await fileExists(targetPath)) {
-      await fsPromises.unlink(targetPath)
-    }
-
-    const message = error instanceof Error ? error.message : 'Не удалось загрузить обновление'
-    sendStatusToWindow(window, 'manual-download-error', message)
-    throw error
-  }
 }
 
 export function initAutoUpdater(window: BrowserWindow | null) {
@@ -486,36 +46,12 @@ export function initAutoUpdater(window: BrowserWindow | null) {
   }
 
   mainWindowRef = window
-  updaterEnabled = false
-  manualUpdateMode = false
-  manualUpdateInfo = null
-  manualDownloadPath = null
-  manualDownloadInProgress = false
+  updaterEnabled = true
   updateAvailableVersion = null
   updateDownloaded = false
   downloadInProgress = false
 
-  if (process.platform === 'darwin') {
-    manualUpdateMode = true
-    log.warn('Auto-updater disabled: macOS сборка работает в ручном режиме обновлений.')
-    void prepareManualUpdateInfo(window)
-      .catch((error) => {
-        log.warn('Manual update info preparation failed:', error)
-      })
-      .finally(() => {
-        if (mainWindowRef) {
-          sendStatusToWindow(
-            mainWindowRef,
-            'manual-update-mode',
-            'Автообновление недоступно: macOS сборка работает в ручном режиме. Скачайте обновление вручную.'
-          )
-        }
-      })
-    return
-  }
-
   log.info('Auto-updater initialized')
-  updaterEnabled = true
 
   // Проверяем обновления при запуске
   void autoUpdater.checkForUpdates()
@@ -536,7 +72,7 @@ export function initAutoUpdater(window: BrowserWindow | null) {
 
   autoUpdater.on('update-available', (info) => {
     log.info('Update available:', info)
-    updateAvailableVersion = sanitizeVersion(info.version) ?? null
+    updateAvailableVersion = info.version
     updateDownloaded = false
     downloadInProgress = false
     sendStatusToWindow(
@@ -578,6 +114,19 @@ export function initAutoUpdater(window: BrowserWindow | null) {
     log.info('Update downloaded:', info)
     updateDownloaded = true
     downloadInProgress = false
+
+    // Для macOS снимаем карантинный атрибут
+    if (process.platform === 'darwin') {
+      const cachePath = path.join(app.getPath('userData'), 'pending-update')
+      removeMacQuarantineAttribute(cachePath)
+        .then(() => {
+          log.info('Quarantine attribute removed successfully')
+        })
+        .catch((error) => {
+          log.warn('Failed to remove quarantine attribute:', error)
+        })
+    }
+
     sendStatusToWindow(
       window,
       'update-downloaded',
@@ -625,15 +174,7 @@ export function checkForUpdates() {
   }
 
   if (!updaterEnabled) {
-    log.info('Manual update check routed to ручной сценарий обновления')
-    if (manualUpdateMode && mainWindowRef) {
-      sendStatusToWindow(
-        mainWindowRef,
-        'manual-update-mode',
-        'Автообновление недоступно: приложение не подписано. Скачайте установщик вручную.'
-      )
-      void prepareManualUpdateInfo(mainWindowRef, true)
-    }
+    log.info('Auto-updater is not enabled')
     return
   }
 
@@ -645,13 +186,6 @@ export function checkForUpdates() {
 export function installUpdateNow() {
   if (!updaterEnabled) {
     log.info('Install update skipped: auto-updater disabled')
-    if (manualUpdateMode && mainWindowRef) {
-      sendStatusToWindow(
-        mainWindowRef,
-        'manual-update-mode',
-        'Автообновление отключено. Используйте скачанный установщик для обновления.'
-      )
-    }
     return
   }
 
@@ -681,23 +215,6 @@ export function registerUpdaterHandlers() {
     }
 
     if (!updaterEnabled) {
-      if (manualUpdateMode) {
-        const window = mainWindowRef
-        if (window) {
-          sendStatusToWindow(
-            window,
-            'manual-update-mode',
-            'Автообновление отключено. Скачайте установщик вручную.'
-          )
-          void prepareManualUpdateInfo(window, true)
-        }
-
-        return {
-          success: false,
-          error: 'Автообновление отключено. Используйте ручной режим обновления.',
-        }
-      }
-
       return {
         success: false,
         error: 'Автообновление отключено для текущей сборки',
@@ -744,9 +261,7 @@ export function registerUpdaterHandlers() {
     if (!updaterEnabled) {
       return {
         success: false,
-        error: manualUpdateMode
-          ? 'Автообновление отключено. Используйте ручной режим обновления.'
-          : 'Автообновление отключено для текущей сборки',
+        error: 'Автообновление отключено для текущей сборки',
       }
     }
 
@@ -817,9 +332,7 @@ export function registerUpdaterHandlers() {
     if (!updaterEnabled) {
       return {
         success: false,
-        error: manualUpdateMode
-          ? 'Автообновление отключено. Используйте скачанный установщик для обновления.'
-          : 'Автообновление отключено для текущей сборки',
+        error: 'Автообновление отключено для текущей сборки',
       }
     }
 
@@ -840,63 +353,5 @@ export function registerUpdaterHandlers() {
         error: (error as Error).message || 'Не удалось установить обновление',
       }
     }
-  })
-
-  ipcMain.handle('manual-download-update', async () => {
-    if (!manualUpdateMode) {
-      return {
-        success: false,
-        error: 'Ручная загрузка обновления недоступна в текущей сборке',
-      }
-    }
-
-    if (manualDownloadInProgress) {
-      return {
-        success: false,
-        error: 'Загрузка обновления уже выполняется',
-      }
-    }
-
-    const window = mainWindowRef
-
-    try {
-      manualDownloadInProgress = true
-      const downloadPath = await downloadManualUpdateToDisk(window)
-      return {
-        success: true,
-        data: {
-          path: downloadPath,
-        },
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Не удалось скачать обновление. Попробуйте позже.'
-      log.error('Manual update download failed:', error)
-      return {
-        success: false,
-        error: message,
-      }
-    } finally {
-      manualDownloadInProgress = false
-    }
-  })
-
-  ipcMain.handle('manual-open-download', async () => {
-    if (!manualUpdateMode) {
-      return {
-        success: false,
-        error: 'Ручной режим обновлений недоступен',
-      }
-    }
-
-    if (!manualDownloadPath) {
-      return {
-        success: false,
-        error: 'Файл обновления ещё не загружен',
-      }
-    }
-
-    shell.showItemInFolder(manualDownloadPath)
-    return { success: true }
   })
 }

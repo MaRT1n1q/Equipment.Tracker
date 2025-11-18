@@ -78,7 +78,26 @@ export function createTray(getWindow: () => BrowserWindow | null): Tray {
 
   tray.setContextMenu(contextMenu)
 
-  // Обработчик двойного клика по иконке трея
+  // Обработчик клика по иконке трея (для macOS чаще используется одиночный клик)
+  tray.on('click', () => {
+    const window = getWindow()
+    if (window) {
+      if (window.isVisible()) {
+        // На macOS при клике скрываем, если окно видимо
+        if (process.platform === 'darwin') {
+          window.hide()
+        }
+      } else {
+        if (window.isMinimized()) {
+          window.restore()
+        }
+        window.show()
+        window.focus()
+      }
+    }
+  })
+
+  // Обработчик двойного клика по иконке трея (для Windows)
   tray.on('double-click', () => {
     const window = getWindow()
     if (window) {

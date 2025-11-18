@@ -13,9 +13,6 @@ type UpdateState =
   | 'downloaded'
   | 'error'
   | 'installing'
-  | 'manual-required'
-  | 'manual-downloading'
-  | 'manual-downloaded'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -28,9 +25,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null)
   const [availableVersion, setAvailableVersion] = useState<string | null>(null)
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
-  const [isManualUpdateMode, setIsManualUpdateMode] = useState(false)
-  const [manualDetail, setManualDetail] = useState<string | null>(null)
-  const [manualDownloadPath, setManualDownloadPath] = useState<string | null>(null)
 
   useEffect(() => {
     if (window.electronAPI?.getAppVersion) {
@@ -65,9 +59,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           setUpdateState('checking')
           setAvailableVersion(null)
           setDownloadProgress(null)
-          setIsManualUpdateMode(false)
-          setManualDetail(null)
-          setManualDownloadPath(null)
           break
         case 'update-available': {
           const versionCandidate =
@@ -79,18 +70,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           setUpdateState('available')
           setAvailableVersion(versionCandidate)
           setDownloadProgress(null)
-          setIsManualUpdateMode(false)
-          setManualDetail(null)
-          setManualDownloadPath(null)
           break
         }
         case 'update-not-available':
           setUpdateState('no-update')
           setAvailableVersion(null)
           setDownloadProgress(null)
-          setIsManualUpdateMode(false)
-          setManualDetail(null)
-          setManualDownloadPath(null)
           break
         case 'download-progress': {
           let percentValue: number | null = null
@@ -104,13 +89,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           }
           setUpdateState('downloading')
           setDownloadProgress(percentValue)
-          setIsManualUpdateMode(false)
           break
         }
         case 'download-started':
           setUpdateState('downloading')
           setDownloadProgress(0)
-          setIsManualUpdateMode(false)
           break
         case 'update-downloaded': {
           const versionCandidate =
@@ -122,95 +105,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           setUpdateState('downloaded')
           setAvailableVersion((prev) => versionCandidate ?? prev)
           setDownloadProgress(100)
-          setIsManualUpdateMode(false)
           break
         }
         case 'update-error':
           setUpdateState('error')
           setAvailableVersion(null)
           setDownloadProgress(null)
-          setIsManualUpdateMode(false)
-          break
-        case 'manual-update-mode':
-          setIsManualUpdateMode(true)
-          setUpdateState('manual-required')
-          setDownloadProgress(null)
-          setManualDownloadPath(null)
-          setManualDetail(null)
-          break
-        case 'manual-update-info': {
-          setIsManualUpdateMode(true)
-          const versionCandidate =
-            data && typeof data.version === 'string'
-              ? data.version
-              : data && typeof data.version === 'number'
-                ? String(data.version)
-                : null
-          const detailText = data && typeof data.detail === 'string' ? data.detail : null
-          setAvailableVersion((prev) => versionCandidate ?? prev)
-          setManualDetail(detailText)
-          setManualDownloadPath((prev) => prev)
-          setUpdateState((prev) => {
-            if (prev === 'manual-downloading' || prev === 'manual-downloaded') {
-              return prev
-            }
-            return 'manual-required'
-          })
-          break
-        }
-        case 'manual-download-started':
-          setIsManualUpdateMode(true)
-          setUpdateState('manual-downloading')
-          setDownloadProgress(0)
-          setManualDownloadPath(null)
-          break
-        case 'manual-download-progress': {
-          setIsManualUpdateMode(true)
-          setUpdateState('manual-downloading')
-          let percentValue: number | null = null
-          if (data) {
-            if (typeof data.percent === 'number') {
-              percentValue = Math.round(data.percent)
-            } else if (typeof data.percent === 'string') {
-              const parsed = Number(data.percent)
-              percentValue = Number.isFinite(parsed) ? Math.round(parsed) : null
-            }
-          }
-          setDownloadProgress(percentValue)
-          break
-        }
-        case 'manual-download-complete': {
-          setIsManualUpdateMode(true)
-          setUpdateState('manual-downloaded')
-          setDownloadProgress(100)
-          const pathValue = data && typeof data.path === 'string' ? data.path : null
-          const versionCandidate =
-            data && typeof data.version === 'string'
-              ? data.version
-              : data && typeof data.version === 'number'
-                ? String(data.version)
-                : null
-          setManualDownloadPath(pathValue)
-          setAvailableVersion((prev) => versionCandidate ?? prev)
-          break
-        }
-        case 'manual-download-error':
-          setIsManualUpdateMode(true)
-          setUpdateState('error')
-          setDownloadProgress(null)
-          setManualDownloadPath(null)
-          break
-        case 'manual-download-warning':
-          toast.warning(payload.message)
-          break
-        case 'manual-download-quarantine-removed':
-          toast.success(payload.message)
-          break
-        case 'manual-install-opened':
-          toast.success(payload.message)
-          break
-        case 'manual-install-open-failed':
-          toast.warning(payload.message)
           break
         default:
           break
@@ -262,25 +162,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }
 
-  const manualDownloadReady =
-    isManualUpdateMode && updateState === 'manual-downloaded' && Boolean(manualDownloadPath)
   const isActiveProcess =
-    updateState === 'checking' ||
-    updateState === 'downloading' ||
-    updateState === 'installing' ||
-    updateState === 'manual-downloading'
+    updateState === 'checking' || updateState === 'downloading' || updateState === 'installing'
   const shouldAnimateUpdateIcon = isActiveProcess
   const updateButtonLabel = (() => {
-    if (isManualUpdateMode) {
-      if (updateState === 'manual-downloading') {
-        return 'Загрузка обновления...'
-      }
-      if (manualDownloadReady) {
-        return 'Открыть установщик'
-      }
-      return 'Скачать обновление'
-    }
-
     if (updateState === 'checking') {
       return 'Проверяем обновления...'
     }
@@ -300,34 +185,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     return 'Проверить обновления'
   })()
   const updateDescription = (() => {
-    if (isManualUpdateMode) {
-      if (updateState === 'manual-downloading') {
-        if (updateMessage) {
-          return updateMessage
-        }
-        if (downloadProgress !== null) {
-          return `Загрузка установщика${availableVersion ? ` v${availableVersion}` : ''}: ${downloadProgress}%`
-        }
-        return 'Загрузка установщика...'
-      }
-
-      if (updateState === 'manual-downloaded') {
-        return (
-          updateMessage ||
-          `Установщик${availableVersion ? ` v${availableVersion}` : ''} скачан. Откройте файл для обновления.`
-        )
-      }
-
-      return (
-        updateMessage ||
-        manualDetail ||
-        (availableVersion
-          ? `Доступна новая версия v${availableVersion}. Скачайте установщик вручную.`
-          : null) ||
-        'Автообновление отключено. Скачайте установщик вручную и запустите его.'
-      )
-    }
-
     if (updateState === 'checking') {
       return updateMessage || 'Выполняется проверка обновлений...'
     }
@@ -364,70 +221,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     updateState === 'error' ? 'text-destructive' : 'text-muted-foreground'
 
   const handleUpdateAction = async () => {
-    if (isManualUpdateMode) {
-      if (
-        !window.electronAPI?.downloadManualUpdate ||
-        !window.electronAPI?.openManualUpdateLocation
-      ) {
-        toast.error('Функция обновления недоступна')
-        return
-      }
-
-      if (updateState === 'manual-downloading') {
-        toast.info('Загрузка обновления уже выполняется')
-        return
-      }
-
-      if (manualDownloadReady) {
-        try {
-          const result = await window.electronAPI.openManualUpdateLocation()
-          if (!result.success) {
-            const message =
-              result.error || 'Не удалось открыть папку с установщиком. Откройте её вручную.'
-            setUpdateMessage(message)
-            toast.error(message)
-          }
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : 'Не удалось открыть папку с установщиком. Попробуйте вручную.'
-          setUpdateMessage(message)
-          toast.error(message)
-        }
-        return
-      }
-
-      try {
-        setIsManualUpdateMode(true)
-        setUpdateState('manual-downloading')
-        setUpdateMessage('Загрузка установщика...')
-        setDownloadProgress(0)
-        setManualDownloadPath(null)
-        const result = await window.electronAPI.downloadManualUpdate()
-        if (!result.success) {
-          const message = result.error || 'Не удалось скачать обновление. Повторите попытку позже.'
-          setUpdateState('error')
-          setUpdateMessage(message)
-          toast.error(message)
-        } else {
-          const downloadedPath =
-            result.data && typeof result.data.path === 'string' ? result.data.path : null
-          if (downloadedPath) {
-            setManualDownloadPath(downloadedPath)
-          }
-          toast.success('Установщик скачан. Проверьте папку загрузок.')
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Не удалось скачать обновление'
-        setUpdateState('error')
-        setUpdateMessage(message)
-        toast.error(message)
-      }
-
-      return
-    }
-
     if (!window.electronAPI?.checkForUpdates || !window.electronAPI?.downloadUpdate) {
       toast.error('Функция обновления недоступна')
       return
@@ -595,8 +388,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 disabled={
                   updateState === 'checking' ||
                   updateState === 'downloading' ||
-                  updateState === 'installing' ||
-                  updateState === 'manual-downloading'
+                  updateState === 'installing'
                 }
               >
                 <div className="flex items-start gap-3 w-full">
