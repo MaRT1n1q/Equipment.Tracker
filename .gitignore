@@ -29,4 +29,3 @@ release
 *.db
 *.sqlite
 *.sqlite3
-package-lock.json
