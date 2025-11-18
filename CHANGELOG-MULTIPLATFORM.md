@@ -69,13 +69,13 @@ git push --follow-tags
 npm run build
 
 # Только Windows
-npm run build:win
+npm run build -- --win
 
 # Только macOS
-npm run build:mac
+npm run build -- --mac
 
 # Только Linux
-npm run build:linux
+npm run build -- --linux
 ```
 
 ## ⏱️ Время сборки

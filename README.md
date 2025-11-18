@@ -144,31 +144,33 @@ cd Equipment.Tracker
 npm install
 
 # 3️⃣ Запуск в режиме разработки
-npm run electron:dev
+npm run dev              # Полный Electron + Vite
+# только UI (опционально)
+npm run dev:renderer
 
 # 4️⃣ Сборка для production
-npm run build            # Все платформы
-npm run build:win        # Только Windows
-npm run build:mac        # Только macOS
-npm run build:linux      # Только Linux
+npm run build            # Текущая платформа
+npm run build -- --win   # Принудительно Windows
+npm run build -- --mac   # Принудительно macOS
+npm run build -- --linux # Принудительно Linux
 ```
 
 <details>
 <summary>📋 <b>Все доступные команды</b></summary>
 
-| Команда                | Описание                             |
-| ---------------------- | ------------------------------------ |
-| `npm run dev`          | Запуск Vite dev-сервера (только UI)  |
-| `npm run electron:dev` | Запуск Electron + Vite с hot-reload  |
-| `npm run electron`     | Запуск собранного приложения         |
-| `npm run build`        | Production сборка для всех платформ  |
-| `npm run build:bundle` | Сборка только бандлов (без упаковки) |
-| `npm run build:win`    | Сборка Windows (.exe)                |
-| `npm run build:mac`    | Сборка macOS (.dmg, .zip)            |
-| `npm run build:linux`  | Сборка Linux (.AppImage, .deb)       |
-| `npm run lint`         | Проверка кода ESLint                 |
-| `npm run format`       | Форматирование кода Prettier         |
-| `npm run format:check` | Проверка форматирования              |
+| Команда                    | Описание                             |
+| -------------------------- | ------------------------------------ |
+| `npm run dev`              | Запуск Electron + Vite с hot-reload  |
+| `npm run dev:renderer`     | Только Vite dev-сервер (UI)          |
+| `npm run electron`         | Запуск собранного приложения         |
+| `npm run build`            | Production сборка для текущей ОС     |
+| `npm run build -- --win`   | Сборка Windows (.exe)                |
+| `npm run build -- --mac`   | Сборка macOS (.dmg/.zip)             |
+| `npm run build -- --linux` | Сборка Linux (.AppImage/.deb)        |
+| `npm run build:bundle`     | Сборка только бандлов (без упаковки) |
+| `npm run lint`             | Проверка кода ESLint                 |
+| `npm run format`           | Форматирование кода Prettier         |
+| `npm run format:check`     | Проверка форматирования              |
 
 </details>
 
@@ -355,7 +357,7 @@ npm run format:check     # Проверка форматирования
 <summary>⚡ <b>Hot Reload</b></summary>
 
 - **Renderer**: Автоматический при изменении `src/`
-- **Main**: Требует перезапуска `electron:dev` при изменении `electron/`
+- **Main**: Требует перезапуска `npm run dev` при изменении `electron/`
 - **Preload**: Требует полной перезагрузки окна (Ctrl+R)
 
 </details>

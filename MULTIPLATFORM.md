@@ -30,7 +30,7 @@
 
 ## 🛠️ Локальная сборка
 
-### Все платформы сразу
+### Текущая платформа
 
 ```bash
 npm run build
@@ -39,13 +39,13 @@ npm run build
 ### Windows
 
 ```bash
-npm run build:win
+npm run build -- --win
 ```
 
 ### macOS
 
 ```bash
-npm run build:mac
+npm run build -- --mac
 ```
 
 **Примечание**: Для сборки macOS нужна macOS система или GitHub Actions
@@ -53,7 +53,7 @@ npm run build:mac
 ### Linux
 
 ```bash
-npm run build:linux
+npm run build -- --linux
 ```
 
 ## 🤖 Автоматическая сборка через GitHub Actions

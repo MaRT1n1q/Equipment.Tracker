@@ -30,7 +30,7 @@ jobs:
         shell: pwsh
 
       - name: Build Windows application
-        run: npm run build:win
+        run: npm run build -- --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -64,7 +64,7 @@ jobs:
         run: rm -rf release
 
       - name: Build macOS application
-        run: npm run build:mac
+        run: npm run build -- --mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -98,7 +98,7 @@ jobs:
         run: rm -rf release
 
       - name: Build Linux application
-        run: npm run build:linux
+        run: npm run build -- --linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

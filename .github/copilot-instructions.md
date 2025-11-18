@@ -99,9 +99,9 @@
 ## Build & Runbook
 
 - Install dependencies with `npm install`; postinstall runs `electron-builder install-app-deps` for native modules.
-- Renderer-only dev: `npm run dev`; full Electron dev with auto-reload: `npm run electron:dev` (Vite + wait-on + electron).
+- Renderer-only dev: `npm run dev:renderer`; full Electron dev with auto-reload: `npm run dev` (Vite + wait-on + electron).
 - Production bundle: `npm run build:bundle` (tsc + vite) feeds into electron-builder tasks.
-- Platform builds: `npm run build:win|build:mac|build:linux`; the aggregate `npm run build` targets all three.
+- Platform builds: `npm run build -- --win|--mac|--linux`; plain `npm run build` targets the current host OS.
 - CI-friendly headless build uses `npm run build:ci` (tsc --noEmit + vite build).
 - Packaged artifacts land in `release/`; renderer output in `dist/`, main/preload bundle in `dist-electron/`.
 - Electron Builder config lives in the build section of `package.json`; adjust artifact names or targets there, not ad hoc scripts.

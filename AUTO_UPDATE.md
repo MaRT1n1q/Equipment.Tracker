@@ -53,7 +53,7 @@ git push --tags
 #### 1. Соберите приложение
 
 ```bash
-npm run build:win
+npm run build -- --win
 ```
 
 #### 2. Создайте GitHub Release
@@ -76,7 +76,7 @@ npm run build:win
 set GH_TOKEN=ваш_github_token
 
 # Соберите и опубликуйте
-npm run build:win -- --publish always
+npm run build -- --win --publish always
 ```
 
 ### Пользователи получат обновление автоматически

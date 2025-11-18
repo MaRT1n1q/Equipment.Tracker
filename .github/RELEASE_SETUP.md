@@ -100,7 +100,7 @@ git push --tags
 
 ```yaml
 - name: Build application
-  run: npm run build:win
+  run: npm run build -- --win
   env:
     GH_TOKEN: ${{ secrets.RELEASE_TOKEN }} # Вместо GITHUB_TOKEN
 ```
