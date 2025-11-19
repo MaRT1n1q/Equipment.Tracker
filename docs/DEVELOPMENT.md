@@ -32,9 +32,11 @@ npm run dev
 ### Режимы разработки
 
 #### 1. Полный режим (рекомендуется)
+
 ```bash
 npm run dev
 ```
+
 - Запускает Vite dev-сервер для React
 - Запускает Electron с hot-reload
 - DevTools открываются автоматически
@@ -42,19 +44,23 @@ npm run dev
 - Изменения в `electron/` требуют перезапуска
 
 #### 2. Только renderer (для работы над UI)
+
 ```bash
 npm run dev:renderer
 ```
+
 - Запускает только Vite dev-сервер
 - Быстрее загружается
 - Без Electron функциональности
 - Полезно для чистой работы над UI
 
 #### 3. Production build для тестирования
+
 ```bash
 npm run build:bundle
 npm run electron
 ```
+
 - Сборка production версии
 - Тестирование в реальных условиях
 - Проверка автообновлений, уведомлений
@@ -62,10 +68,12 @@ npm run electron
 ### Переменные окружения
 
 В режиме разработки доступны:
+
 - `NODE_ENV=development`
 - `VITE_DEV_SERVER_URL=http://localhost:5173`
 
 В production:
+
 - `NODE_ENV=production`
 
 ## Архитектура кодовой базы
@@ -73,7 +81,9 @@ npm run electron
 ### Main Process (electron/)
 
 #### main.ts
+
 Точка входа приложения. Отвечает за:
+
 - Инициализацию приложения
 - Проверку единственного экземпляра
 - Создание окна
@@ -90,7 +100,9 @@ app.on('ready', async () => {
 ```
 
 #### database.ts
+
 Управление SQLite через Knex:
+
 - Создание подключения
 - Инициализация схемы
 - Применение миграций
@@ -106,7 +118,9 @@ await knex.schema.createTable('new_table', (table) => {
 ```
 
 #### ipc/
+
 IPC обработчики для связи с renderer:
+
 - `requests.ts` — CRUD для заявок
 - `employeeExits.ts` — CRUD для выходов
 - `templates.ts` — CRUD для шаблонов
@@ -149,7 +163,7 @@ export function useRequests() {
       const response = await window.electronAPI.getRequests()
       if (!response.success) throw new Error(response.error)
       return response.data
-    }
+    },
   })
 }
 
@@ -164,7 +178,7 @@ export function useCreateRequest() {
     },
     onError: (error) => {
       toast.error(error.message)
-    }
+    },
   })
 }
 ```
@@ -216,7 +230,7 @@ await knex.schema.createTable('new_table', (table) => {
 // src/types/ipc.ts
 export const myDataSchema = z.object({
   name: z.string().min(1),
-  value: z.number()
+  value: z.number(),
 })
 
 export type MyData = z.infer<typeof myDataSchema>
@@ -304,7 +318,7 @@ export function useMyData() {
       const response = await window.electronAPI.getMyData()
       if (!response.success) throw new Error(response.error)
       return response.data
-    }
+    },
   })
 }
 
@@ -315,7 +329,7 @@ export function useCreateMyData() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myData'] })
       toast.success('Данные созданы')
-    }
+    },
   })
 }
 ```
@@ -355,13 +369,11 @@ const items = await db('table_name')
 // INSERT
 const [id] = await db('table_name').insert({
   name: 'value',
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
 })
 
 // UPDATE
-await db('table_name')
-  .where('id', id)
-  .update({ name: 'new value' })
+await db('table_name').where('id', id).update({ name: 'new value' })
 
 // DELETE
 await db('table_name').where('id', id).del()
@@ -425,7 +437,8 @@ await knex.schema.alterTable('requests', (table) => {
 .dark {
   --primary: 210 40% 98%;
   --secondary: 217.2 32.6% 17.5%;
-  /* ... */}
+  /* ... */
+}
 ```
 
 ### shadcn/ui компоненты
@@ -466,6 +479,7 @@ log.error('Error:', error)
 ```
 
 Логи сохраняются в:
+
 - **Windows**: `%USERPROFILE%\AppData\Roaming\Equipment Tracker\logs\`
 - **macOS**: `~/Library/Logs/Equipment Tracker/`
 - **Linux**: `~/.config/Equipment Tracker/logs/`
@@ -503,7 +517,7 @@ console.log('Got:', result)
 const knex = Knex({
   client: 'sqlite3',
   connection: { filename: dbPath },
-  debug: true // Логирует все SQL запросы
+  debug: true, // Логирует все SQL запросы
 })
 ```
 
@@ -512,6 +526,7 @@ const knex = Knex({
 ### Ручное тестирование
 
 #### Checklist для новых функций:
+
 - [ ] Создание записи
 - [ ] Редактирование записи
 - [ ] Удаление записи
@@ -526,6 +541,7 @@ const knex = Knex({
 - [ ] Responsive дизайн
 
 #### Тестирование на платформах:
+
 - Windows (обязательно)
 - macOS (если доступно)
 - Linux (если доступно)
@@ -559,6 +575,7 @@ npm run format:check  # Только проверка
 ### Pre-commit hooks
 
 Автоматически запускается через Husky:
+
 1. Линтинг staged файлов
 2. Prettier проверка
 3. Блокировка коммита при ошибках
@@ -572,9 +589,9 @@ export default [
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn'
-    }
-  }
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
 ]
 ```
 
@@ -611,6 +628,7 @@ release-multiplatform.bat # Все платформы через CI
 ```
 
 Или вручную:
+
 ```bash
 npm version patch  # 1.0.0 -> 1.0.1
 npm version minor  # 1.0.0 -> 1.1.0
@@ -633,6 +651,7 @@ git push --follow-tags
 ### TypeScript
 
 ✅ **Хорошо:**
+
 ```typescript
 interface User {
   id: number
@@ -643,6 +662,7 @@ const user: User = { id: 1, name: 'John' }
 ```
 
 ❌ **Плохо:**
+
 ```typescript
 const user: any = { id: 1, name: 'John' }
 ```
@@ -650,12 +670,14 @@ const user: any = { id: 1, name: 'John' }
 ### React Hooks
 
 ✅ **Хорошо:**
+
 ```typescript
 const memoizedValue = useMemo(() => computeExpensive(data), [data])
 const stableCallback = useCallback(() => doSomething(), [])
 ```
 
 ❌ **Плохо:**
+
 ```typescript
 const value = computeExpensive(data) // Вычисляется каждый рендер
 ```
@@ -663,6 +685,7 @@ const value = computeExpensive(data) // Вычисляется каждый ре
 ### Обработка ошибок
 
 ✅ **Хорошо:**
+
 ```typescript
 try {
   await riskyOperation()
@@ -673,6 +696,7 @@ try {
 ```
 
 ❌ **Плохо:**
+
 ```typescript
 try {
   await riskyOperation()
@@ -684,16 +708,15 @@ try {
 ### Производительность
 
 ✅ **Хорошо:**
+
 ```typescript
-const filteredItems = useMemo(
-  () => items.filter(item => item.active),
-  [items]
-)
+const filteredItems = useMemo(() => items.filter((item) => item.active), [items])
 ```
 
 ❌ **Плохо:**
+
 ```typescript
-const filteredItems = items.filter(item => item.active) // Каждый рендер
+const filteredItems = items.filter((item) => item.active) // Каждый рендер
 ```
 
 ## Часто встречающиеся проблемы
@@ -711,12 +734,14 @@ taskkill /PID <PID> /F
 ### Electron не запускается
 
 1. Удалите node_modules и переустановите:
+
 ```bash
 rm -rf node_modules
 npm install
 ```
 
 2. Пересоберите нативные модули:
+
 ```bash
 npm run postinstall
 ```
@@ -739,6 +764,7 @@ rm %APPDATA%/equipment-tracker/*.db-wal
 ## Полезные ссылки
 
 ### Документация
+
 - [Electron Docs](https://www.electronjs.org/docs/latest)
 - [React Docs](https://react.dev/)
 - [TanStack Query](https://tanstack.com/query/latest)
@@ -747,6 +773,7 @@ rm %APPDATA%/equipment-tracker/*.db-wal
 - [Knex.js](https://knexjs.org/)
 
 ### Инструменты
+
 - [SQLite Browser](https://sqlitebrowser.org/)
 - [React DevTools](https://react.dev/learn/react-developer-tools)
 - [VS Code](https://code.visualstudio.com/)
@@ -758,6 +785,7 @@ rm %APPDATA%/equipment-tracker/*.db-wal
 ## Поддержка
 
 Если возникли вопросы:
+
 1. Проверьте [TROUBLESHOOTING.md](./troubleshooting.md)
 2. Поищите в [Issues](https://github.com/MaRT1n1q/Equipment.Tracker/issues)
 3. Создайте новый Issue с подробным описанием

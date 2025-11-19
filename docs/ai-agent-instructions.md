@@ -5,6 +5,7 @@
 **Equipment Tracker** — это десктопное приложение на Electron для учёта выдачи оборудования сотрудникам и управления их выходами.
 
 ### Ключевые характеристики:
+
 - **Платформа**: Electron 39 + React 19 + TypeScript 5
 - **База данных**: SQLite 3 (локальная, оффлайн)
 - **Архитектура**: Разделение Main Process (Node.js) и Renderer Process (React)
@@ -14,22 +15,26 @@
 ## Архитектурные принципы
 
 ### 1. Безопасность превыше всего
+
 - Context Isolation включен
 - Node Integration отключен
 - Все операции с Node.js только через IPC
 - Валидация данных на обеих сторонах (Zod)
 
 ### 2. Оффлайн-первый подход
+
 - Все данные хранятся локально в SQLite
 - Не требуется интернет для работы
 - Автоматические резервные копии
 
 ### 3. Типизация везде
+
 - Строгий режим TypeScript
 - Zod схемы для runtime валидации
 - Синхронизированные типы между Main и Renderer
 
 ### 4. Реактивность и производительность
+
 - TanStack Query для управления состоянием
 - Оптимистичные обновления
 - Debouncing для поиска
@@ -57,6 +62,7 @@ equipment-tracker/
 ### 1. При изменении базы данных
 
 **ВСЕГДА:**
+
 1. Создавай миграцию в `electron/migrations.ts`
 2. Обновляй схему в `electron/database.ts` (для новых установок)
 3. Проверяй идемпотентность миграции
@@ -79,14 +85,16 @@ export async function migrateNewFeature(knex: Knex): Promise<void> {
 **Последовательность действий:**
 
 1. **Создай Zod схему** в `src/types/ipc.ts`:
+
 ```typescript
 export const myDataSchema = z.object({
   name: z.string().min(1),
-  value: z.number()
+  value: z.number(),
 })
 ```
 
 2. **Создай IPC handler** в `electron/ipc/`:
+
 ```typescript
 ipcMain.handle('my-channel', async (event, payload) => {
   try {
@@ -102,11 +110,13 @@ ipcMain.handle('my-channel', async (event, payload) => {
 3. **Зарегистрируй** в `electron/main.ts`
 
 4. **Экспортируй** через `electron/preload.ts`:
+
 ```typescript
 myMethod: (data) => ipcRenderer.invoke('my-channel', data)
 ```
 
 5. **Типизируй** в `src/types/electron.d.ts`:
+
 ```typescript
 interface ElectronAPI {
   myMethod: (data: MyData) => Promise<ApiResponse<Result>>
@@ -116,12 +126,14 @@ interface ElectronAPI {
 ### 3. При создании React компонента
 
 **Следуй структуре:**
+
 - View компоненты — главные экраны (`RequestsView.tsx`)
 - Modal компоненты — модальные окна (`AddRequestModal.tsx`)
 - Shared компоненты — переиспользуемые (`SearchAndFilters.tsx`)
 - UI компоненты — примитивы в `components/ui/`
 
 **Используй:**
+
 - TanStack Query для данных
 - Custom hooks для логики
 - TypeScript строго
@@ -130,9 +142,9 @@ interface ElectronAPI {
 ```typescript
 export function MyView() {
   const { data, isLoading } = useMyData()
-  
+
   if (isLoading) return <TableSkeleton />
-  
+
   return (
     <div className="space-y-4">
       {data?.map(item => (
@@ -156,7 +168,7 @@ export function useRequests() {
       const response = await window.electronAPI.getRequests()
       if (!response.success) throw new Error(response.error)
       return response.data
-    }
+    },
   })
 }
 
@@ -171,7 +183,7 @@ export function useCreateRequest() {
     },
     onError: (error) => {
       toast.error(error.message)
-    }
+    },
   })
 }
 ```
@@ -230,6 +242,7 @@ interface Request {
 ### Оптимизация производительности
 
 **Приоритеты:**
+
 1. Добавь индексы в БД для часто используемых фильтров
 2. Используй useMemo для тяжёлых вычислений
 3. Добавь debouncing для поиска
@@ -241,21 +254,24 @@ interface Request {
 ### ❌ Никогда не делай:
 
 1. **Не добавляй nodeIntegration в renderer**
+
    ```typescript
    // ❌ ПЛОХО
    nodeIntegration: true
    ```
 
 2. **Не используй any без крайней необходимости**
+
    ```typescript
    // ❌ ПЛОХО
    const data: any = {}
-   
+
    // ✅ ХОРОШО
    const data: MyType = {}
    ```
 
 3. **Не игнорируй ошибки**
+
    ```typescript
    // ❌ ПЛОХО
    try {
@@ -263,7 +279,7 @@ interface Request {
    } catch (error) {
      // пусто
    }
-   
+
    // ✅ ХОРОШО
    try {
      await operation()
@@ -274,6 +290,7 @@ interface Request {
    ```
 
 4. **Не удаляй данные пользователя без бэкапа**
+
    ```typescript
    // ✅ ХОРОШО
    await createBackup()
@@ -285,10 +302,11 @@ interface Request {
    - Миграции должны быть идемпотентными
 
 6. **Не используй прямой доступ к Node.js в renderer**
+
    ```typescript
    // ❌ ПЛОХО (в renderer)
    import fs from 'fs'
-   
+
    // ✅ ХОРОШО (через IPC)
    await window.electronAPI.readFile()
    ```
@@ -314,6 +332,7 @@ interface Request {
 ### Компоненты shadcn/ui
 
 Всегда используй готовые компоненты из `components/ui/`:
+
 - Button, Dialog, Input, Select
 - Tooltip, Dropdown, Card
 - И другие
@@ -321,6 +340,7 @@ interface Request {
 ### Локализация
 
 **ВСЕ** пользовательские строки на русском:
+
 ```typescript
 // ✅ ХОРОШО
 toast.success('Заявка создана')
@@ -333,6 +353,7 @@ toast.success('Request created')
 ## Отладка
 
 ### Main Process
+
 ```typescript
 import log from 'electron-log'
 log.info('Debug info:', data)
@@ -341,11 +362,13 @@ log.info('Debug info:', data)
 Логи: `%USERPROFILE%\AppData\Roaming\Equipment Tracker\logs\`
 
 ### Renderer Process
+
 - DevTools автоматически в dev режиме
 - React Query DevTools встроен
 - `console.log()` в DevTools консоль
 
 ### База данных
+
 ```bash
 # Открыть в SQLite Browser
 %APPDATA%\equipment-tracker\equipment.db
@@ -381,6 +404,7 @@ npm run build:bundle
 ## Сборка и релиз
 
 ### Локальная сборка
+
 ```bash
 npm run build              # Текущая ОС
 npm run build -- --win     # Windows
@@ -389,6 +413,7 @@ npm run build -- --linux   # Linux
 ```
 
 ### Создание релиза
+
 ```bash
 # Автоматически (рекомендуется)
 release-multiplatform.bat  # Все платформы через CI
@@ -429,6 +454,7 @@ git push --follow-tags
 ## Полезные ссылки
 
 ### Внутренняя документация
+
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — архитектура проекта
 - [DEVELOPMENT.md](./DEVELOPMENT.md) — руководство разработчика
 - [DATABASE.md](./DATABASE.md) — схема базы данных
@@ -436,6 +462,7 @@ git push --follow-tags
 - [TROUBLESHOOTING.md](./troubleshooting.md) — решение проблем
 
 ### Внешняя документация
+
 - [Electron Docs](https://www.electronjs.org/docs/latest)
 - [React Docs](https://react.dev/)
 - [TanStack Query](https://tanstack.com/query/latest)
@@ -511,7 +538,7 @@ export function useSearchRequests(query: string) {
       if (!response.success) throw new Error(response.error)
       return response.data
     },
-    enabled: query.length > 0
+    enabled: query.length > 0,
   })
 }
 

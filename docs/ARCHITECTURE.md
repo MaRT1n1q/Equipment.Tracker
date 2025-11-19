@@ -7,6 +7,7 @@ Equipment Tracker — это десктопное приложение на ба
 ## Технологический стек
 
 ### Фронтенд (Renderer Process)
+
 - **React 19** — основная библиотека UI
 - **TypeScript 5** — строгая типизация
 - **Vite 7** — сборщик и dev-сервер
@@ -17,6 +18,7 @@ Equipment Tracker — это десктопное приложение на ба
 - **Sonner** — toast-уведомления
 
 ### Бэкенд (Main Process)
+
 - **Electron 39** — десктопная оболочка
 - **SQLite 3** — локальная база данных
 - **Knex.js** — query builder для работы с БД
@@ -25,6 +27,7 @@ Equipment Tracker — это десктопное приложение на ба
 - **electron-log** — логирование
 
 ### Инструменты разработки
+
 - **ESLint** — линтер кода
 - **Prettier** — форматирование кода
 - **Husky** — git hooks
@@ -137,6 +140,7 @@ equipment-tracker/
 ### Запуск
 
 1. **Инициализация Main Process** (`electron/main.ts`)
+
    ```
    app.on('ready') →
      Проверка единственного экземпляра →
@@ -202,35 +206,41 @@ React Re-render
 ### Main Process Components
 
 #### 1. Window Manager (`window.ts`)
+
 - Создание и управление главным окном
 - Установка CSP заголовков
 - Сохранение/восстановление позиции и размера окна
 - Управление DevTools
 
 #### 2. Database Manager (`database.ts`)
+
 - Инициализация SQLite подключения через Knex
 - Создание схемы БД при первом запуске
 - Применение миграций
 - Заполнение демо-данными в dev-режиме
 
 #### 3. IPC Handlers (`ipc/`)
+
 - Обработка запросов из renderer процесса
 - Валидация входных данных через Zod
 - Выполнение операций с БД
 - Возврат типизированных ответов
 
 #### 4. Notification Scheduler (`notifications.ts`)
+
 - Периодическая проверка предстоящих выходов
 - Отправка системных уведомлений
 - 4 временных слота в день: 09:00, 12:00, 15:00, 18:00
 
 #### 5. Auto-updater (`updater.ts`)
+
 - Проверка обновлений при запуске
 - Периодическая проверка каждые 4 часа
 - Автоматическая загрузка обновлений
 - Уведомления о доступных обновлениях
 
 #### 6. Tray Manager (`tray.ts`)
+
 - Иконка в системном трее
 - Контекстное меню
 - Показ/скрытие окна
@@ -239,17 +249,20 @@ React Re-render
 ### Renderer Process Components
 
 #### 1. State Management
+
 - **TanStack Query** для серверного состояния (запросы к БД)
 - **React State** для локального состояния UI
 - **LocalStorage** для персистентных настроек (тема, размер sidebar)
 
 #### 2. View Components
+
 - **Dashboard** — главная панель со статистикой
 - **RequestsView** — список заявок на оборудование
 - **EmployeeExitView** — календарь и таблица выходов
 - **TemplatesView** — шаблоны для быстрого создания заявок
 
 #### 3. Modal Components
+
 - **AddRequestModal** — создание новой заявки
 - **EditRequestModal** — редактирование заявки
 - **AddEmployeeExitModal** — создание выхода
@@ -257,6 +270,7 @@ React Re-render
 - **SettingsModal** — настройки и управление бэкапами
 
 #### 4. Shared Components
+
 - **SearchAndFilters** — поиск и фильтрация данных
 - **TableSkeleton** — skeleton loader для таблиц
 - **Sidebar** — боковая панель навигации
@@ -267,6 +281,7 @@ React Re-render
 ### Основные сущности
 
 #### 1. Request (Заявка)
+
 ```typescript
 interface Request {
   id: number
@@ -283,6 +298,7 @@ interface Request {
 ```
 
 #### 2. EquipmentItem (Единица оборудования)
+
 ```typescript
 interface EquipmentItem {
   id: number
@@ -293,6 +309,7 @@ interface EquipmentItem {
 ```
 
 #### 3. EmployeeExit (Выход сотрудника)
+
 ```typescript
 interface EmployeeExit {
   id: number
@@ -305,6 +322,7 @@ interface EmployeeExit {
 ```
 
 #### 4. Template (Шаблон заявки)
+
 ```typescript
 interface Template {
   id: number
@@ -423,6 +441,7 @@ Template (используется для создания заявок)
    - Санитизация пользовательского ввода
 
 3. **CSP Headers**
+
    ```typescript
    'default-src': "'self'",
    'script-src': "'self'",
@@ -460,24 +479,26 @@ Template (используется для создания заявок)
 ### Стратегия обработки ошибок
 
 1. **Main Process**
+
    ```typescript
    try {
      // Операция с БД
    } catch (error) {
      console.error('Ошибка:', error)
-     return { 
-       success: false, 
-       error: 'Понятное сообщение на русском' 
+     return {
+       success: false,
+       error: 'Понятное сообщение на русском',
      }
    }
    ```
 
 2. **Renderer Process**
+
    ```typescript
    const mutation = useMutation({
      onError: (error) => {
        toast.error(error.message)
-     }
+     },
    })
    ```
 

@@ -20,6 +20,7 @@ interface ApiResponse<T = unknown> {
 ### Примеры ответов
 
 **Успех:**
+
 ```typescript
 {
   success: true,
@@ -28,6 +29,7 @@ interface ApiResponse<T = unknown> {
 ```
 
 **Успех с ID (создание):**
+
 ```typescript
 {
   success: true,
@@ -37,6 +39,7 @@ interface ApiResponse<T = unknown> {
 ```
 
 **Ошибка:**
+
 ```typescript
 {
   success: false,
@@ -51,11 +54,13 @@ interface ApiResponse<T = unknown> {
 Получает все заявки с привязанным оборудованием.
 
 **Сигнатура:**
+
 ```typescript
 getRequests(): Promise<ApiResponse<Request[]>>
 ```
 
 **Request интерфейс:**
+
 ```typescript
 interface Request {
   id: number
@@ -79,6 +84,7 @@ interface EquipmentItem {
 ```
 
 **Пример использования:**
+
 ```typescript
 const response = await window.electronAPI.getRequests()
 if (response.success) {
@@ -87,6 +93,7 @@ if (response.success) {
 ```
 
 **Пример ответа:**
+
 ```json
 {
   "success": true,
@@ -121,39 +128,42 @@ if (response.success) {
 Создаёт новую заявку с оборудованием.
 
 **Сигнатура:**
+
 ```typescript
 createRequest(data: CreateRequestData): Promise<ApiResponse<Request>>
 ```
 
 **CreateRequestData интерфейс:**
+
 ```typescript
 interface CreateRequestData {
-  employee_name: string      // минимум 1 символ
-  login: string              // минимум 1 символ
-  sd_number: string          // минимум 1 символ
+  employee_name: string // минимум 1 символ
+  login: string // минимум 1 символ
+  sd_number: string // минимум 1 символ
   equipment_items: Array<{
-    equipment_name: string   // минимум 1 символ
-    serial_number: string    // минимум 1 символ
-  }>                         // минимум 1 элемент
+    equipment_name: string // минимум 1 символ
+    serial_number: string // минимум 1 символ
+  }> // минимум 1 элемент
 }
 ```
 
 **Пример использования:**
+
 ```typescript
 const newRequest = {
-  employee_name: "Петров Петр Петрович",
-  login: "p.petrov",
-  sd_number: "INC0005678",
+  employee_name: 'Петров Петр Петрович',
+  login: 'p.petrov',
+  sd_number: 'INC0005678',
   equipment_items: [
     {
-      equipment_name: "Ноутбук HP EliteBook",
-      serial_number: "HP123456"
+      equipment_name: 'Ноутбук HP EliteBook',
+      serial_number: 'HP123456',
     },
     {
-      equipment_name: "Мышь Logitech",
-      serial_number: "LOG789"
-    }
-  ]
+      equipment_name: 'Мышь Logitech',
+      serial_number: 'LOG789',
+    },
+  ],
 }
 
 const response = await window.electronAPI.createRequest(newRequest)
@@ -169,11 +179,13 @@ if (response.success) {
 Обновляет существующую заявку.
 
 **Сигнатура:**
+
 ```typescript
 updateRequest(id: number, data: UpdateRequestData): Promise<ApiResponse>
 ```
 
 **UpdateRequestData интерфейс:**
+
 ```typescript
 interface UpdateRequestData {
   employee_name: string
@@ -187,17 +199,18 @@ interface UpdateRequestData {
 ```
 
 **Пример использования:**
+
 ```typescript
 const updates = {
-  employee_name: "Петров П.П.",
-  login: "p.petrov",
-  sd_number: "INC0005678",
+  employee_name: 'Петров П.П.',
+  login: 'p.petrov',
+  sd_number: 'INC0005678',
   equipment_items: [
     {
-      equipment_name: "Ноутбук HP EliteBook (обновлённый)",
-      serial_number: "HP123456"
-    }
-  ]
+      equipment_name: 'Ноутбук HP EliteBook (обновлённый)',
+      serial_number: 'HP123456',
+    },
+  ],
 }
 
 const response = await window.electronAPI.updateRequest(123, updates)
@@ -210,6 +223,7 @@ const response = await window.electronAPI.updateRequest(123, updates)
 Удаляет заявку и связанное оборудование.
 
 **Сигнатура:**
+
 ```typescript
 deleteRequest(id: number): Promise<ApiResponse<Request>>
 ```
@@ -217,6 +231,7 @@ deleteRequest(id: number): Promise<ApiResponse<Request>>
 **Возвращает:** Удалённую заявку для возможности отмены (undo).
 
 **Пример использования:**
+
 ```typescript
 const response = await window.electronAPI.deleteRequest(123)
 if (response.success) {
@@ -232,11 +247,13 @@ if (response.success) {
 Обновляет статус выдачи оборудования.
 
 **Сигнатура:**
+
 ```typescript
 updateRequestIssued(id: number, issued: boolean): Promise<ApiResponse>
 ```
 
 **Пример использования:**
+
 ```typescript
 // Отметить как выданное
 await window.electronAPI.updateRequestIssued(123, true)
@@ -252,14 +269,17 @@ await window.electronAPI.updateRequestIssued(123, false)
 Планирует возврат оборудования.
 
 **Сигнатура:**
+
 ```typescript
 scheduleReturn(id: number, returnDate: string): Promise<ApiResponse>
 ```
 
 **Параметры:**
+
 - `returnDate` — дата в формате ISO 8601 (`YYYY-MM-DDTHH:mm:ss.sssZ`)
 
 **Пример использования:**
+
 ```typescript
 const returnDate = new Date('2024-12-31').toISOString()
 await window.electronAPI.scheduleReturn(123, returnDate)
@@ -272,11 +292,13 @@ await window.electronAPI.scheduleReturn(123, returnDate)
 Отмечает возврат как завершённый.
 
 **Сигнатура:**
+
 ```typescript
 completeReturn(id: number): Promise<ApiResponse>
 ```
 
 **Пример использования:**
+
 ```typescript
 await window.electronAPI.completeReturn(123)
 ```
@@ -290,23 +312,26 @@ await window.electronAPI.completeReturn(123)
 Получает все записи о выходах сотрудников.
 
 **Сигнатура:**
+
 ```typescript
 getEmployeeExits(): Promise<ApiResponse<EmployeeExit[]>>
 ```
 
 **EmployeeExit интерфейс:**
+
 ```typescript
 interface EmployeeExit {
   id: number
   employee_name: string
-  exit_date: string          // YYYY-MM-DD
-  equipment_list: string     // JSON или текст
+  exit_date: string // YYYY-MM-DD
+  equipment_list: string // JSON или текст
   is_completed: boolean
   created_at: string
 }
 ```
 
 **Пример ответа:**
+
 ```json
 {
   "success": true,
@@ -330,15 +355,17 @@ interface EmployeeExit {
 Создаёт новую запись о выходе.
 
 **Сигнатура:**
+
 ```typescript
 createEmployeeExit(data: CreateEmployeeExitData): Promise<ApiResponse>
 ```
 
 **CreateEmployeeExitData интерфейс:**
+
 ```typescript
 interface CreateEmployeeExitData {
   employee_name: string
-  exit_date: string          // YYYY-MM-DD
+  exit_date: string // YYYY-MM-DD
   equipment_items: Array<{
     name: string
     serial: string
@@ -347,14 +374,15 @@ interface CreateEmployeeExitData {
 ```
 
 **Пример использования:**
+
 ```typescript
 const newExit = {
-  employee_name: "Алексеев А.А.",
-  exit_date: "2024-03-15",
+  employee_name: 'Алексеев А.А.',
+  exit_date: '2024-03-15',
   equipment_items: [
-    { name: "Ноутбук", serial: "NB123" },
-    { name: "Телефон", serial: "PH456" }
-  ]
+    { name: 'Ноутбук', serial: 'NB123' },
+    { name: 'Телефон', serial: 'PH456' },
+  ],
 }
 
 const response = await window.electronAPI.createEmployeeExit(newExit)
@@ -367,11 +395,13 @@ const response = await window.electronAPI.createEmployeeExit(newExit)
 Обновляет запись о выходе.
 
 **Сигнатура:**
+
 ```typescript
 updateEmployeeExit(id: number, data: UpdateEmployeeExitData): Promise<ApiResponse>
 ```
 
 **UpdateEmployeeExitData интерфейс:**
+
 ```typescript
 interface UpdateEmployeeExitData {
   employee_name: string
@@ -384,13 +414,12 @@ interface UpdateEmployeeExitData {
 ```
 
 **Пример использования:**
+
 ```typescript
 const updates = {
-  employee_name: "Алексеев Алексей Алексеевич",
-  exit_date: "2024-03-16",
-  equipment_items: [
-    { name: "Ноутбук Dell", serial: "NB123" }
-  ]
+  employee_name: 'Алексеев Алексей Алексеевич',
+  exit_date: '2024-03-16',
+  equipment_items: [{ name: 'Ноутбук Dell', serial: 'NB123' }],
 }
 
 await window.electronAPI.updateEmployeeExit(1, updates)
@@ -403,6 +432,7 @@ await window.electronAPI.updateEmployeeExit(1, updates)
 Удаляет запись о выходе.
 
 **Сигнатура:**
+
 ```typescript
 deleteEmployeeExit(id: number): Promise<ApiResponse<EmployeeExit>>
 ```
@@ -416,11 +446,13 @@ deleteEmployeeExit(id: number): Promise<ApiResponse<EmployeeExit>>
 Обновляет статус завершения выхода.
 
 **Сигнатура:**
+
 ```typescript
 updateExitCompleted(id: number, completed: boolean): Promise<ApiResponse>
 ```
 
 **Пример использования:**
+
 ```typescript
 // Отметить как завершённый
 await window.electronAPI.updateExitCompleted(1, true)
@@ -436,11 +468,13 @@ await window.electronAPI.updateExitCompleted(1, false)
 Экспортирует все выходы в CSV файл.
 
 **Сигнатура:**
+
 ```typescript
 exportEmployeeExits(): Promise<ApiResponse>
 ```
 
 **Пример использования:**
+
 ```typescript
 const response = await window.electronAPI.exportEmployeeExits()
 if (response.success) {
@@ -449,6 +483,7 @@ if (response.success) {
 ```
 
 **Формат CSV:**
+
 ```csv
 ФИО сотрудника,Дата выхода,Список оборудования,Статус,Дата создания
 "Иванов И.И.","2024-02-20","Ноутбук - SN123
@@ -464,21 +499,24 @@ if (response.success) {
 Получает все шаблоны заявок.
 
 **Сигнатура:**
+
 ```typescript
 getTemplates(): Promise<ApiResponse<Template[]>>
 ```
 
 **Template интерфейс:**
+
 ```typescript
 interface Template {
   id: number
   name: string
-  equipment_items: string    // JSON массив
+  equipment_items: string // JSON массив
   created_at: string
 }
 ```
 
 **Пример ответа:**
+
 ```json
 {
   "success": true,
@@ -500,11 +538,13 @@ interface Template {
 Создаёт новый шаблон.
 
 **Сигнатура:**
+
 ```typescript
 createTemplate(data: CreateTemplateData): Promise<ApiResponse>
 ```
 
 **CreateTemplateData интерфейс:**
+
 ```typescript
 interface CreateTemplateData {
   name: string
@@ -522,6 +562,7 @@ interface CreateTemplateData {
 Обновляет шаблон.
 
 **Сигнатура:**
+
 ```typescript
 updateTemplate(id: number, data: UpdateTemplateData): Promise<ApiResponse>
 ```
@@ -533,6 +574,7 @@ updateTemplate(id: number, data: UpdateTemplateData): Promise<ApiResponse>
 Удаляет шаблон.
 
 **Сигнатура:**
+
 ```typescript
 deleteTemplate(id: number): Promise<ApiResponse<Template>>
 ```
@@ -546,11 +588,13 @@ deleteTemplate(id: number): Promise<ApiResponse<Template>>
 Создаёт резервную копию БД. Открывает диалог сохранения файла.
 
 **Сигнатура:**
+
 ```typescript
 createBackup(): Promise<ApiResponse>
 ```
 
 **Пример использования:**
+
 ```typescript
 const response = await window.electronAPI.createBackup()
 if (response.success) {
@@ -567,16 +611,19 @@ if (response.success) {
 Восстанавливает БД из резервной копии.
 
 **Сигнатура:**
+
 ```typescript
 restoreBackup(filePath: string): Promise<ApiResponse>
 ```
 
 **⚠️ Важно:**
+
 - Создаёт emergency backup текущей БД
 - После успешного восстановления требуется перезагрузка приложения
 - Renderer автоматически выполняет `window.location.reload()`
 
 **Пример использования:**
+
 ```typescript
 const response = await window.electronAPI.restoreBackup('/path/to/backup.db')
 if (response.success) {
@@ -591,11 +638,13 @@ if (response.success) {
 Получает путь к директории с автоматическими бэкапами.
 
 **Сигнатура:**
+
 ```typescript
 getBackupPath(): Promise<ApiResponse<{ path: string }>>
 ```
 
 **Пример использования:**
+
 ```typescript
 const response = await window.electronAPI.getBackupPath()
 if (response.success) {
@@ -612,11 +661,13 @@ if (response.success) {
 Получает текущую версию приложения.
 
 **Сигнатура:**
+
 ```typescript
 getAppVersion(): Promise<string>
 ```
 
 **Пример использования:**
+
 ```typescript
 const version = await window.electronAPI.getAppVersion()
 console.log('Версия:', version) // "1.0.18"
@@ -629,11 +680,13 @@ console.log('Версия:', version) // "1.0.18"
 Подписка на события автообновления.
 
 **Сигнатура:**
+
 ```typescript
 onUpdateStatus(callback: (status: UpdateStatus) => void): void
 ```
 
 **UpdateStatus интерфейс:**
+
 ```typescript
 interface UpdateStatus {
   type: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
@@ -644,6 +697,7 @@ interface UpdateStatus {
 ```
 
 **Пример использования:**
+
 ```typescript
 window.electronAPI.onUpdateStatus((status) => {
   switch (status.type) {
@@ -698,7 +752,7 @@ window.electronAPI.onUpdateStatus((status) => {
 async function handleApiCall() {
   try {
     const response = await window.electronAPI.someMethod(data)
-    
+
     if (response.success) {
       // Успех
       toast.success('Операция выполнена')
@@ -730,12 +784,14 @@ export const createRequestSchema = z.object({
   employee_name: z.string().min(1, 'ФИО обязательно'),
   login: z.string().min(1, 'Логин обязателен'),
   sd_number: z.string().min(1, 'Номер заявки обязателен'),
-  equipment_items: z.array(
-    z.object({
-      equipment_name: z.string().min(1, 'Название оборудования обязательно'),
-      serial_number: z.string().min(1, 'Серийный номер обязателен')
-    })
-  ).min(1, 'Добавьте хотя бы одну единицу оборудования')
+  equipment_items: z
+    .array(
+      z.object({
+        equipment_name: z.string().min(1, 'Название оборудования обязательно'),
+        serial_number: z.string().min(1, 'Серийный номер обязателен'),
+      })
+    )
+    .min(1, 'Добавьте хотя бы одну единицу оборудования'),
 })
 ```
 
@@ -756,14 +812,14 @@ export function useRequests() {
       const response = await window.electronAPI.getRequests()
       if (!response.success) throw new Error(response.error)
       return response.data
-    }
+    },
   })
 }
 
 // ❌ Плохо
 const [requests, setRequests] = useState([])
 useEffect(() => {
-  window.electronAPI.getRequests().then(r => setRequests(r.data))
+  window.electronAPI.getRequests().then((r) => setRequests(r.data))
 }, [])
 ```
 
@@ -774,7 +830,7 @@ const mutation = useMutation({
   mutationFn: (data) => window.electronAPI.createRequest(data),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['requests'] })
-  }
+  },
 })
 ```
 
@@ -788,7 +844,7 @@ const mutation = useMutation({
   },
   onSuccess: () => {
     toast.success('Заявка создана')
-  }
+  },
 })
 ```
 
@@ -824,12 +880,10 @@ const response = await window.electronAPI.getRequests()
 // Простой тест через консоль DevTools
 await window.electronAPI.getRequests()
 await window.electronAPI.createRequest({
-  employee_name: "Test User",
-  login: "test",
-  sd_number: "TEST123",
-  equipment_items: [
-    { equipment_name: "Test Item", serial_number: "SN123" }
-  ]
+  employee_name: 'Test User',
+  login: 'test',
+  sd_number: 'TEST123',
+  equipment_items: [{ equipment_name: 'Test Item', serial_number: 'SN123' }],
 })
 ```
 

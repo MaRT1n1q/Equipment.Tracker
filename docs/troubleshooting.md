@@ -5,6 +5,7 @@
 ### Приложение не запускается
 
 **Симптомы:**
+
 - Двойной клик по иконке ничего не делает
 - Приложение открывается и сразу закрывается
 - Белый экран при запуске
@@ -12,10 +13,11 @@
 **Решение:**
 
 1. **Проверьте процессы**
+
    ```bash
    # Windows
    tasklist | findstr "Equipment Tracker"
-   
+
    # Если процесс висит, завершите его
    taskkill /F /IM "Equipment Tracker.exe"
    ```
@@ -39,6 +41,7 @@
 ### Белый экран при запуске
 
 **Причины:**
+
 - Повреждённый кэш
 - Ошибка в renderer процессе
 - Проблемы с БД
@@ -46,6 +49,7 @@
 **Решение:**
 
 1. **Очистите кэш приложения**
+
    ```bash
    # Windows
    del /F /Q "%APPDATA%\equipment-tracker\Cache\*"
@@ -57,10 +61,11 @@
    - Проверьте консоль на наличие ошибок
 
 3. **Восстановите БД из резервной копии**
+
    ```bash
    # Найдите последнюю резервную копию
    %APPDATA%\equipment-tracker\backups\
-   
+
    # Восстановите через UI или вручную
    copy backup-latest.db equipment.db
    ```
@@ -70,6 +75,7 @@
 ### macOS: "Equipment Tracker" не может быть открыт
 
 **Ошибка:**
+
 ```
 "Equipment Tracker.app" cannot be opened because the developer cannot be verified
 ```
@@ -81,6 +87,7 @@
    - Нажмите "Open Anyway"
 
 2. **Метод 2: Через Terminal**
+
    ```bash
    xattr -cr "/Applications/Equipment Tracker.app"
    ```
@@ -98,18 +105,20 @@
 **Решение:**
 
 1. **Дайте права на выполнение**
+
    ```bash
    chmod +x Equipment-Tracker-*.AppImage
    ```
 
 2. **Установите FUSE**
+
    ```bash
    # Ubuntu/Debian
    sudo apt install fuse libfuse2
-   
+
    # Fedora
    sudo dnf install fuse fuse-libs
-   
+
    # Arch
    sudo pacman -S fuse2
    ```
@@ -126,11 +135,13 @@
 ### База данных заблокирована
 
 **Ошибка:**
+
 ```
 SQLITE_BUSY: database is locked
 ```
 
 **Причины:**
+
 - Запущено несколько экземпляров приложения
 - Предыдущий процесс не завершился корректно
 - Антивирус блокирует файл
@@ -138,15 +149,17 @@ SQLITE_BUSY: database is locked
 **Решение:**
 
 1. **Закройте все экземпляры приложения**
+
    ```bash
    # Windows
    taskkill /F /IM "Equipment Tracker.exe"
-   
+
    # Linux/macOS
    pkill -9 "Equipment Tracker"
    ```
 
 2. **Удалите файлы блокировки**
+
    ```bash
    # Windows
    del "%APPDATA%\equipment-tracker\equipment.db-shm"
@@ -160,6 +173,7 @@ SQLITE_BUSY: database is locked
 ### База данных повреждена
 
 **Симптомы:**
+
 - Ошибки при загрузке данных
 - Приложение не запускается
 - Сообщение "malformed database"
@@ -167,6 +181,7 @@ SQLITE_BUSY: database is locked
 **Решение:**
 
 1. **Попробуйте восстановить целостность**
+
    ```bash
    sqlite3 equipment.db "PRAGMA integrity_check;"
    ```
@@ -176,6 +191,7 @@ SQLITE_BUSY: database is locked
    - Выберите последнюю копию из `backups/`
 
 3. **Используйте emergency backup**
+
    ```bash
    # Если есть equipment.db.emergency
    copy equipment.db equipment.db.broken
@@ -194,15 +210,17 @@ SQLITE_BUSY: database is locked
 **Проверьте:**
 
 1. **Права доступа к папке**
+
    ```bash
    # Windows
    icacls "%APPDATA%\equipment-tracker"
-   
+
    # Linux/macOS
    ls -la ~/.config/equipment-tracker/
    ```
 
 2. **Доступное место на диске**
+
    ```bash
    # Windows
    wmic logicaldisk get size,freespace,caption
@@ -220,6 +238,7 @@ SQLITE_BUSY: database is locked
 ### Обновления не находятся
 
 **Причины:**
+
 - Нет подключения к интернету
 - GitHub недоступен
 - Используется dev версия
@@ -227,6 +246,7 @@ SQLITE_BUSY: database is locked
 **Решение:**
 
 1. **Проверьте подключение**
+
    ```bash
    ping github.com
    ```
@@ -266,6 +286,7 @@ SQLITE_BUSY: database is locked
 ### Приложение работает медленно
 
 **Причины:**
+
 - Большой объём данных
 - Недостаточно ресурсов
 - Фоновые процессы
@@ -277,10 +298,11 @@ SQLITE_BUSY: database is locked
    - Архивируйте завершённые выходы
 
 2. **Проверьте ресурсы**
+
    ```bash
    # Windows
    taskmgr
-   
+
    # Linux
    htop
    ```
@@ -305,6 +327,7 @@ SQLITE_BUSY: database is locked
    - Используйте фильтры
 
 2. **Проверьте индексы БД**
+
    ```sql
    SELECT * FROM sqlite_master WHERE type='index';
    ```
@@ -320,6 +343,7 @@ SQLITE_BUSY: database is locked
 ### Экспорт CSV не работает
 
 **Ошибка:**
+
 - Диалог не открывается
 - Файл не создаётся
 - Приложение зависает
@@ -347,6 +371,7 @@ SQLITE_BUSY: database is locked
 ### Не удаётся создать резервную копию
 
 **Причины:**
+
 - Недостаточно места на диске
 - Нет прав доступа
 - БД заблокирована
@@ -354,6 +379,7 @@ SQLITE_BUSY: database is locked
 **Решение:**
 
 1. **Освободите место**
+
    ```bash
    # Удалите старые резервные копии
    # Папка: %APPDATA%\equipment-tracker\backups\
@@ -373,12 +399,14 @@ SQLITE_BUSY: database is locked
 ### Не удаётся восстановить резервную копию
 
 **Ошибка:**
+
 - "Invalid database file"
 - "Restore failed"
 
 **Решение:**
 
 1. **Проверьте файл резервной копии**
+
    ```bash
    sqlite3 backup.db "PRAGMA integrity_check;"
    ```
@@ -407,6 +435,7 @@ SQLITE_BUSY: database is locked
    - Настройки сохраняются автоматически
 
 2. **Очистите кэш браузера**
+
    ```bash
    # В DevTools: F12
    # Application → Clear storage → Clear site data
@@ -422,6 +451,7 @@ SQLITE_BUSY: database is locked
 ### Элементы UI наезжают друг на друга
 
 **Причины:**
+
 - Нестандартный масштаб Windows
 - Проблемы с Tailwind CSS
 
@@ -445,24 +475,27 @@ SQLITE_BUSY: database is locked
 ### `npm install` не работает
 
 **Ошибка:**
+
 - gyp ERR!
 - node-gyp rebuild failed
 
 **Решение:**
 
 1. **Установите build tools**
+
    ```bash
    # Windows
    npm install --global windows-build-tools
-   
+
    # macOS
    xcode-select --install
-   
+
    # Linux (Ubuntu/Debian)
    sudo apt install build-essential
    ```
 
 2. **Используйте правильную версию Node.js**
+
    ```bash
    node --version  # Должна быть 18+
    ```
@@ -481,16 +514,18 @@ SQLITE_BUSY: database is locked
 **Решение:**
 
 1. **Перезапустите dev сервер**
+
    ```bash
    # Ctrl+C для остановки
    npm run dev
    ```
 
 2. **Проверьте порт 5173**
+
    ```bash
    # Windows
    netstat -ano | findstr :5173
-   
+
    # Если занят, завершите процесс
    taskkill /PID <PID> /F
    ```
@@ -503,6 +538,7 @@ SQLITE_BUSY: database is locked
 ### Сборка завершается ошибкой
 
 **Ошибка:**
+
 ```
 app.asar is being used by another process
 ```
@@ -514,6 +550,7 @@ app.asar is being used by another process
    - Проверьте Task Manager
 
 2. **Удалите папки build**
+
    ```bash
    rm -rf dist dist-electron release
    npm run build
@@ -529,6 +566,7 @@ app.asar is being used by another process
 ### Как включить подробное логирование
 
 **Main Process:**
+
 ```typescript
 // electron/main.ts
 import log from 'electron-log'
@@ -536,14 +574,16 @@ log.transports.file.level = 'debug'
 ```
 
 **Renderer Process:**
+
 - F12 → Console
 - Все console.log видны здесь
 
 **SQLite:**
+
 ```typescript
 // electron/database.ts
 const knex = Knex({
-  debug: true  // Логирует все SQL запросы
+  debug: true, // Логирует все SQL запросы
 })
 ```
 
@@ -552,16 +592,19 @@ const knex = Knex({
 ### Где найти логи
 
 **Windows:**
+
 ```
 %USERPROFILE%\AppData\Roaming\Equipment Tracker\logs\main.log
 ```
 
 **macOS:**
+
 ```
 ~/Library/Logs/Equipment Tracker/main.log
 ```
 
 **Linux:**
+
 ```
 ~/.config/Equipment Tracker/logs/main.log
 ```
@@ -617,14 +660,17 @@ const knex = Knex({
 ### Windows Defender SmartScreen
 
 **Предупреждение:**
+
 ```
 Windows protected your PC
 ```
 
 **Причина:**
+
 - Приложение не подписано кодовым сертификатом
 
 **Решение:**
+
 - Нажмите "More info" → "Run anyway"
 - Или подождите, пока приложение наберёт репутацию
 
@@ -633,14 +679,17 @@ Windows protected your PC
 ### macOS Notarization
 
 **Ошибка:**
+
 ```
 "Equipment Tracker.app" is damaged and can't be opened
 ```
 
 **Причина:**
+
 - Приложение не нотаризовано Apple
 
 **Решение:**
+
 ```bash
 xattr -cr "/Applications/Equipment Tracker.app"
 ```

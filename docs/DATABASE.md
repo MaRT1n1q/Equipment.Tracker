@@ -18,24 +18,26 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 
 Хранит информацию о заявках на выдачу оборудования.
 
-| Колонка          | Тип        | Описание                              | Constraints              |
-|------------------|------------|---------------------------------------|--------------------------|
-| `id`             | INTEGER    | Уникальный идентификатор              | PRIMARY KEY, AUTOINCREMENT |
-| `employee_name`  | TEXT       | ФИО сотрудника                        | NOT NULL                 |
-| `login`          | TEXT       | Логин сотрудника                      | NOT NULL                 |
-| `sd_number`      | TEXT       | Номер заявки в Service Desk           | NOT NULL                 |
-| `created_at`     | TEXT       | Дата создания (ISO 8601)              | NOT NULL                 |
-| `is_issued`      | INTEGER    | Выдано ли оборудование (0/1)          | NOT NULL, DEFAULT 0      |
-| `return_required`| INTEGER    | Требуется ли возврат (0/1)            | NOT NULL, DEFAULT 0      |
-| `return_completed`| INTEGER   | Возврат завершён (0/1)                | NOT NULL, DEFAULT 0      |
-| `return_date`    | TEXT       | Дата возврата (ISO 8601)              | NULL                     |
+| Колонка            | Тип     | Описание                     | Constraints                |
+| ------------------ | ------- | ---------------------------- | -------------------------- |
+| `id`               | INTEGER | Уникальный идентификатор     | PRIMARY KEY, AUTOINCREMENT |
+| `employee_name`    | TEXT    | ФИО сотрудника               | NOT NULL                   |
+| `login`            | TEXT    | Логин сотрудника             | NOT NULL                   |
+| `sd_number`        | TEXT    | Номер заявки в Service Desk  | NOT NULL                   |
+| `created_at`       | TEXT    | Дата создания (ISO 8601)     | NOT NULL                   |
+| `is_issued`        | INTEGER | Выдано ли оборудование (0/1) | NOT NULL, DEFAULT 0        |
+| `return_required`  | INTEGER | Требуется ли возврат (0/1)   | NOT NULL, DEFAULT 0        |
+| `return_completed` | INTEGER | Возврат завершён (0/1)       | NOT NULL, DEFAULT 0        |
+| `return_date`      | TEXT    | Дата возврата (ISO 8601)     | NULL                       |
 
 **Индексы:**
+
 - `idx_requests_created_at` на `created_at` (DESC)
 - `idx_requests_employee_name` на `employee_name`
 - `idx_requests_is_issued` на `is_issued`
 
 **Пример данных:**
+
 ```json
 {
   "id": 1,
@@ -54,20 +56,23 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 
 Хранит список единиц оборудования, привязанных к заявкам.
 
-| Колонка         | Тип        | Описание                              | Constraints              |
-|-----------------|------------|---------------------------------------|--------------------------|
-| `id`            | INTEGER    | Уникальный идентификатор              | PRIMARY KEY, AUTOINCREMENT |
-| `request_id`    | INTEGER    | ID заявки                             | NOT NULL, FOREIGN KEY    |
-| `equipment_name`| TEXT       | Название оборудования                 | NOT NULL                 |
-| `serial_number` | TEXT       | Серийный номер                        | NOT NULL                 |
+| Колонка          | Тип     | Описание                 | Constraints                |
+| ---------------- | ------- | ------------------------ | -------------------------- |
+| `id`             | INTEGER | Уникальный идентификатор | PRIMARY KEY, AUTOINCREMENT |
+| `request_id`     | INTEGER | ID заявки                | NOT NULL, FOREIGN KEY      |
+| `equipment_name` | TEXT    | Название оборудования    | NOT NULL                   |
+| `serial_number`  | TEXT    | Серийный номер           | NOT NULL                   |
 
 **Связи:**
+
 - `FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE`
 
 **Индексы:**
+
 - `idx_equipment_items_request_id` на `request_id`
 
 **Пример данных:**
+
 ```json
 [
   {
@@ -89,16 +94,17 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 
 Хранит информацию о выходах сотрудников с оборудованием.
 
-| Колонка         | Тип        | Описание                              | Constraints              |
-|-----------------|------------|---------------------------------------|--------------------------|
-| `id`            | INTEGER    | Уникальный идентификатор              | PRIMARY KEY, AUTOINCREMENT |
-| `employee_name` | TEXT       | ФИО сотрудника                        | NOT NULL                 |
-| `exit_date`     | TEXT       | Дата выхода (YYYY-MM-DD)              | NOT NULL                 |
-| `equipment_list`| TEXT       | Список оборудования (JSON или текст)  | NOT NULL                 |
-| `is_completed`  | INTEGER    | Выход завершён (0/1)                  | NOT NULL, DEFAULT 0      |
-| `created_at`    | TEXT       | Дата создания записи (ISO 8601)       | NOT NULL                 |
+| Колонка          | Тип     | Описание                             | Constraints                |
+| ---------------- | ------- | ------------------------------------ | -------------------------- |
+| `id`             | INTEGER | Уникальный идентификатор             | PRIMARY KEY, AUTOINCREMENT |
+| `employee_name`  | TEXT    | ФИО сотрудника                       | NOT NULL                   |
+| `exit_date`      | TEXT    | Дата выхода (YYYY-MM-DD)             | NOT NULL                   |
+| `equipment_list` | TEXT    | Список оборудования (JSON или текст) | NOT NULL                   |
+| `is_completed`   | INTEGER | Выход завершён (0/1)                 | NOT NULL, DEFAULT 0        |
+| `created_at`     | TEXT    | Дата создания записи (ISO 8601)      | NOT NULL                   |
 
 **Индексы:**
+
 - `idx_employee_exits_exit_date` на `exit_date` (DESC)
 - `idx_employee_exits_is_completed` на `is_completed`
 - `idx_employee_exits_employee_name` на `employee_name`
@@ -106,6 +112,7 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 **Форматы `equipment_list`:**
 
 1. **JSON формат** (новый):
+
 ```json
 [
   { "name": "Ноутбук", "serial": "SN12345" },
@@ -114,18 +121,21 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 ```
 
 2. **Текстовый формат** (legacy):
+
 ```
 Ноутбук - SN12345
 Мышь - SN67890
 ```
 
 3. **Только названия** (старые записи):
+
 ```
 Ноутбук
 Мышь
 ```
 
 **Пример данных:**
+
 ```json
 {
   "id": 1,
@@ -141,14 +151,15 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 
 Хранит шаблоны для быстрого создания заявок.
 
-| Колонка         | Тип        | Описание                              | Constraints              |
-|-----------------|------------|---------------------------------------|--------------------------|
-| `id`            | INTEGER    | Уникальный идентификатор              | PRIMARY KEY, AUTOINCREMENT |
-| `name`          | TEXT       | Название шаблона                      | NOT NULL                 |
-| `equipment_items`| TEXT      | Список оборудования (JSON)            | NOT NULL                 |
-| `created_at`    | TEXT       | Дата создания (ISO 8601)              | NOT NULL                 |
+| Колонка           | Тип     | Описание                   | Constraints                |
+| ----------------- | ------- | -------------------------- | -------------------------- |
+| `id`              | INTEGER | Уникальный идентификатор   | PRIMARY KEY, AUTOINCREMENT |
+| `name`            | TEXT    | Название шаблона           | NOT NULL                   |
+| `equipment_items` | TEXT    | Список оборудования (JSON) | NOT NULL                   |
+| `created_at`      | TEXT    | Дата создания (ISO 8601)   | NOT NULL                   |
 
 **Формат `equipment_items`:**
+
 ```json
 [
   { "equipment_name": "Ноутбук Dell", "serial_number": "" },
@@ -157,6 +168,7 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 ```
 
 **Пример данных:**
+
 ```json
 {
   "id": 1,
@@ -206,15 +218,18 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 ### Текущие миграции
 
 #### 1. migrateLegacyRequests
+
 Конвертирует устаревший формат `equipment` (текстовое поле) в связанную таблицу `equipment_items`.
 
 **Что делает:**
+
 1. Проверяет наличие старой колонки `equipment`
 2. Парсит текстовые записи вида "Название - Серийник"
 3. Создаёт записи в `equipment_items`
 4. Удаляет старую колонку
 
 **Формат старых данных:**
+
 ```
 Ноутбук Dell - SN123456
 Мышь Logitech - SN789012
@@ -228,15 +243,15 @@ Equipment Tracker использует **SQLite 3** в качестве лока
 export async function migrateMyFeature(knex: Knex): Promise<void> {
   // Проверка необходимости миграции
   const hasColumn = await knex.schema.hasColumn('table', 'new_column')
-  
+
   if (!hasColumn) {
     console.log('Applying migration: MyFeature')
-    
+
     // Применение изменений
     await knex.schema.alterTable('table', (table) => {
       table.string('new_column').defaultTo('default_value')
     })
-    
+
     console.log('Migration MyFeature completed')
   }
 }
@@ -261,14 +276,10 @@ export async function runMigrations(knex: Knex): Promise<void> {
 ### Получение всех заявок с оборудованием
 
 ```typescript
-const requests = await db('requests')
-  .select('*')
-  .orderBy('created_at', 'desc')
+const requests = await db('requests').select('*').orderBy('created_at', 'desc')
 
 for (const request of requests) {
-  request.equipment_items = await db('equipment_items')
-    .where('request_id', request.id)
-    .select('*')
+  request.equipment_items = await db('equipment_items').where('request_id', request.id).select('*')
 }
 ```
 
@@ -284,21 +295,21 @@ await db.transaction(async (trx) => {
     created_at: new Date().toISOString(),
     is_issued: 0,
     return_required: 0,
-    return_completed: 0
+    return_completed: 0,
   })
-  
+
   // Добавление оборудования
   await trx('equipment_items').insert([
     {
       request_id: requestId,
       equipment_name: 'Ноутбук',
-      serial_number: 'SN123'
+      serial_number: 'SN123',
     },
     {
       request_id: requestId,
       equipment_name: 'Мышь',
-      serial_number: 'SN456'
-    }
+      serial_number: 'SN456',
+    },
   ])
 })
 ```
@@ -328,9 +339,7 @@ const stats = await db('employee_exits')
 
 ```typescript
 const today = new Date().toISOString().split('T')[0]
-const tomorrow = new Date(Date.now() + 86400000)
-  .toISOString()
-  .split('T')[0]
+const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
 
 const upcoming = await db('employee_exits')
   .whereBetween('exit_date', [today, tomorrow])
@@ -349,6 +358,7 @@ await createAutomaticBackup()
 ```
 
 Файлы сохраняются в:
+
 - `%APPDATA%\equipment-tracker\backups\backup-{timestamp}.db`
 
 Хранятся последние 5 копий.
@@ -373,6 +383,7 @@ const response = await window.electronAPI.restoreBackup(filePath)
 ### Emergency Backup
 
 При восстановлении из резервной копии, текущая БД сохраняется как:
+
 - `equipment.db.emergency`
 
 Можно удалить после проверки, что всё работает.
@@ -448,6 +459,7 @@ FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
 ### NOT NULL constraints
 
 Обязательные поля:
+
 - `employee_name`
 - `login`
 - `sd_number`
@@ -468,6 +480,7 @@ FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
 **Ошибка:** `SQLITE_BUSY: database is locked`
 
 **Решение:**
+
 1. Закройте все экземпляры приложения
 2. Удалите lock файлы:
    - `equipment.db-shm`
@@ -476,10 +489,12 @@ FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
 ### База данных повреждена
 
 **Симптомы:**
+
 - Ошибки при чтении данных
 - Приложение не запускается
 
 **Решение:**
+
 1. Восстановите из последней резервной копии
 2. Или используйте emergency backup
 
@@ -491,6 +506,7 @@ copy equipment.db.emergency equipment.db
 ### Данные не сохраняются
 
 **Проверьте:**
+
 1. Права доступа к директории БД
 2. Доступное место на диске
 3. Логи приложения на наличие ошибок
@@ -509,6 +525,7 @@ copy equipment.db.emergency equipment.db
 ### DB Browser for SQLite
 
 Рекомендуемый инструмент для просмотра и редактирования БД:
+
 - [Скачать](https://sqlitebrowser.org/)
 - Открыть: `%APPDATA%\equipment-tracker\equipment.db`
 
