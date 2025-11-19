@@ -88,6 +88,7 @@ describe('useRequests', () => {
       const requestData = {
         employee_name: 'Тест',
         login: 'test',
+        notes: undefined,
         equipment_items: [
           {
             equipment_name: 'Ноутбук',
@@ -115,6 +116,7 @@ describe('useRequests', () => {
       const requestData = {
         employee_name: 'Тест',
         login: 'test',
+        notes: undefined,
         equipment_items: [
           {
             equipment_name: 'Ноутбук',
@@ -139,6 +141,7 @@ describe('useRequests', () => {
       const updateData = {
         employee_name: 'Обновлено',
         login: 'updated',
+        notes: undefined,
         equipment_items: [
           {
             equipment_name: 'Ноутбук',

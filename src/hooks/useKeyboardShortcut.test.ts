@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react'
 import { useKeyboardShortcut, type KeyboardShortcut } from './useKeyboardShortcut'
 
 describe('useKeyboardShortcut', () => {
-  let mockHandler: ReturnType<typeof vi.fn>
+  let mockHandler: (event: KeyboardEvent) => void
 
   beforeEach(() => {
     mockHandler = vi.fn()
