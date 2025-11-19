@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
+  FileText,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useEffect, useMemo, useState } from 'react'
@@ -18,8 +19,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { ThemeToggle } from './ThemeToggle'
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'requests' | 'employee-exit'
-  onViewChange: (view: 'dashboard' | 'requests' | 'employee-exit') => void
+  currentView: 'dashboard' | 'requests' | 'employee-exit' | 'templates'
+  onViewChange: (view: 'dashboard' | 'requests' | 'employee-exit' | 'templates') => void
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -241,6 +242,11 @@ export function Sidebar({
       id: 'employee-exit' as const,
       label: 'Выход сотрудников',
       icon: UserMinus,
+    },
+    {
+      id: 'templates' as const,
+      label: 'Шаблоны',
+      icon: FileText,
     },
   ]
 

@@ -4,6 +4,7 @@ import type {
   ApiResponse,
   CreateEmployeeExitData,
   CreateRequestData,
+  CreateTemplateData,
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
@@ -13,8 +14,10 @@ import type {
   RequestListParams,
   RequestSummary,
   ScheduleRequestReturnData,
+  Template,
   UpdateRequestData,
   UpdateStatusPayload,
+  UpdateTemplateData,
 } from '../src/types/ipc'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -93,4 +96,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   exportEmployeeExits: (exits: EmployeeExit[]): Promise<ApiResponse<{ path: string }>> =>
     ipcRenderer.invoke('export-employee-exits', exits),
+
+  // Templates API
+  getTemplates: (): Promise<ApiResponse<Template[]>> => ipcRenderer.invoke('get-templates'),
+
+  createTemplate: (data: CreateTemplateData): Promise<ApiResponse<Template>> =>
+    ipcRenderer.invoke('create-template', data),
+
+  updateTemplate: (id: number, data: UpdateTemplateData): Promise<ApiResponse<Template>> =>
+    ipcRenderer.invoke('update-template', id, data),
+
+  deleteTemplate: (id: number): Promise<ApiResponse<Template>> =>
+    ipcRenderer.invoke('delete-template', id),
+
+  reorderTemplates: (order: number[]): Promise<ApiResponse> =>
+    ipcRenderer.invoke('reorder-templates', { order }),
 })

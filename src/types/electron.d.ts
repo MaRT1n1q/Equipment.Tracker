@@ -2,6 +2,7 @@ import type {
   ApiResponse,
   CreateEmployeeExitData,
   CreateRequestData,
+  CreateTemplateData,
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
@@ -11,8 +12,10 @@ import type {
   RequestListParams,
   RequestSummary,
   ScheduleRequestReturnData,
+  Template,
   UpdateRequestData,
   UpdateStatusPayload,
+  UpdateTemplateData,
 } from './ipc'
 
 declare global {
@@ -47,6 +50,12 @@ declare global {
       deleteEmployeeExit: (id: number) => Promise<ApiResponse<EmployeeExit>>
       updateExitCompleted: (id: number, is_completed: boolean) => Promise<ApiResponse>
       exportEmployeeExits: (exits: EmployeeExit[]) => Promise<ApiResponse<{ path: string }>>
+      // Templates API
+      getTemplates: () => Promise<ApiResponse<Template[]>>
+      createTemplate: (data: CreateTemplateData) => Promise<ApiResponse<Template>>
+      updateTemplate: (id: number, data: UpdateTemplateData) => Promise<ApiResponse<Template>>
+      deleteTemplate: (id: number) => Promise<ApiResponse<Template>>
+      reorderTemplates: (order: number[]) => Promise<ApiResponse>
     }
   }
 }

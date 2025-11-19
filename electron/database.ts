@@ -172,6 +172,34 @@ async function ensureSchema(database: Knex) {
     }
   }
 
+  const hasTemplatesTable = await database.schema.hasTable('templates')
+  if (!hasTemplatesTable) {
+    await database.schema.createTable('templates', (table) => {
+      table.increments('id').primary()
+      table.string('title').notNullable()
+      table.text('content').notNullable()
+      table.string('created_at').notNullable()
+      table.string('updated_at').notNullable()
+      table.integer('sort_order').notNullable().defaultTo(0)
+    })
+  } else {
+    const hasSortOrderColumn = await database.schema.hasColumn('templates', 'sort_order')
+    if (!hasSortOrderColumn) {
+      await database.schema.alterTable('templates', (table) => {
+        table.integer('sort_order').notNullable().defaultTo(0)
+      })
+
+      const existingTemplates = await database('templates')
+        .select('id')
+        .orderBy('created_at', 'asc')
+      await Promise.all(
+        existingTemplates.map((template, index) =>
+          database('templates').where({ id: template.id }).update({ sort_order: index })
+        )
+      )
+    }
+  }
+
   await database.raw(
     'CREATE INDEX IF NOT EXISTS idx_equipment_items_request ON equipment_items(request_id)'
   )
@@ -179,6 +207,8 @@ async function ensureSchema(database: Knex) {
   await database.raw(
     'CREATE INDEX IF NOT EXISTS idx_employee_exits_exit_date ON employee_exits(exit_date)'
   )
+  await database.raw('CREATE INDEX IF NOT EXISTS idx_templates_title ON templates(title)')
+  await database.raw('CREATE INDEX IF NOT EXISTS idx_templates_sort_order ON templates(sort_order)')
 
   await runMigrations(database)
 

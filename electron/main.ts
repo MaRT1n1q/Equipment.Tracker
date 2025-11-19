@@ -3,6 +3,7 @@ import { createMainWindow } from './window'
 import { closeDatabase, getDatabase, initDatabase } from './database'
 import { registerRequestHandlers } from './ipc/requests'
 import { registerEmployeeExitHandlers } from './ipc/employeeExits'
+import { registerTemplateHandlers } from './ipc/templates'
 import { createAutomaticBackup, registerBackupHandlers } from './ipc/backup'
 import { startExitReminderScheduler } from './notifications'
 import { createTray, destroyTray } from './tray'
@@ -72,6 +73,7 @@ if (!gotTheLock) {
     registerEmployeeExitHandlers(getDatabase, {
       onDataChanged: triggerExitReminderCheck,
     })
+    registerTemplateHandlers()
     registerBackupHandlers()
     registerUpdaterHandlers()
 

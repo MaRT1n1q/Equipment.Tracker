@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
 import { EmployeeExitView } from './components/EmployeeExitView'
 import { RequestsView } from './components/RequestsView'
+import { TemplatesView } from './components/TemplatesView'
 import { Toaster } from 'sonner'
 import type { Request } from './types/ipc'
 import { usePersistentState } from './hooks/usePersistentState'
@@ -13,13 +14,16 @@ import { cn } from './lib/utils'
 import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
 
-type AppView = 'dashboard' | 'requests' | 'employee-exit'
+type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates'
 
 const VIEW_STORAGE_KEY = 'equipment-tracker:current-view'
 const SIDEBAR_STORAGE_KEY = 'equipment-tracker:sidebar-collapsed'
 
 const isAppView = (value: string): value is AppView =>
-  value === 'dashboard' || value === 'requests' || value === 'employee-exit'
+  value === 'dashboard' ||
+  value === 'requests' ||
+  value === 'employee-exit' ||
+  value === 'templates'
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -136,6 +140,10 @@ function App() {
                     setHighlightRequestSearch(null)
                   }}
                 />
+              </div>
+            ) : currentView === 'templates' ? (
+              <div className="animate-fade-in">
+                <TemplatesView />
               </div>
             ) : (
               <div className="animate-fade-in">
