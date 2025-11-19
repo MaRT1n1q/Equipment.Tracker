@@ -1,0 +1,39 @@
+{
+  "git": {
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "requireCleanWorkingDir": true,
+    "requireBranch": "main"
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "draft": false,
+    "tokenRef": "GITHUB_TOKEN"
+  },
+  "npm": {
+    "publish": false
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": {
+        "name": "conventionalcommits",
+        "types": [
+          { "type": "feat", "section": "✨ Новые возможности" },
+          { "type": "fix", "section": "🐛 Исправления" },
+          { "type": "perf", "section": "⚡ Производительность" },
+          { "type": "refactor", "section": "♻️ Рефакторинг" },
+          { "type": "docs", "section": "📝 Документация" },
+          { "type": "build", "section": "🔧 Сборка" },
+          { "type": "chore", "section": "🔨 Прочее" }
+        ]
+      },
+      "infile": "CHANGELOG.md",
+      "header": "# Журнал изменений"
+    }
+  },
+  "hooks": {
+    "before:init": ["npm run lint", "npm run test:run"],
+    "after:bump": "npm run build:bundle"
+  }
+}

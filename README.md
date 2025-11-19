@@ -246,6 +246,7 @@ equipment-tracker/
 - [💻 Руководство разработчика](./docs/DEVELOPMENT.md)
 - [🗄️ База данных](./docs/DATABASE.md)
 - [📡 IPC API](./docs/API.md)
+- [🛠️ Инструменты разработки](./docs/DEVELOPMENT_TOOLS.md) ⭐ **Новое!**
 - [🤖 Инструкции для AI агента](./docs/ai-agent-instructions.md)
 - [🤝 Contributing](./CONTRIBUTING.md)
 
