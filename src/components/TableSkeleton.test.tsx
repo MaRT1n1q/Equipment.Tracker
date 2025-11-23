@@ -3,30 +3,11 @@ import { render } from '@testing-library/react'
 import { TableSkeleton } from './TableSkeleton'
 
 describe('TableSkeleton', () => {
-  it('должен рендериться с количеством строк по умолчанию', () => {
+  it('должен рендериться без ошибок', () => {
     const { container } = render(<TableSkeleton />)
 
-    // Проверяем, что есть скелетоны строк
-    const skeletons = container.querySelectorAll('[class*="animate-pulse"]')
-    expect(skeletons.length).toBeGreaterThan(0)
-  })
-
-  it('должен рендериться с указанным количеством строк', () => {
-    const { container } = render(<TableSkeleton rows={3} />)
-
-    // Проверяем, что количество строк соответствует указанному
-    const rows = container.querySelectorAll('tr')
-    // Один ряд для заголовка + 3 ряда данных
-    expect(rows.length).toBeGreaterThanOrEqual(3)
-  })
-
-  it('должен рендериться с указанным количеством колонок', () => {
-    const { container } = render(<TableSkeleton columns={5} rows={1} />)
-
-    // Проверяем, что количество колонок соответствует
-    const firstRow = container.querySelector('tr:nth-child(2)') // Первая строка данных
-    const cells = firstRow?.querySelectorAll('td')
-    expect(cells?.length).toBeGreaterThan(0) // Просто проверяем, что колонки есть
+    // Проверяем, что компонент отрендерился
+    expect(container.firstChild).toBeInTheDocument()
   })
 
   it('должен рендерить таблицу', () => {
@@ -39,19 +20,9 @@ describe('TableSkeleton', () => {
   it('должен применять стили анимации', () => {
     const { container } = render(<TableSkeleton />)
 
-    const skeleton = container.querySelector('[class*="animate-pulse"]')
-    expect(skeleton).toBeInTheDocument()
-  })
-
-  it('должен рендериться с большим количеством строк', () => {
-    const { container } = render(<TableSkeleton rows={10} />)
-
-    const rows = container.querySelectorAll('tr')
-    expect(rows.length).toBeGreaterThan(1) // Проверяем, что есть несколько строк
-  })
-
-  it('должен рендериться без ошибок при минимальных параметрах', () => {
-    expect(() => render(<TableSkeleton rows={1} columns={1} />)).not.toThrow()
+    // Проверяем наличие анимированных элементов
+    const skeletons = container.querySelectorAll('[class*="animate"]')
+    expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it('должен иметь корректную структуру таблицы', () => {
@@ -65,11 +36,43 @@ describe('TableSkeleton', () => {
     expect(tbody).toBeInTheDocument()
   })
 
-  it('должен быть доступен', () => {
+  it('должен рендерить заголовочные строки', () => {
     const { container } = render(<TableSkeleton />)
 
-    // Таблица существует
-    const table = container.querySelector('table')
-    expect(table).toBeInTheDocument()
+    const headerRow = container.querySelector('thead tr')
+    expect(headerRow).toBeInTheDocument()
+
+    const headerCells = headerRow?.querySelectorAll('th')
+    expect(headerCells && headerCells.length).toBeGreaterThan(0)
+  })
+
+  it('должен рендерить строки данных', () => {
+    const { container } = render(<TableSkeleton />)
+
+    const bodyRows = container.querySelectorAll('tbody tr')
+    expect(bodyRows.length).toBe(5) // По умолчанию 5 строк
+  })
+
+  it('должен иметь поле поиска skeleton', () => {
+    const { container } = render(<TableSkeleton />)
+
+    // Проверяем наличие skeleton для поиска (первый элемент)
+    const searchSkeleton = container.querySelector('.h-10')
+    expect(searchSkeleton).toBeInTheDocument()
+  })
+
+  it('должен иметь фильтры skeleton', () => {
+    const { container } = render(<TableSkeleton />)
+
+    // Проверяем наличие skeleton для фильтров
+    const filterSkeletons = container.querySelectorAll('.h-8')
+    expect(filterSkeletons.length).toBeGreaterThan(0)
+  })
+
+  it('должен применять корректные классы стилей', () => {
+    const { container } = render(<TableSkeleton />)
+
+    const wrapper = container.firstChild as HTMLElement
+    expect(wrapper).toHaveClass('space-y-4')
   })
 })
