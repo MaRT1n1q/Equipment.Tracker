@@ -284,108 +284,107 @@ export function TemplatesView() {
 
   return (
     <>
-      <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-auto px-6 py-6 lg:px-8">
-          <div className="mx-auto flex h-full max-w-7xl flex-col space-y-6">
-            <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Коллекция ответов
-                  </p>
-                  <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-                    Шаблоны ответов
-                  </h1>
-                  <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-                    Создавайте и переиспользуйте подготовленные ответы для типовых запросов, чтобы
-                    сократить время обработки обращений.
-                  </p>
-                </div>
-                <Button size="lg" className="gap-2" onClick={() => setIsAddModalOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                  Создать шаблон
-                </Button>
-              </div>
+      <div className="space-y-6">
+        <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Оборудование
+              </p>
+              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+                Шаблоны
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+                Подготовленные ответы для типовых запросов — быстро копируйте и редактируйте.
+              </p>
             </div>
-
-            <div className="flex-1">
-              {isLoading ? (
-                renderSkeletonCards()
-              ) : hasTemplates ? (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <p className="flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 opacity-70" />
-                      Перетащите карточки, чтобы поменять их порядок.
-                    </p>
-                    {isReordering && (
-                      <span className="inline-flex items-center gap-2 text-primary">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Сохраняем порядок…
-                      </span>
-                    )}
-                  </div>
-
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDragCancel={handleDragCancel}
-                  >
-                    <SortableContext
-                      items={orderedTemplates.map((template) => template.id)}
-                      strategy={rectSortingStrategy}
-                    >
-                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        {orderedTemplates.map((template) => (
-                          <SortableTemplateCard
-                            key={template.id}
-                            template={template}
-                            onCopy={handleCopy}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            dateFormatter={dateFormatter}
-                            disableActions={disableActions}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                    <DragOverlay dropAnimation={null}>
-                      {activeTemplate ? (
-                        <div className="rotate-3 scale-105 opacity-95">
-                          <TemplateCard
-                            template={activeTemplate}
-                            onCopy={handleCopy}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            dateFormatter={dateFormatter}
-                            disableActions={disableActions}
-                            isDragging={true}
-                          />
-                        </div>
-                      ) : null}
-                    </DragOverlay>
-                  </DndContext>
-                </div>
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 bg-card/70 px-8 py-16 text-center">
-                  <div className="mb-4 rounded-full bg-gradient-primary/20 p-4 text-primary">
-                    <Plus className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground">Ещё нет шаблонов</h3>
-                  <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-                    Сохраните часто используемые ответы, чтобы иметь их под рукой и делиться ими в
-                    один клик.
-                  </p>
-                  <Button onClick={() => setIsAddModalOpen(true)} className="mt-6 gap-2">
-                    <Plus className="h-4 w-4" />
-                    Создать первый шаблон
-                  </Button>
-                </div>
-              )}
-            </div>
+            <Button
+              size="lg"
+              className="gap-2 shadow-brand"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Создать шаблон
+            </Button>
           </div>
+        </div>
+
+        <div>
+          {isLoading ? (
+            renderSkeletonCards()
+          ) : hasTemplates ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 opacity-70" />
+                  Перетащите карточки, чтобы поменять их порядок.
+                </p>
+                {isReordering && (
+                  <span className="inline-flex items-center gap-2 text-primary">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Сохраняем порядок…
+                  </span>
+                )}
+              </div>
+
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <SortableContext
+                  items={orderedTemplates.map((template) => template.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {orderedTemplates.map((template) => (
+                      <SortableTemplateCard
+                        key={template.id}
+                        template={template}
+                        onCopy={handleCopy}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        dateFormatter={dateFormatter}
+                        disableActions={disableActions}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+                <DragOverlay dropAnimation={null}>
+                  {activeTemplate ? (
+                    <div className="rotate-3 scale-105 opacity-95">
+                      <TemplateCard
+                        template={activeTemplate}
+                        onCopy={handleCopy}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        dateFormatter={dateFormatter}
+                        disableActions={disableActions}
+                        isDragging={true}
+                      />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 bg-card/70 px-8 py-16 text-center">
+              <div className="mb-4 rounded-full bg-gradient-primary/20 p-4 text-primary">
+                <Plus className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground">Ещё нет шаблонов</h3>
+              <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+                Сохраните часто используемые ответы, чтобы иметь их под рукой и делиться ими в один
+                клик.
+              </p>
+              <Button onClick={() => setIsAddModalOpen(true)} className="mt-6 gap-2">
+                <Plus className="h-4 w-4" />
+                Создать первый шаблон
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

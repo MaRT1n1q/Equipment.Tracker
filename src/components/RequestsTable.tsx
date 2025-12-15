@@ -258,14 +258,12 @@ export function RequestsTable({
   if (requests.length === 0) {
     if (isFiltered) {
       return (
-        <div className="text-center py-16 px-4 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 mb-6">
-            <AlertTriangle className="h-12 w-12 text-purple-500" />
+        <div className="text-center py-14 px-4 animate-fade-in">
+          <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--warning)/0.12)] text-[hsl(var(--warning))]">
+            <AlertTriangle className="h-10 w-10" />
           </div>
-          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-            Совпадений не найдено
-          </h3>
-          <p className="text-muted-foreground mb-2 max-w-md mx-auto">
+          <h3 className="text-xl font-semibold text-foreground">Совпадений не найдено</h3>
+          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
             Попробуйте изменить параметры поиска или фильтрации.
           </p>
         </div>
@@ -273,30 +271,25 @@ export function RequestsTable({
     }
 
     return (
-      <div className="text-center py-16 px-4 animate-fade-in">
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 mb-6">
-          <Package className="h-12 w-12 text-purple-500" />
+      <div className="text-center py-14 px-4 animate-fade-in">
+        <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]">
+          <Package className="h-10 w-10" />
         </div>
-        <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-          Заявок пока нет
-        </h3>
-        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Создайте первую заявку на выдачу оборудования, нажав кнопку "Добавить заявку" или
-          используя <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">Ctrl+N</kbd>
+        <h3 className="text-xl font-semibold text-foreground">Заявок пока нет</h3>
+        <p className="mt-2 text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+          Создайте первую заявку, нажав «Добавить заявку» или используя{' '}
+          <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">Ctrl+N</kbd>.
         </p>
-        <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <FileText className="h-4 w-4 text-blue-500" />
-            </div>
-            <span>Учёт заявок</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <Package className="h-4 w-4 text-green-500" />
-            </div>
-            <span>Контроль выдачи</span>
-          </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
+            <FileText className="h-4 w-4 text-[hsl(var(--primary))]" />
+            Учёт заявок
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
+            <Package className="h-4 w-4 text-[hsl(var(--primary))]" />
+            Контроль выдачи
+          </span>
         </div>
       </div>
     )
@@ -481,9 +474,17 @@ export function RequestsTable({
                         >
                           {request.employee_name}
                         </span>
-                        <span className="text-sm text-muted-foreground/80">{request.login}</span>
+                        <span
+                          className={cn(
+                            'rounded-md bg-muted/30 px-2 py-0.5 text-xs font-mono text-muted-foreground',
+                            !isDense && 'sm:text-sm'
+                          )}
+                          title={request.login}
+                        >
+                          {request.login}
+                        </span>
                         {request.sd_number && (
-                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70">
+                          <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             SD {request.sd_number}
                           </span>
                         )}
@@ -493,9 +494,14 @@ export function RequestsTable({
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:text-sm">
+                    <div
+                      className={cn(
+                        'flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground',
+                        !isDense && 'sm:text-sm'
+                      )}
+                    >
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4 text-orange-500" />
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>Создана {formatDate(request.created_at)}</span>
                       </div>
                       {request.issued_at && (
@@ -509,7 +515,7 @@ export function RequestsTable({
                           <TooltipTrigger asChild>
                             <button
                               type="button"
-                              className="flex items-center gap-1.5 text-blue-600 underline-offset-2 transition-colors hover:underline dark:text-blue-400"
+                              className="flex items-center gap-1.5 text-[hsl(var(--primary))] underline-offset-2 transition-colors hover:underline"
                               onClick={() =>
                                 setCommentModal({
                                   employeeName: request.employee_name,
@@ -532,7 +538,8 @@ export function RequestsTable({
 
                   <label
                     className={cn(
-                      'flex w-full max-w-xs items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground transition-colors sm:text-sm',
+                      'flex w-full max-w-xs items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground transition-colors',
+                      !isDense && 'sm:text-sm',
                       'hover:border-[hsl(var(--primary)/0.35)] hover:text-foreground',
                       { 'px-2 py-1.5': isDense }
                     )}
@@ -557,20 +564,28 @@ export function RequestsTable({
                             ? 'Отменить отметку о выдаче'
                             : 'Отметить, что оборудование выдано'
                       }
-                      className={cn(
-                        'h-4 w-4 text-primary-foreground data-[state=checked]:bg-[hsl(var(--primary))]',
-                        hasReturn &&
-                          'border-[hsl(var(--primary)/0.35)] data-[state=checked]:bg-[hsl(var(--primary))]'
-                      )}
+                      className={cn('h-4 w-4', hasReturn && 'border-[hsl(var(--primary)/0.35)]')}
                     />
                     <div className="flex flex-col leading-tight">
                       <span className="font-semibold text-foreground">{statusTitle}</span>
-                      <span className="text-[0.7rem] opacity-80">{statusHint}</span>
+                      <span
+                        className={cn(
+                          'text-[0.72rem] leading-snug text-muted-foreground',
+                          isDense && 'text-[0.68rem]'
+                        )}
+                      >
+                        {statusHint}
+                      </span>
                     </div>
                   </label>
                 </div>
 
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div
+                  className={cn(
+                    'flex flex-wrap items-start justify-between gap-3 border-t border-border/50 pt-3',
+                    isDense && 'pt-2'
+                  )}
+                >
                   <div className={cn('space-y-2', { 'space-y-1.5': isDense }, 'min-w-0 flex-1')}>
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Package className="h-4 w-4 text-[hsl(var(--primary))]" />
@@ -578,9 +593,12 @@ export function RequestsTable({
                     </div>
                     {equipmentItems.length > 0 ? (
                       <ul
-                        className={cn('ml-6 list-disc space-y-1.5 text-sm marker:text-orange-500', {
-                          'space-y-1': isDense,
-                        })}
+                        className={cn(
+                          'ml-6 list-disc space-y-1.5 text-sm marker:text-[hsl(var(--primary))]',
+                          {
+                            'space-y-1': isDense,
+                          }
+                        )}
                       >
                         {equipmentItems.map((item, itemIndex) => (
                           <li key={itemIndex} className="flex flex-wrap items-center gap-2">

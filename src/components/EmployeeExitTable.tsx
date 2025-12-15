@@ -145,14 +145,12 @@ export function EmployeeExitTable({
   if (exits.length === 0) {
     if (isFiltered) {
       return (
-        <div className="text-center py-16 px-4 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 mb-6">
-            <AlertTriangle className="h-12 w-12 text-orange-500" />
+        <div className="text-center py-14 px-4 animate-fade-in">
+          <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--warning)/0.12)] text-[hsl(var(--warning))]">
+            <AlertTriangle className="h-10 w-10" />
           </div>
-          <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">
-            Совпадений не найдено
-          </h3>
-          <p className="text-muted-foreground mb-2 max-w-md mx-auto">
+          <h3 className="text-xl font-semibold text-foreground">Совпадений не найдено</h3>
+          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
             Попробуйте изменить параметры поиска или фильтрации.
           </p>
         </div>
@@ -160,15 +158,14 @@ export function EmployeeExitTable({
     }
 
     return (
-      <div className="text-center py-16 px-4 animate-fade-in">
-        <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 mb-6">
-          <UserMinus className="h-12 w-12 text-orange-500" />
+      <div className="text-center py-14 px-4 animate-fade-in">
+        <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]">
+          <UserMinus className="h-10 w-10" />
         </div>
-        <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">
-          Записей пока нет
-        </h3>
-        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Создайте первую запись о выходе сотрудника и необходимом оборудовании
+        <h3 className="text-xl font-semibold text-foreground">Записей пока нет</h3>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+          Создайте первую запись о выдаче оборудования сотруднику — нажмите «Добавить запись»
+          вверху.
         </p>
       </div>
     )
@@ -239,9 +236,17 @@ export function EmployeeExitTable({
                         >
                           {exit.employee_name}
                         </span>
-                        <span className="text-sm text-muted-foreground/80">{exit.login}</span>
+                        <span
+                          className={cn(
+                            'rounded-md bg-muted/30 px-2 py-0.5 text-xs font-mono text-muted-foreground',
+                            !isDense && 'sm:text-sm'
+                          )}
+                          title={exit.login}
+                        >
+                          {exit.login}
+                        </span>
                         {exit.sd_number && (
-                          <span className="text-xs uppercase tracking-wide text-muted-foreground/70">
+                          <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             SD {exit.sd_number}
                           </span>
                         )}
@@ -251,9 +256,14 @@ export function EmployeeExitTable({
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:text-sm">
+                    <div
+                      className={cn(
+                        'flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground',
+                        !isDense && 'sm:text-sm'
+                      )}
+                    >
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4 text-orange-500" />
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>Дата выхода {formatDate(exit.exit_date)}</span>
                       </div>
                     </div>
@@ -273,7 +283,8 @@ export function EmployeeExitTable({
 
                   <label
                     className={cn(
-                      'flex w-full max-w-xs items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground transition-colors sm:text-sm',
+                      'flex w-full max-w-xs items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground transition-colors',
+                      !isDense && 'sm:text-sm',
                       'hover:border-[hsl(var(--primary)/0.35)] hover:text-foreground',
                       { 'px-2 py-1.5': isDense }
                     )}
@@ -290,12 +301,24 @@ export function EmployeeExitTable({
                     />
                     <div className="flex flex-col leading-tight">
                       <span className="font-semibold text-foreground">{statusTitle}</span>
-                      <span className="text-[0.7rem] opacity-80">{statusHint}</span>
+                      <span
+                        className={cn(
+                          'text-[0.72rem] leading-snug text-muted-foreground',
+                          isDense && 'text-[0.68rem]'
+                        )}
+                      >
+                        {statusHint}
+                      </span>
                     </div>
                   </label>
                 </div>
 
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div
+                  className={cn(
+                    'flex flex-wrap items-start justify-between gap-3 border-t border-border/50 pt-3',
+                    isDense && 'pt-2'
+                  )}
+                >
                   <div className={cn('space-y-2', { 'space-y-1.5': isDense }, 'min-w-0 flex-1')}>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-sm font-medium">
@@ -325,9 +348,12 @@ export function EmployeeExitTable({
                     </div>
                     {equipmentItems.length > 0 ? (
                       <ul
-                        className={cn('ml-6 list-disc space-y-1.5 text-sm marker:text-orange-500', {
-                          'space-y-1': isDense,
-                        })}
+                        className={cn(
+                          'ml-6 list-disc space-y-1.5 text-sm marker:text-[hsl(var(--primary))]',
+                          {
+                            'space-y-1': isDense,
+                          }
+                        )}
                       >
                         {equipmentItems.map((item, idx) => (
                           <li key={idx} className="flex flex-wrap items-center gap-2">

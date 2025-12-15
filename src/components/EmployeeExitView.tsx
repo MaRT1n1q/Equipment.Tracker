@@ -249,17 +249,28 @@ export function EmployeeExitView({
     <div className="space-y-6">
       {/* Table */}
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-bold">Список выходов</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Управление записями о выходе сотрудников
-            </p>
+        <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Оборудование
+              </p>
+              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+                Выход сотрудников
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+                Учёт выдачи оборудования сотрудникам и контроль сроков.
+              </p>
+            </div>
+            <Button
+              onClick={() => onModalOpenChange(true)}
+              size="lg"
+              className="gap-2 shadow-brand"
+            >
+              <Plus className="h-4 w-4" />
+              Добавить запись
+            </Button>
           </div>
-          <Button onClick={() => onModalOpenChange(true)} size="sm" className="shadow-brand px-4">
-            <Plus className="mr-2 h-4 w-4" />
-            Добавить запись
-          </Button>
         </div>
 
         {isLoading ? (
@@ -281,7 +292,7 @@ export function EmployeeExitView({
           </div>
         ) : (
           <>
-            <div className="space-y-4 mb-6">
+            <div className="surface-section space-y-4 mb-6">
               <SearchAndFilters
                 searchPlaceholder="Поиск по ФИО, логину, номеру SD, дате или оборудованию... (Ctrl+F)"
                 searchQuery={searchQuery}

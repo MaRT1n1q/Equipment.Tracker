@@ -178,17 +178,20 @@ export function RequestsView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Заявки</h2>
-          <p className="text-sm text-muted-foreground">
-            Управление заявками на выдачу оборудования
-          </p>
+      <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Оборудование</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">Заявки</h1>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Управление заявками на выдачу оборудования и контроль статусов.
+            </p>
+          </div>
+          <Button onClick={onAddRequest} size="lg" className="gap-2 shadow-brand">
+            <Plus className="h-4 w-4" />
+            Добавить заявку
+          </Button>
         </div>
-        <Button onClick={onAddRequest} size="sm" className="shadow-brand px-4">
-          <Plus className="mr-2 h-4 w-4" />
-          Добавить заявку
-        </Button>
       </div>
 
       {isLoading ? (
@@ -210,7 +213,7 @@ export function RequestsView({
         </div>
       ) : (
         <>
-          <div className="space-y-4 mb-6">
+          <div className="surface-section space-y-4 mb-6">
             <SearchAndFilters
               searchPlaceholder="Поиск по ФИО, логину, номеру SD, оборудованию или серийному номеру... (Ctrl+F)"
               searchQuery={searchQuery}

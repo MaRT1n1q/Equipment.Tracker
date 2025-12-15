@@ -308,90 +308,107 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
 
   return (
     <div className="space-y-8">
-      <div ref={searchContainerRef} className="relative">
-        <div className="relative flex items-center">
-          <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(event) => {
-              setSearchQuery(event.target.value)
-              setIsSearchOpen(true)
-            }}
-            onFocus={() => setIsSearchOpen(true)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setIsSearchOpen(false)
-                setSearchQuery('')
-                return
-              }
-
-              if (event.key === 'Enter' && searchResults.length > 0) {
-                event.preventDefault()
-                handleSelectResult(searchResults[0])
-              }
-            }}
-            placeholder="Поиск по заявкам и выходам сотрудников..."
-            className="h-12 rounded-xl bg-muted/40 pl-9 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition focus:border-[hsl(var(--primary)/0.35)] focus:bg-background"
-          />
+      <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Оборудование</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">Дашборд</h1>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Сводка по заявкам, выдачам и ближайшим возвратам.
+            </p>
+          </div>
         </div>
 
-        {isSearchOpen && searchQuery.trim().length > 0 && (
-          <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-border/60 bg-popover shadow-2xl">
-            {searchResults.length === 0 ? (
-              <div className="px-4 py-5 text-sm text-muted-foreground">Ничего не найдено</div>
-            ) : (
-              <ul className="max-h-72 overflow-y-auto py-2">
-                {searchResults.map((result, index) => (
-                  <li
-                    key={`${result.type}-${result.id}`}
-                    className={cn(
-                      'cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-muted/40',
-                      index % 2 === 1 && 'bg-muted/10'
-                    )}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => handleSelectResult(result)}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-                          {result.type === 'request' ? (
-                            <Package className="h-4 w-4" />
-                          ) : (
-                            <UserMinus className="h-4 w-4" />
-                          )}
-                        </span>
-                        <div className="min-w-0 space-y-1">
-                          <p className="truncate font-medium text-foreground">{result.title}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {result.description}
-                          </p>
-                          {result.meta && (
-                            <p className="truncate text-xs text-muted-foreground/80">
-                              {result.meta}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-xs text-muted-foreground/80 whitespace-nowrap">
-                        {result.type === 'request' ? 'Заявка' : 'Выход'}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+        <div ref={searchContainerRef} className="relative mt-5">
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value)
+                setIsSearchOpen(true)
+              }}
+              onFocus={() => setIsSearchOpen(true)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setIsSearchOpen(false)
+                  setSearchQuery('')
+                  return
+                }
+
+                if (event.key === 'Enter' && searchResults.length > 0) {
+                  event.preventDefault()
+                  handleSelectResult(searchResults[0])
+                }
+              }}
+              placeholder="Быстрый поиск по заявкам и выходам…"
+              className="h-12 rounded-xl bg-muted/40 pl-9 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition focus:border-[hsl(var(--primary)/0.35)] focus:bg-background"
+            />
           </div>
-        )}
+
+          {isSearchOpen && searchQuery.trim().length > 0 && (
+            <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-border/60 bg-popover shadow-2xl">
+              {searchResults.length === 0 ? (
+                <div className="px-4 py-5 text-sm text-muted-foreground">Ничего не найдено</div>
+              ) : (
+                <ul className="max-h-72 overflow-y-auto py-2">
+                  {searchResults.map((result, index) => (
+                    <li
+                      key={`${result.type}-${result.id}`}
+                      className={cn(
+                        'cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-muted/40',
+                        index % 2 === 1 && 'bg-muted/10'
+                      )}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => handleSelectResult(result)}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+                            {result.type === 'request' ? (
+                              <Package className="h-4 w-4" />
+                            ) : (
+                              <UserMinus className="h-4 w-4" />
+                            )}
+                          </span>
+                          <div className="min-w-0 space-y-1">
+                            <p className="truncate font-medium text-foreground">{result.title}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {result.description}
+                            </p>
+                            {result.meta && (
+                              <p className="truncate text-xs text-muted-foreground/80">
+                                {result.meta}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground/80 whitespace-nowrap">
+                          {result.type === 'request' ? 'Заявка' : 'Выход'}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <EmployeeExitCalendar exits={employeeExitSummary?.exits ?? []} returns={returnEvents} />
 
       {/* Requests Section */}
-      <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5 text-[hsl(var(--primary))]" />
-          Статистика заявок
-        </h2>
+      <div className="surface-section space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="surface-section__title">Статистика</p>
+            <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
+              <Package className="h-5 w-5 text-[hsl(var(--primary))]" />
+              Заявки
+            </h2>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {cards.map((card, index) => {
             const accent = accentStyles[card.accent]
@@ -421,11 +438,16 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
       </div>
 
       {/* Employee Exits Section */}
-      <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <UserMinus className="w-5 h-5 text-[hsl(var(--primary))]" />
-          Статистика выходов сотрудников
-        </h2>
+      <div className="surface-section space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="surface-section__title">Статистика</p>
+            <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
+              <UserMinus className="h-5 w-5 text-[hsl(var(--primary))]" />
+              Выход сотрудников
+            </h2>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {exitCards.map((card, index) => {
             const accent = accentStyles[card.accent]

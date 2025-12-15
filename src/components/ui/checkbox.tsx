@@ -37,6 +37,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         />
         <div
           onClick={handleDivClick}
+          data-state={checked ? 'checked' : 'unchecked'}
           className={cn(
             'h-5 w-5 shrink-0 rounded border border-primary ring-offset-background',
             'peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2',
