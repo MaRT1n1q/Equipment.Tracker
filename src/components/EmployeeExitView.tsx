@@ -19,7 +19,6 @@ import { ErrorState } from './ErrorState'
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
 const EXIT_FILTER_STORAGE_KEY = 'equipment-tracker:exit-filter'
-const EXIT_DENSITY_STORAGE_KEY = 'equipment-tracker:exit-density'
 const EXIT_PAGE_SIZE_STORAGE_KEY = 'equipment-tracker:exit-page-size'
 const EXIT_PAGE_SIZE_OPTIONS = [25, 50, 100]
 const DEFAULT_EXIT_PAGE_SIZE = 25
@@ -62,14 +61,7 @@ export function EmployeeExitView({
           : 'all',
     }
   )
-  const [tableDensity, setTableDensity] = usePersistentState<'comfortable' | 'dense'>(
-    EXIT_DENSITY_STORAGE_KEY,
-    'comfortable',
-    {
-      serializer: (value) => value,
-      deserializer: (value) => (value === 'dense' ? 'dense' : 'comfortable'),
-    }
-  )
+  const tableDensity = 'dense' as const
   const [isExporting, setIsExporting] = useState(false)
   const [showQuickHelp, setShowQuickHelp] = usePersistentState<boolean>(
     EXIT_TIPS_STORAGE_KEY,
@@ -251,7 +243,7 @@ export function EmployeeExitView({
   return (
     <div className="space-y-6">
       {/* Table */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <PageHeader
           title="Выход сотрудников"
           description="Учёт выдачи оборудования сотрудникам и контроль сроков."
@@ -291,8 +283,6 @@ export function EmployeeExitView({
                 ]}
                 activeFilter={statusFilter}
                 onFilterChange={setStatusFilter}
-                density={tableDensity}
-                onDensityChange={setTableDensity}
                 actions={
                   <Button
                     variant="outline"

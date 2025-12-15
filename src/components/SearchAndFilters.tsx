@@ -32,8 +32,8 @@ interface SearchAndFiltersProps<TFilter extends string = string> {
   filterOptions: FilterOption<TFilter>[]
   activeFilter: TFilter
   onFilterChange: (value: TFilter) => void
-  density: DensityOption
-  onDensityChange: (value: DensityOption) => void
+  density?: DensityOption
+  onDensityChange?: (value: DensityOption) => void
   densityLabels?: {
     comfortable: string
     dense: string
@@ -58,7 +58,7 @@ export function SearchAndFilters<TFilter extends string = string>({
   filterOptions,
   activeFilter,
   onFilterChange,
-  density,
+  density = 'dense',
   onDensityChange,
   densityLabels = defaultDensityLabels,
   summary,
@@ -97,33 +97,35 @@ export function SearchAndFilters<TFilter extends string = string>({
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {actions}
           {summary}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Отображение</span>
-            <div className="inline-flex rounded-full border border-border bg-background/80 p-0.5">
-              <Button
-                size="sm"
-                variant={density === 'comfortable' ? 'default' : 'ghost'}
-                className={cn(
-                  'h-7 rounded-full px-3 text-xs',
-                  density === 'comfortable' ? '' : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => onDensityChange('comfortable')}
-              >
-                {densityLabels.comfortable}
-              </Button>
-              <Button
-                size="sm"
-                variant={density === 'dense' ? 'default' : 'ghost'}
-                className={cn(
-                  'h-7 rounded-full px-3 text-xs',
-                  density === 'dense' ? '' : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => onDensityChange('dense')}
-              >
-                {densityLabels.dense}
-              </Button>
+          {onDensityChange ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Отображение</span>
+              <div className="inline-flex rounded-full border border-border bg-background/80 p-0.5">
+                <Button
+                  size="sm"
+                  variant={density === 'comfortable' ? 'default' : 'ghost'}
+                  className={cn(
+                    'h-7 rounded-full px-3 text-xs',
+                    density === 'comfortable' ? '' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  onClick={() => onDensityChange('comfortable')}
+                >
+                  {densityLabels.comfortable}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={density === 'dense' ? 'default' : 'ghost'}
+                  className={cn(
+                    'h-7 rounded-full px-3 text-xs',
+                    density === 'dense' ? '' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  onClick={() => onDensityChange('dense')}
+                >
+                  {densityLabels.dense}
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 

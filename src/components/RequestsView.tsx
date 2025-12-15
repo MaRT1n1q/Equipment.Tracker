@@ -15,15 +15,12 @@ import { ErrorState } from './ErrorState'
 
 const REQUESTS_SEARCH_STORAGE_KEY = 'equipment-tracker:requests-search'
 const REQUESTS_FILTER_STORAGE_KEY = 'equipment-tracker:requests-filter'
-const REQUESTS_DENSITY_STORAGE_KEY = 'equipment-tracker:requests-density'
 const REQUESTS_TIPS_STORAGE_KEY = 'equipment-tracker:requests-tips-dismissed'
 const REQUESTS_PAGE_SIZE_STORAGE_KEY = 'equipment-tracker:requests-page-size'
 const DEFAULT_PAGE_SIZE = 25
 const PAGE_SIZE_OPTIONS = [25, 50, 100]
 
 type RequestFilter = 'all' | 'issued' | 'not-issued' | 'return-pending' | 'return-completed'
-
-type TableDensity = 'comfortable' | 'dense'
 
 interface RequestsViewProps {
   onEdit: (request: Request) => void
@@ -68,14 +65,7 @@ export function RequestsView({
           : 'all',
     }
   )
-  const [tableDensity, setTableDensity] = usePersistentState<TableDensity>(
-    REQUESTS_DENSITY_STORAGE_KEY,
-    'comfortable',
-    {
-      serializer: (value) => value,
-      deserializer: (value) => (value === 'dense' ? 'dense' : 'comfortable'),
-    }
-  )
+  const tableDensity = 'dense' as const
   const [showQuickHelp, setShowQuickHelp] = usePersistentState<boolean>(
     REQUESTS_TIPS_STORAGE_KEY,
     true,
@@ -218,8 +208,6 @@ export function RequestsView({
               ]}
               activeFilter={statusFilter}
               onFilterChange={setStatusFilter}
-              density={tableDensity}
-              onDensityChange={setTableDensity}
               summary={
                 <span className="status-pill status-pill--info text-xs">
                   {isFiltered ? (
