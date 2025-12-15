@@ -481,9 +481,15 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
         return { success: false, error: 'Заявка не найдена' }
       }
 
+      const todayIsoDate = new Date().toISOString().slice(0, 10)
+
       const updatePayload: Record<string, any> = {
         return_completed: isCompleted ? 1 : 0,
         return_completed_at: isCompleted ? new Date().toISOString() : null,
+      }
+
+      if (isCompleted) {
+        updatePayload.return_due_date = todayIsoDate
       }
 
       if (isCompleted && existing.is_issued !== 1) {
