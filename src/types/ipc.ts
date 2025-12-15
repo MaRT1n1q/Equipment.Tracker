@@ -106,6 +106,8 @@ export const employeeExitRecordSchema = createEmployeeExitSchema.extend({
   sd_number: z.string().nullable(),
 })
 
+export const restoreEmployeeExitSchema = employeeExitRecordSchema
+
 export const updateExitCompletedSchema = z.object({
   id: requestIdSchema,
   is_completed: z.boolean(),

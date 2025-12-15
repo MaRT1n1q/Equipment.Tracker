@@ -25,6 +25,9 @@ import { useTemplates } from '../hooks/useTemplates'
 import { AddTemplateModal } from './AddTemplateModal'
 import { EditTemplateModal } from './EditTemplateModal'
 import { cn } from '../lib/utils'
+import { PageHeader } from './PageHeader'
+import { ErrorState } from './ErrorState'
+import { EmptyState } from './EmptyState'
 
 interface SortableTemplateCardProps {
   template: Template
@@ -165,6 +168,9 @@ export function TemplatesView() {
   const {
     templates,
     isLoading,
+    isError,
+    error,
+    refetch,
     deleteTemplate,
     copyToClipboard,
     isDeleting,
@@ -285,19 +291,10 @@ export function TemplatesView() {
   return (
     <>
       <div className="space-y-6">
-        <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Оборудование
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-                Шаблоны
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-                Подготовленные ответы для типовых запросов — быстро копируйте и редактируйте.
-              </p>
-            </div>
+        <PageHeader
+          title="Шаблоны"
+          description="Подготовленные ответы для типовых запросов — быстро копируйте и редактируйте."
+          actions={
             <Button
               size="lg"
               className="gap-2 shadow-brand"
@@ -306,12 +303,23 @@ export function TemplatesView() {
               <Plus className="h-4 w-4" />
               Создать шаблон
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         <div>
           {isLoading ? (
             renderSkeletonCards()
+          ) : isError ? (
+            <ErrorState
+              title="Не удалось загрузить шаблоны"
+              description={
+                error instanceof Error
+                  ? error.message
+                  : 'Повторите попытку. Если ошибка сохраняется, проверьте журнал приложения.'
+              }
+              onRetry={() => refetch()}
+              retryLabel="Обновить данные"
+            />
           ) : hasTemplates ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -370,19 +378,18 @@ export function TemplatesView() {
               </DndContext>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 bg-card/70 px-8 py-16 text-center">
-              <div className="mb-4 rounded-full bg-gradient-primary/20 p-4 text-primary">
-                <Plus className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground">Ещё нет шаблонов</h3>
-              <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-                Сохраните часто используемые ответы, чтобы иметь их под рукой и делиться ими в один
-                клик.
-              </p>
-              <Button onClick={() => setIsAddModalOpen(true)} className="mt-6 gap-2">
-                <Plus className="h-4 w-4" />
-                Создать первый шаблон
-              </Button>
+            <div className="rounded-3xl border border-dashed border-border/60 bg-card/70">
+              <EmptyState
+                icon={Plus}
+                title="Ещё нет шаблонов"
+                description="Сохраните часто используемые ответы, чтобы иметь их под рукой и делиться ими в один клик."
+                actions={
+                  <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Создать первый шаблон
+                  </Button>
+                }
+              />
             </div>
           )}
         </div>

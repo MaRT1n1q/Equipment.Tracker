@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
 import { cn } from '../lib/utils'
+import { EmptyState } from './EmptyState'
 
 interface RequestsTableProps {
   requests: Request[]
@@ -258,40 +259,33 @@ export function RequestsTable({
   if (requests.length === 0) {
     if (isFiltered) {
       return (
-        <div className="text-center py-14 px-4 animate-fade-in">
-          <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--warning)/0.12)] text-[hsl(var(--warning))]">
-            <AlertTriangle className="h-10 w-10" />
-          </div>
-          <h3 className="text-xl font-semibold text-foreground">Совпадений не найдено</h3>
-          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            Попробуйте изменить параметры поиска или фильтрации.
-          </p>
-        </div>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="warning"
+          title="Совпадений не найдено"
+          description="Попробуйте изменить параметры поиска или фильтрации."
+        />
       )
     }
 
     return (
-      <div className="text-center py-14 px-4 animate-fade-in">
-        <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]">
-          <Package className="h-10 w-10" />
-        </div>
-        <h3 className="text-xl font-semibold text-foreground">Заявок пока нет</h3>
-        <p className="mt-2 text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-          Создайте первую заявку, нажав «Добавить заявку» или используя{' '}
-          <kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded">Ctrl+N</kbd>.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
-            <FileText className="h-4 w-4 text-[hsl(var(--primary))]" />
-            Учёт заявок
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
-            <Package className="h-4 w-4 text-[hsl(var(--primary))]" />
-            Контроль выдачи
-          </span>
-        </div>
-      </div>
+      <EmptyState
+        icon={Package}
+        title="Заявок пока нет"
+        description="Создайте первую заявку, нажав «Добавить заявку» или используя Ctrl+N."
+        actions={
+          <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
+              <FileText className="h-4 w-4 text-[hsl(var(--primary))]" />
+              Учёт заявок
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2">
+              <Package className="h-4 w-4 text-[hsl(var(--primary))]" />
+              Контроль выдачи
+            </span>
+          </div>
+        }
+      />
     )
   }
 

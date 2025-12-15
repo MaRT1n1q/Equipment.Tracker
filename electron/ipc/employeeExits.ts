@@ -8,6 +8,7 @@ import {
   paginatedEmployeeExitQuerySchema,
   paginatedEmployeeExitsResponseSchema,
   requestIdSchema,
+  restoreEmployeeExitSchema,
 } from '../../src/types/ipc'
 import fs from 'fs'
 
@@ -262,6 +263,29 @@ export function registerEmployeeExitHandlers(
       await database('employee_exits').where({ id }).delete()
       notifyChange()
       return { success: true, data: payload }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('restore-employee-exit', async (_event, rawExit) => {
+    try {
+      const exit = restoreEmployeeExitSchema.parse(rawExit)
+      const database = getDatabase()
+
+      await database('employee_exits').insert({
+        id: exit.id,
+        employee_name: exit.employee_name,
+        login: exit.login,
+        sd_number: exit.sd_number,
+        exit_date: exit.exit_date,
+        equipment_list: exit.equipment_list,
+        created_at: exit.created_at,
+        is_completed: exit.is_completed,
+      })
+
+      notifyChange()
+      return { success: true }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

@@ -91,6 +91,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteEmployeeExit: (id: number): Promise<ApiResponse<EmployeeExit>> =>
     ipcRenderer.invoke('delete-employee-exit', id),
 
+  restoreEmployeeExit: (exit: EmployeeExit): Promise<ApiResponse> =>
+    ipcRenderer.invoke('restore-employee-exit', exit),
+
   updateExitCompleted: (id: number, is_completed: boolean): Promise<ApiResponse> =>
     ipcRenderer.invoke('update-exit-completed', id, is_completed),
 

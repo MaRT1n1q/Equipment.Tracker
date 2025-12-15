@@ -3,10 +3,13 @@ import { ChevronLeft, ChevronRight, RefreshCcw, UserMinus } from 'lucide-react'
 import type { EmployeeExitSummary } from '../types/ipc'
 import { cn } from '../lib/utils'
 import { parseExitEquipmentList, stringifyExitEquipmentItems } from '../lib/employeeExitEquipment'
+import { EmptyState } from './EmptyState'
 
 interface EmployeeExitCalendarProps {
   exits: EmployeeExitSummary['exits']
   returns: RequestReturnEvent[]
+  onSelectRequest?: (target: { id: number; searchHint?: string }) => void
+  onSelectEmployeeExit?: (target: { id: number; searchHint?: string }) => void
 }
 
 interface RequestReturnEvent {
@@ -117,7 +120,12 @@ function moveMonth(date: Date, offset: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + offset, 1)
 }
 
-export function EmployeeExitCalendar({ exits, returns }: EmployeeExitCalendarProps) {
+export function EmployeeExitCalendar({
+  exits,
+  returns,
+  onSelectRequest,
+  onSelectEmployeeExit,
+}: EmployeeExitCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => getMonthStart(new Date()))
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date())
 
@@ -438,10 +446,35 @@ export function EmployeeExitCalendar({ exits, returns }: EmployeeExitCalendarPro
                   ? `Плановая сдача: ${getLongDateLabel(event.date)}`
                   : `Дата выхода: ${getLongDateLabel(event.date)}`
 
+              const handleNavigate = () => {
+                if (event.kind === 'return') {
+                  onSelectRequest?.({ id: event.sourceId, searchHint: event.employeeName })
+                } else {
+                  onSelectEmployeeExit?.({ id: event.sourceId, searchHint: event.employeeName })
+                }
+              }
+
+              const isNavigable =
+                (event.kind === 'return' && Boolean(onSelectRequest)) ||
+                (event.kind === 'exit' && Boolean(onSelectEmployeeExit))
+
               return (
                 <li
                   key={event.id}
                   className="surface-section rounded-lg p-4 flex flex-col gap-2 border border-border/40"
+                  role={isNavigable ? 'button' : undefined}
+                  tabIndex={isNavigable ? 0 : undefined}
+                  onClick={isNavigable ? handleNavigate : undefined}
+                  onKeyDown={(eventKey) => {
+                    if (!isNavigable) {
+                      return
+                    }
+
+                    if (eventKey.key === 'Enter' || eventKey.key === ' ') {
+                      eventKey.preventDefault()
+                      handleNavigate()
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -478,8 +511,12 @@ export function EmployeeExitCalendar({ exits, returns }: EmployeeExitCalendarPro
             })}
           </ul>
         ) : (
-          <div className="surface-section rounded-lg p-6 text-center text-sm text-muted-foreground">
-            На выбранную дату событий не запланировано.
+          <div className="surface-section rounded-lg border border-border/40">
+            <EmptyState
+              icon={UserMinus}
+              title="Нет событий"
+              description="На выбранную дату событий не запланировано."
+            />
           </div>
         )}
       </div>

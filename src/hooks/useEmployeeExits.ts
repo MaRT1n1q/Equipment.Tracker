@@ -88,7 +88,7 @@ export function useEmployeeExitActions() {
     onSuccess: invalidate,
   })
 
-  const deleteMutation = useMutation<EmployeeExit | undefined, Error, number>({
+  const deleteMutation = useMutation<EmployeeExit, Error, number>({
     mutationFn: async (id) => {
       const result = await window.electronAPI.deleteEmployeeExit(id)
 
@@ -96,7 +96,22 @@ export function useEmployeeExitActions() {
         throw new Error(result.error || 'Не удалось удалить запись выхода')
       }
 
+      if (!result.data) {
+        throw new Error('Не удалось получить данные удалённой записи')
+      }
+
       return result.data
+    },
+    onSuccess: invalidate,
+  })
+
+  const restoreMutation = useMutation<void, Error, EmployeeExit>({
+    mutationFn: async (payload) => {
+      const result = await window.electronAPI.restoreEmployeeExit(payload)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось восстановить запись выхода')
+      }
     },
     onSuccess: invalidate,
   })
@@ -116,6 +131,7 @@ export function useEmployeeExitActions() {
     createEmployeeExit: createMutation.mutateAsync,
     updateEmployeeExit: updateMutation.mutateAsync,
     deleteEmployeeExit: deleteMutation.mutateAsync,
+    restoreEmployeeExit: restoreMutation.mutateAsync,
     updateExitCompleted: updateCompletedMutation.mutateAsync,
   }
 }

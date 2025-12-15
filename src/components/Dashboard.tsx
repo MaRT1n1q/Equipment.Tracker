@@ -1,23 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Package,
-  PackageCheck,
-  Clock,
-  TrendingUp,
-  UserMinus,
-  Users,
-  Search,
-  AlertTriangle,
-} from 'lucide-react'
+import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users, Search } from 'lucide-react'
 import { EmployeeExitCalendar } from './EmployeeExitCalendar'
 import { Input } from './ui/input'
 import { cn } from '../lib/utils'
 import { useDebounce } from '../hooks/useDebounce'
 import { useEmployeeExitSummaryQuery } from '../hooks/useEmployeeExits'
 import { useRequestSummaryQuery } from '../hooks/useRequests'
-import { Button } from './ui/button'
-import { TableSkeleton } from './TableSkeleton'
+import { PageHeader } from './PageHeader'
+import { ErrorState } from './ErrorState'
+import { LoadingState } from './LoadingState'
 
 export type DashboardSelection = {
   id: number
@@ -67,7 +59,13 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   const trimmedQuery = debouncedQuery.trim()
   const isSearchEnabled = trimmedQuery.length > 0
 
-  const { data: requestSearchResults } = useQuery({
+  const {
+    data: requestSearchResults,
+    isFetching: isRequestSearchFetching,
+    isError: isRequestSearchError,
+    error: requestSearchError,
+    refetch: refetchRequestSearch,
+  } = useQuery({
     queryKey: ['dashboard', 'requestSearch', trimmedQuery],
     queryFn: async () => {
       const response = await window.electronAPI.getRequests({
@@ -85,7 +83,13 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
     enabled: isSearchEnabled,
   })
 
-  const { data: employeeExitSearchResults } = useQuery({
+  const {
+    data: employeeExitSearchResults,
+    isFetching: isEmployeeExitSearchFetching,
+    isError: isEmployeeExitSearchError,
+    error: employeeExitSearchError,
+    refetch: refetchEmployeeExitSearch,
+  } = useQuery({
     queryKey: ['dashboard', 'exitSearch', trimmedQuery],
     queryFn: async () => {
       const response = await window.electronAPI.getEmployeeExits({
@@ -102,6 +106,9 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
     },
     enabled: isSearchEnabled,
   })
+
+  const isSearchLoading = isRequestSearchFetching || isEmployeeExitSearchFetching
+  const isSearchError = isRequestSearchError || isEmployeeExitSearchError
 
   const returnEvents = useMemo(() => {
     if (!requestSummary) {
@@ -280,44 +287,31 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   const isError = isRequestSummaryError || isEmployeeSummaryError
 
   if (isLoading) {
-    return <TableSkeleton />
+    return <LoadingState label="Загружаем сводку…" />
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-        <AlertTriangle className="h-6 w-6 text-destructive" />
-        <div>
-          <h3 className="text-lg font-semibold">Не удалось загрузить сводные данные</h3>
-          <p className="text-sm text-muted-foreground">
-            Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или журнал.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            refetchRequestSummary()
-            refetchEmployeeSummary()
-          }}
-          variant="outline"
-        >
-          Повторить попытку
-        </Button>
-      </div>
+      <ErrorState
+        title="Не удалось загрузить сводные данные"
+        description="Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или журнал."
+        onRetry={() => {
+          refetchRequestSummary()
+          refetchEmployeeSummary()
+        }}
+        retryLabel="Повторить попытку"
+      />
     )
   }
 
   return (
     <div className="space-y-8">
       <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Оборудование</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">Дашборд</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Сводка по заявкам, выдачам и ближайшим возвратам.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          className="border-0 bg-transparent px-0 py-0 shadow-none"
+          title="Дашборд"
+          description="Сводка по заявкам, выдачам и ближайшим возвратам."
+        />
 
         <div ref={searchContainerRef} className="relative mt-5">
           <div className="relative flex items-center">
@@ -348,7 +342,24 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
 
           {isSearchOpen && searchQuery.trim().length > 0 && (
             <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-border/60 bg-popover shadow-2xl">
-              {searchResults.length === 0 ? (
+              {isSearchLoading ? (
+                <LoadingState size="sm" className="py-6" label="Ищем…" />
+              ) : isSearchError ? (
+                <ErrorState
+                  className="border-0 bg-transparent p-4"
+                  title="Не удалось выполнить поиск"
+                  description={
+                    (requestSearchError instanceof Error && requestSearchError.message) ||
+                    (employeeExitSearchError instanceof Error && employeeExitSearchError.message) ||
+                    'Повторите попытку. Если ошибка сохраняется, проверьте журнал приложения.'
+                  }
+                  onRetry={() => {
+                    refetchRequestSearch()
+                    refetchEmployeeExitSearch()
+                  }}
+                  retryLabel="Повторить"
+                />
+              ) : searchResults.length === 0 ? (
                 <div className="px-4 py-5 text-sm text-muted-foreground">Ничего не найдено</div>
               ) : (
                 <ul className="max-h-72 overflow-y-auto py-2">
@@ -396,7 +407,12 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
         </div>
       </div>
 
-      <EmployeeExitCalendar exits={employeeExitSummary?.exits ?? []} returns={returnEvents} />
+      <EmployeeExitCalendar
+        exits={employeeExitSummary?.exits ?? []}
+        returns={returnEvents}
+        onSelectRequest={onSelectRequest}
+        onSelectEmployeeExit={onSelectEmployeeExit}
+      />
 
       {/* Requests Section */}
       <div className="surface-section space-y-4">

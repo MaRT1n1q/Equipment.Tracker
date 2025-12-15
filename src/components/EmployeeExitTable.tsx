@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 import { cn } from '../lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { EmptyState } from './EmptyState'
 import {
   parseExitEquipmentList,
   stringifyExitEquipmentItems,
@@ -41,7 +42,7 @@ export function EmployeeExitTable({
   highlightExitId,
   onHighlightConsumed,
 }: EmployeeExitTableProps) {
-  const { updateExitCompleted, deleteEmployeeExit } = useEmployeeExitActions()
+  const { updateExitCompleted, deleteEmployeeExit, restoreEmployeeExit } = useEmployeeExitActions()
   const isDense = density === 'dense'
   const statusVariants = {
     success: {
@@ -78,15 +79,31 @@ export function EmployeeExitTable({
 
   const handleDelete = async (id: number) => {
     const confirmed = window.confirm(
-      'Удалить запись о выходе сотрудника? Действие необратимо без резервной копии.'
+      'Удалить запись о выходе сотрудника? Данные можно будет восстановить только в течение текущей сессии.'
     )
     if (!confirmed) {
       return
     }
 
     try {
-      await deleteEmployeeExit(id)
-      toast.success('Запись удалена')
+      const deletedExit = await deleteEmployeeExit(id)
+
+      toast.success('Запись удалена', {
+        action: {
+          label: 'Отменить',
+          onClick: async () => {
+            try {
+              await restoreEmployeeExit(deletedExit)
+              toast.success('Запись восстановлена')
+            } catch (restoreError) {
+              const message =
+                restoreError instanceof Error ? restoreError.message : 'Ошибка при восстановлении'
+              toast.error(message)
+            }
+          },
+        },
+        duration: 5000,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
       toast.error(message)
@@ -145,29 +162,21 @@ export function EmployeeExitTable({
   if (exits.length === 0) {
     if (isFiltered) {
       return (
-        <div className="text-center py-14 px-4 animate-fade-in">
-          <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--warning)/0.12)] text-[hsl(var(--warning))]">
-            <AlertTriangle className="h-10 w-10" />
-          </div>
-          <h3 className="text-xl font-semibold text-foreground">Совпадений не найдено</h3>
-          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            Попробуйте изменить параметры поиска или фильтрации.
-          </p>
-        </div>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="warning"
+          title="Совпадений не найдено"
+          description="Попробуйте изменить параметры поиска или фильтрации."
+        />
       )
     }
 
     return (
-      <div className="text-center py-14 px-4 animate-fade-in">
-        <div className="mx-auto mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]">
-          <UserMinus className="h-10 w-10" />
-        </div>
-        <h3 className="text-xl font-semibold text-foreground">Записей пока нет</h3>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Создайте первую запись о выдаче оборудования сотруднику — нажмите «Добавить запись»
-          вверху.
-        </p>
-      </div>
+      <EmptyState
+        icon={UserMinus}
+        title="Записей пока нет"
+        description="Создайте первую запись о выдаче оборудования сотруднику — нажмите «Добавить запись» вверху."
+      />
     )
   }
 

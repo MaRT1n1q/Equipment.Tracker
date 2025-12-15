@@ -1,4 +1,4 @@
-import { AlertTriangle, Download, Plus } from 'lucide-react'
+import { Download, Plus } from 'lucide-react'
 import { EmployeeExitTable } from './EmployeeExitTable'
 import { AddEmployeeExitModal } from './AddEmployeeExitModal'
 import { EditEmployeeExitModal } from './EditEmployeeExitModal'
@@ -12,6 +12,9 @@ import { usePersistentState } from '../hooks/usePersistentState'
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
 import type { EmployeeExit } from '../types/ipc'
 import { ListPagination } from './ListPagination'
+import { PageHeader } from './PageHeader'
+import { LoadingState } from './LoadingState'
+import { ErrorState } from './ErrorState'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
@@ -249,19 +252,10 @@ export function EmployeeExitView({
     <div className="space-y-6">
       {/* Table */}
       <div className="space-y-4">
-        <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Оборудование
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-                Выход сотрудников
-              </h1>
-              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-                Учёт выдачи оборудования сотрудникам и контроль сроков.
-              </p>
-            </div>
+        <PageHeader
+          title="Выход сотрудников"
+          description="Учёт выдачи оборудования сотрудникам и контроль сроков."
+          actions={
             <Button
               onClick={() => onModalOpenChange(true)}
               size="lg"
@@ -270,26 +264,18 @@ export function EmployeeExitView({
               <Plus className="h-4 w-4" />
               Добавить запись
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-12 h-12 border-4 border-[hsl(var(--primary)/0.2)] border-t-[hsl(var(--primary))] rounded-full animate-spin" />
-          </div>
+          <LoadingState label="Загружаем выходы…" />
         ) : isError ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
-            <div>
-              <h3 className="text-lg font-semibold">Не удалось загрузить выходы сотрудников</h3>
-              <p className="text-sm text-muted-foreground">
-                Повторите попытку. Если ошибка сохраняется, проверьте журнал приложения.
-              </p>
-            </div>
-            <Button onClick={() => refetchExits()} variant="outline">
-              Обновить данные
-            </Button>
-          </div>
+          <ErrorState
+            title="Не удалось загрузить выходы сотрудников"
+            description="Повторите попытку. Если ошибка сохраняется, проверьте журнал приложения."
+            onRetry={() => refetchExits()}
+            retryLabel="Обновить данные"
+          />
         ) : (
           <>
             <div className="surface-section space-y-4 mb-6">

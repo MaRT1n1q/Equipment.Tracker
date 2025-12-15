@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 export function useTemplates() {
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['templates'],
     queryFn: async () => {
       const response = await window.electronAPI.getTemplates()
@@ -95,6 +95,9 @@ export function useTemplates() {
   return {
     templates: data || [],
     isLoading,
+    isError,
+    error,
+    refetch,
     createTemplate: createTemplate.mutate,
     updateTemplate: updateTemplate.mutate,
     deleteTemplate: deleteTemplate.mutate,
