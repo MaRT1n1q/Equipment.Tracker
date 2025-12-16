@@ -18,11 +18,33 @@ import type {
   UpdateRequestData,
   UpdateStatusPayload,
   UpdateTemplateData,
+  WindowState,
 } from '../src/types/ipc'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // App info
   getAppVersion: (): string => ipcRenderer.sendSync('get-app-version'),
+
+  // Window controls
+  getWindowState: (): Promise<ApiResponse<WindowState>> => ipcRenderer.invoke('get-window-state'),
+
+  minimizeWindow: (): Promise<ApiResponse> => ipcRenderer.invoke('window-minimize'),
+
+  toggleMaximizeWindow: (): Promise<ApiResponse<{ isMaximized: boolean }>> =>
+    ipcRenderer.invoke('window-toggle-maximize'),
+
+  closeWindow: (): Promise<ApiResponse> => ipcRenderer.invoke('window-close'),
+
+  onWindowStateChanged: (callback: (payload: WindowState) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: WindowState) => {
+      callback(payload)
+    }
+
+    ipcRenderer.on('window-state-changed', listener)
+    return () => {
+      ipcRenderer.removeListener('window-state-changed', listener)
+    }
+  },
 
   checkForUpdates: (): Promise<ApiResponse> => ipcRenderer.invoke('check-for-updates'),
 

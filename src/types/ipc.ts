@@ -234,3 +234,9 @@ export interface UpdateStatusPayload {
   message: string
   data?: Record<string, unknown>
 }
+
+export const windowStateSchema = z.object({
+  isMaximized: z.boolean(),
+})
+
+export type WindowState = z.infer<typeof windowStateSchema>

@@ -2,6 +2,7 @@ import { BrowserWindow, app, session, Menu, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { loadWindowState, saveWindowState } from './windowState'
+import { attachWindowStateBroadcast } from './ipc/windowControls'
 
 let cspConfigured = false
 
@@ -41,6 +42,7 @@ export function createMainWindow(): BrowserWindow {
     y: windowState.y,
     minWidth: 800,
     minHeight: 600,
+    frame: false,
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
@@ -56,6 +58,8 @@ export function createMainWindow(): BrowserWindow {
 
   window.on('resize', () => saveWindowState(window))
   window.on('move', () => saveWindowState(window))
+
+  attachWindowStateBroadcast(window)
 
   window.webContents.on('context-menu', (_event, params) => {
     const selection = params.selectionText.trim()

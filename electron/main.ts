@@ -8,6 +8,7 @@ import { createAutomaticBackup, registerBackupHandlers } from './ipc/backup'
 import { startExitReminderScheduler } from './notifications'
 import { createTray, destroyTray } from './tray'
 import { initAutoUpdater, registerUpdaterHandlers } from './updater'
+import { registerWindowControlHandlers } from './ipc/windowControls'
 
 let mainWindow: BrowserWindow | null = null
 let exitReminderScheduler: ReturnType<typeof startExitReminderScheduler> = null
@@ -76,6 +77,7 @@ if (!gotTheLock) {
     registerTemplateHandlers()
     registerBackupHandlers()
     registerUpdaterHandlers()
+    registerWindowControlHandlers(getMainWindow)
 
     exitReminderScheduler = startExitReminderScheduler(getDatabase)
 

@@ -252,7 +252,7 @@ export function Sidebar({
 
   return (
     <div
-      className={`fixed left-0 top-0 flex flex-col h-screen bg-card border-r border-border shadow-soft transition-all duration-300 z-20 ${
+      className={`fixed left-0 top-10 flex flex-col h-[calc(100vh-2.5rem)] bg-card border-r border-border shadow-soft transition-all duration-300 z-20 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >

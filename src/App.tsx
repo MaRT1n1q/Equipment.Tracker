@@ -13,6 +13,7 @@ import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
 import { cn } from './lib/utils'
 import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
+import { WindowTitleBar } from './components/WindowTitleBar'
 
 type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates'
 
@@ -102,7 +103,8 @@ function App() {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
+      <WindowTitleBar />
       <Toaster position="top-right" richColors />
 
       <Sidebar
@@ -114,7 +116,7 @@ function App() {
 
       <div
         className={cn(
-          'flex flex-col min-h-screen transition-all duration-300',
+          'mt-10 flex flex-col h-[calc(100vh-2.5rem)] transition-all duration-300',
           isSidebarCollapsed ? 'ml-20' : 'ml-64'
         )}
       >

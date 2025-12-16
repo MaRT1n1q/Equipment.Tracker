@@ -16,6 +16,7 @@ import type {
   UpdateRequestData,
   UpdateStatusPayload,
   UpdateTemplateData,
+  WindowState,
 } from './ipc'
 
 declare global {
@@ -23,6 +24,14 @@ declare global {
     electronAPI: {
       // App info
       getAppVersion: () => string
+
+      // Window controls
+      getWindowState: () => Promise<ApiResponse<WindowState>>
+      minimizeWindow: () => Promise<ApiResponse>
+      toggleMaximizeWindow: () => Promise<ApiResponse<{ isMaximized: boolean }>>
+      closeWindow: () => Promise<ApiResponse>
+      onWindowStateChanged: (callback: (payload: WindowState) => void) => () => void
+
       checkForUpdates: () => Promise<ApiResponse>
       downloadUpdate: () => Promise<ApiResponse>
       installUpdate: () => Promise<ApiResponse>
