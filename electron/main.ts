@@ -61,6 +61,10 @@ if (!gotTheLock) {
     return mainWindow
   }
 
+  // Регистрируем IPC-хендлеры управления окном заранее,
+  // чтобы renderer мог вызывать их сразу после загрузки.
+  registerWindowControlHandlers(getMainWindow)
+
   app.whenReady().then(async () => {
     await initDatabase()
 
@@ -77,7 +81,6 @@ if (!gotTheLock) {
     registerTemplateHandlers()
     registerBackupHandlers()
     registerUpdaterHandlers()
-    registerWindowControlHandlers(getMainWindow)
 
     exitReminderScheduler = startExitReminderScheduler(getDatabase)
 

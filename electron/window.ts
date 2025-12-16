@@ -35,6 +35,8 @@ export function createMainWindow(): BrowserWindow {
 
   const preloadPath = path.join(__dirname, 'preload.js')
 
+  const isMac = process.platform === 'darwin'
+
   const window = new BrowserWindow({
     width: windowState.width,
     height: windowState.height,
@@ -42,7 +44,14 @@ export function createMainWindow(): BrowserWindow {
     y: windowState.y,
     minWidth: 800,
     minHeight: 600,
-    frame: false,
+    ...(isMac
+      ? {
+          titleBarStyle: 'hiddenInset' as const,
+          trafficLightPosition: { x: 12, y: 12 },
+        }
+      : {
+          frame: false,
+        }),
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,

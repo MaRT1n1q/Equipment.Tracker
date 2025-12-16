@@ -6,6 +6,7 @@ const TITLEBAR_HEIGHT_CLASS = 'h-10'
 
 export function WindowTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)
+  const isMac = useMemo(() => /Mac/i.test(navigator.platform), [])
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined
@@ -57,7 +58,7 @@ export function WindowTitleBar() {
       )}
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      <div className="flex items-center gap-2 pl-1">
+      <div className={cn('flex items-center gap-2 pl-1', isMac && 'pl-20')}>
         <div className="icon-bubble icon-bubble--soft h-7 w-7">
           <Package className="h-4 w-4" />
         </div>
@@ -67,37 +68,39 @@ export function WindowTitleBar() {
         </div>
       </div>
 
-      <div
-        className="flex items-stretch"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-      >
-        <button
-          type="button"
-          onClick={handleMinimize}
-          aria-label="Свернуть"
-          className="flex w-12 items-center justify-center text-muted-foreground hover:bg-muted/40 hover:text-foreground focus:outline-none"
+      {!isMac && (
+        <div
+          className="flex items-stretch"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <Minus className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={handleMinimize}
+            aria-label="Свернуть"
+            className="flex w-12 items-center justify-center text-muted-foreground hover:bg-muted/40 hover:text-foreground focus:outline-none"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
 
-        <button
-          type="button"
-          onClick={handleToggleMaximize}
-          aria-label={isMaximized ? 'Восстановить' : 'Развернуть'}
-          className="flex w-12 items-center justify-center text-muted-foreground hover:bg-muted/40 hover:text-foreground focus:outline-none"
-        >
-          <MaximizeIcon className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={handleToggleMaximize}
+            aria-label={isMaximized ? 'Восстановить' : 'Развернуть'}
+            className="flex w-12 items-center justify-center text-muted-foreground hover:bg-muted/40 hover:text-foreground focus:outline-none"
+          >
+            <MaximizeIcon className="h-4 w-4" />
+          </button>
 
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="Закрыть"
-          className="flex w-12 items-center justify-center text-muted-foreground hover:bg-destructive/15 hover:text-destructive focus:outline-none"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Закрыть"
+            className="flex w-12 items-center justify-center text-muted-foreground hover:bg-destructive/15 hover:text-destructive focus:outline-none"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </header>
   )
 }
