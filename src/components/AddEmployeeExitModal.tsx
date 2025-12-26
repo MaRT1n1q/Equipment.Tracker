@@ -51,9 +51,13 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
     {
       deserializer: (value) => {
         try {
-          const parsed = JSON.parse(value) as ExitFormDraft
+          const parsed = JSON.parse(value) as Partial<ExitFormDraft>
           return {
-            ...parsed,
+            employeeName: typeof parsed.employeeName === 'string' ? parsed.employeeName : '',
+            login: typeof parsed.login === 'string' ? parsed.login : '',
+            sdNumber: typeof parsed.sdNumber === 'string' ? parsed.sdNumber : '',
+            deliveryUrl: typeof parsed.deliveryUrl === 'string' ? parsed.deliveryUrl : '',
+            exitDate: typeof parsed.exitDate === 'string' ? parsed.exitDate : '',
             equipmentItems:
               parsed.equipmentItems && parsed.equipmentItems.length > 0
                 ? parsed.equipmentItems.map((item) => ({ ...item }))

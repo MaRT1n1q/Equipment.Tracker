@@ -55,9 +55,13 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
     enabled: Boolean(options?.persistKey),
     deserializer: (value) => {
       try {
-        const parsed = JSON.parse(value) as RequestFormState
+        const parsed = JSON.parse(value) as Partial<RequestFormState>
         return {
-          ...parsed,
+          employeeName: typeof parsed.employeeName === 'string' ? parsed.employeeName : '',
+          login: typeof parsed.login === 'string' ? parsed.login : '',
+          sdNumber: typeof parsed.sdNumber === 'string' ? parsed.sdNumber : '',
+          deliveryUrl: typeof parsed.deliveryUrl === 'string' ? parsed.deliveryUrl : '',
+          notes: typeof parsed.notes === 'string' ? parsed.notes : '',
           equipmentItems:
             parsed.equipmentItems && parsed.equipmentItems.length > 0
               ? parsed.equipmentItems.map((item) => ({ ...item }))
