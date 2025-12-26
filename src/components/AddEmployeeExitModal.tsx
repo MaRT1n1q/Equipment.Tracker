@@ -29,6 +29,7 @@ interface ExitFormDraft {
   employeeName: string
   login: string
   sdNumber: string
+  deliveryUrl: string
   exitDate: string
   equipmentItems: ExitEquipmentItem[]
 }
@@ -37,6 +38,7 @@ const createExitDraft = (): ExitFormDraft => ({
   employeeName: '',
   login: '',
   sdNumber: '',
+  deliveryUrl: '',
   exitDate: '',
   equipmentItems: [createEmptyExitEquipmentItem()],
 })
@@ -75,6 +77,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
   const setEmployeeName = (value: string) => updateDraft('employeeName', value)
   const setLogin = (value: string) => updateDraft('login', value)
   const setSdNumber = (value: string) => updateDraft('sdNumber', value)
+  const setDeliveryUrl = (value: string) => updateDraft('deliveryUrl', value)
   const setExitDate = (value: string) => updateDraft('exitDate', value)
 
   const resetForm = () => {
@@ -143,6 +146,7 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
         employee_name: employeeName.trim(),
         login: login.trim(),
         sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
+        delivery_url: formDraft.deliveryUrl.trim() ? formDraft.deliveryUrl.trim() : undefined,
         exit_date: exitDate,
         equipment_list: serializedList,
       })
@@ -231,6 +235,17 @@ export function AddEmployeeExitModal({ isOpen, onClose }: AddEmployeeExitModalPr
                 placeholder="12345678"
                 value={sdNumber}
                 onChange={(e) => setSdNumber(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="delivery-url">Доставка</Label>
+              <Input
+                id="delivery-url"
+                placeholder="https://..."
+                value={formDraft.deliveryUrl}
+                onChange={(e) => setDeliveryUrl(e.target.value)}
                 disabled={isSubmitting}
               />
             </div>

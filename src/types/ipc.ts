@@ -1,5 +1,31 @@
 import { z } from 'zod'
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const optionalHttpUrlSchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value: string | undefined) => (value && value.length > 0 ? value : undefined))
+  .refine((value) => value === undefined || isHttpUrl(value), {
+    message: 'Некорректная ссылка. Используйте http:// или https://',
+  })
+
+export const openExternalUrlSchema = z
+  .string()
+  .trim()
+  .min(1, 'Ссылка обязательна')
+  .refine((value) => isHttpUrl(value), {
+    message: 'Некорректная ссылка. Используйте http:// или https://',
+  })
+
 export const requestIdSchema = z.number().int().positive()
 export const issuedStatusSchema = z.boolean()
 
@@ -45,6 +71,7 @@ export const createRequestSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
   login: z.string().trim().min(1, 'Логин обязателен'),
   sd_number: z.string().trim().max(120, 'Номер SD слишком длинный').optional(),
+  delivery_url: optionalHttpUrlSchema,
   notes: z
     .string()
     .trim()
@@ -60,6 +87,7 @@ export const requestRecordSchema = z.object({
   employee_name: z.string(),
   login: z.string(),
   sd_number: z.string().nullable(),
+  delivery_url: z.string().nullable().default(null),
   created_at: z.string(),
   is_issued: z.number().int(),
   issued_at: z.string().nullable(),
@@ -95,6 +123,7 @@ export const createEmployeeExitSchema = z.object({
   employee_name: z.string().trim().min(1, 'ФИО обязательно'),
   login: z.string().trim().min(1, 'Логин обязателен'),
   sd_number: z.string().trim().max(120, 'Номер SD слишком длинный').optional(),
+  delivery_url: optionalHttpUrlSchema,
   exit_date: z.string().trim().min(1, 'Дата выхода обязательна'),
   equipment_list: z.string().trim().min(1, 'Список оборудования обязателен'),
 })
@@ -104,6 +133,7 @@ export const employeeExitRecordSchema = createEmployeeExitSchema.extend({
   created_at: z.string(),
   is_completed: z.number().int(),
   sd_number: z.string().nullable(),
+  delivery_url: z.string().nullable().default(null),
 })
 
 export const restoreEmployeeExitSchema = employeeExitRecordSchema

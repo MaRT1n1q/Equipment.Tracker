@@ -56,6 +56,7 @@ async function ensureSchema(database: Knex) {
       table.string('employee_name').notNullable()
       table.string('login').notNullable()
       table.string('sd_number')
+      table.string('delivery_url')
       table.string('created_at').notNullable()
       table.integer('is_issued').defaultTo(0)
       table.string('issued_at')
@@ -81,6 +82,13 @@ async function ensureSchema(database: Knex) {
     if (!hasSdNumberColumn) {
       await database.schema.alterTable('requests', (table) => {
         table.string('sd_number')
+      })
+    }
+
+    const hasDeliveryUrlColumn = await database.schema.hasColumn('requests', 'delivery_url')
+    if (!hasDeliveryUrlColumn) {
+      await database.schema.alterTable('requests', (table) => {
+        table.string('delivery_url')
       })
     }
 
@@ -158,6 +166,7 @@ async function ensureSchema(database: Knex) {
       table.string('employee_name').notNullable()
       table.string('login').notNullable()
       table.string('sd_number')
+      table.string('delivery_url')
       table.string('exit_date').notNullable()
       table.text('equipment_list').notNullable()
       table.string('created_at').notNullable()
@@ -168,6 +177,13 @@ async function ensureSchema(database: Knex) {
     if (!hasSdNumberColumn) {
       await database.schema.alterTable('employee_exits', (table) => {
         table.string('sd_number')
+      })
+    }
+
+    const hasDeliveryUrlColumn = await database.schema.hasColumn('employee_exits', 'delivery_url')
+    if (!hasDeliveryUrlColumn) {
+      await database.schema.alterTable('employee_exits', (table) => {
+        table.string('delivery_url')
       })
     }
   }

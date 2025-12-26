@@ -12,6 +12,7 @@ interface UseRequestFormStateOptions {
   employeeName?: string
   login?: string
   sdNumber?: string | null
+  deliveryUrl?: string | null
   notes?: string
   equipmentItems?: EquipmentItem[]
   persistKey?: string
@@ -21,6 +22,7 @@ interface RequestFormState {
   employeeName: string
   login: string
   sdNumber: string
+  deliveryUrl: string
   notes: string
   equipmentItems: EquipmentItem[]
 }
@@ -31,6 +33,7 @@ const createStateFromOptions = (options?: UseRequestFormStateOptions): RequestFo
   employeeName: options?.employeeName ?? '',
   login: options?.login ?? '',
   sdNumber: options?.sdNumber ?? '',
+  deliveryUrl: options?.deliveryUrl ?? '',
   notes: options?.notes ?? '',
   equipmentItems:
     options?.equipmentItems && options.equipmentItems.length > 0
@@ -86,6 +89,13 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
   const setSdNumber = useCallback(
     (value: string) => {
       setFormState((state) => ({ ...state, sdNumber: value }))
+    },
+    [setFormState]
+  )
+
+  const setDeliveryUrl = useCallback(
+    (value: string) => {
+      setFormState((state) => ({ ...state, deliveryUrl: value }))
     },
     [setFormState]
   )
@@ -161,6 +171,7 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
       employee_name: formState.employeeName.trim(),
       login: formState.login.trim(),
       sd_number: formState.sdNumber.trim() ? formState.sdNumber.trim() : undefined,
+      delivery_url: formState.deliveryUrl.trim() ? formState.deliveryUrl.trim() : undefined,
       notes: formState.notes.trim() || undefined,
       equipment_items: formState.equipmentItems,
     }),
@@ -178,6 +189,8 @@ export function useRequestFormState(options?: UseRequestFormStateOptions) {
     setLoginError,
     sdNumber: formState.sdNumber,
     setSdNumber,
+    deliveryUrl: formState.deliveryUrl,
+    setDeliveryUrl,
     notes: formState.notes,
     setNotes,
     equipmentItems: formState.equipmentItems,

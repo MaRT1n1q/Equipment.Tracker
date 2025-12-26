@@ -66,6 +66,8 @@ declare global {
       updateTemplate: (id: number, data: UpdateTemplateData) => Promise<ApiResponse<Template>>
       deleteTemplate: (id: number) => Promise<ApiResponse<Template>>
       reorderTemplates: (order: number[]) => Promise<ApiResponse>
+
+      openExternal: (url: string) => Promise<ApiResponse>
     }
   }
 }

@@ -254,6 +254,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           employee_name: data.employee_name,
           login: data.login,
           sd_number: data.sd_number ?? null,
+          delivery_url: data.delivery_url ?? null,
           created_at: createdAt,
           notes: data.notes ?? null,
           return_required: 0,
@@ -340,6 +341,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
             employee_name: data.employee_name,
             login: data.login,
             sd_number: data.sd_number ?? null,
+            delivery_url: data.delivery_url ?? null,
             notes: data.notes ?? null,
           })
 
@@ -411,6 +413,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           employee_name: request.employee_name,
           login: request.login,
           sd_number: request.sd_number,
+          delivery_url: request.delivery_url ?? null,
           created_at: request.created_at,
           is_issued: request.is_issued,
           issued_at: request.issued_at,

@@ -13,6 +13,7 @@ import {
   Copy,
   Edit2,
   Hash,
+  Truck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
@@ -64,6 +65,18 @@ export function EmployeeExitTable({
       accent: 'text-[hsl(var(--destructive))]',
     },
   } as const
+
+  const handleOpenDelivery = async (url: string) => {
+    try {
+      const result = await window.electronAPI.openExternal(url)
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось открыть ссылку')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось открыть ссылку'
+      toast.error(message)
+    }
+  }
 
   const handleToggleCompleted = async (id: number, currentStatus: boolean) => {
     try {
@@ -258,6 +271,25 @@ export function EmployeeExitTable({
                           <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             SD {exit.sd_number}
                           </span>
+                        )}
+                        {exit.delivery_url && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn('h-8 w-8', isDense && 'h-7 w-7')}
+                                onClick={() => handleOpenDelivery(exit.delivery_url!)}
+                                aria-label="Открыть отслеживание доставки"
+                              >
+                                <Truck className={cn('h-4 w-4', isDense && 'h-3.5 w-3.5')} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Открыть отслеживание доставки</p>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                       <span className={cn(variant.pill, 'ml-auto', isDense && 'px-2.5 py-0.5')}>

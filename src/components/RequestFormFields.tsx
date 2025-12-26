@@ -18,6 +18,8 @@ interface RequestFormFieldsProps {
   loginError: boolean
   sdNumber: string
   onSdNumberChange: (value: string) => void
+  deliveryUrl: string
+  onDeliveryUrlChange: (value: string) => void
   notes: string
   onNotesChange: (value: string) => void
   equipmentItems: EquipmentItem[]
@@ -38,6 +40,8 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
       loginError,
       sdNumber,
       onSdNumberChange,
+      deliveryUrl,
+      onDeliveryUrlChange,
       notes,
       onNotesChange,
       equipmentItems,
@@ -92,6 +96,17 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
               placeholder="12345678"
               value={sdNumber}
               onChange={(event) => onSdNumberChange(event.target.value)}
+              disabled={disabled}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="delivery_url">Доставка</Label>
+            <Input
+              id="delivery_url"
+              placeholder="https://..."
+              value={deliveryUrl}
+              onChange={(event) => onDeliveryUrlChange(event.target.value)}
               disabled={disabled}
             />
           </div>

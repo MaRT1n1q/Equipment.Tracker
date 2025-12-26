@@ -32,6 +32,7 @@ interface ExitFormDraft {
   employeeName: string
   login: string
   sdNumber: string
+  deliveryUrl: string
   exitDate: string
   equipmentItems: ExitEquipmentItem[]
 }
@@ -53,6 +54,7 @@ const createDraftFromExit = (exit?: EmployeeExit | null): ExitFormDraft => {
     employeeName: exit.employee_name,
     login: exit.login,
     sdNumber: exit.sd_number ?? '',
+    deliveryUrl: exit.delivery_url ?? '',
     exitDate: exit.exit_date,
     equipmentItems:
       parsedItems.length > 0
@@ -93,6 +95,8 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
     setFormDraft((draft) => ({ ...draft, employeeName: value }))
   const setLogin = (value: string) => setFormDraft((draft) => ({ ...draft, login: value }))
   const setSdNumber = (value: string) => setFormDraft((draft) => ({ ...draft, sdNumber: value }))
+  const setDeliveryUrl = (value: string) =>
+    setFormDraft((draft) => ({ ...draft, deliveryUrl: value }))
   const setExitDate = (value: string) => setFormDraft((draft) => ({ ...draft, exitDate: value }))
 
   const addEquipmentItem = () => {
@@ -178,6 +182,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
           employee_name: employeeName.trim(),
           login: login.trim(),
           sd_number: sdNumber.trim() ? sdNumber.trim() : undefined,
+          delivery_url: formDraft.deliveryUrl.trim() ? formDraft.deliveryUrl.trim() : undefined,
           exit_date: exitDate,
           equipment_list: serializedList,
         },
@@ -274,6 +279,17 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
                 placeholder="12345678"
                 value={sdNumber}
                 onChange={(e) => setSdNumber(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="delivery-url-edit">Доставка</Label>
+              <Input
+                id="delivery-url-edit"
+                placeholder="https://..."
+                value={formDraft.deliveryUrl}
+                onChange={(e) => setDeliveryUrl(e.target.value)}
                 disabled={isSubmitting}
               />
             </div>

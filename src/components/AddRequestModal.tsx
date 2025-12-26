@@ -34,6 +34,8 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
     setLoginError,
     sdNumber,
     setSdNumber,
+    deliveryUrl,
+    setDeliveryUrl,
     notes,
     setNotes,
     equipmentItems,
@@ -136,6 +138,8 @@ export function AddRequestModal({ open, onOpenChange }: AddRequestModalProps) {
             loginError={loginError}
             sdNumber={sdNumber}
             onSdNumberChange={(value) => setSdNumber(value)}
+            deliveryUrl={deliveryUrl}
+            onDeliveryUrlChange={(value) => setDeliveryUrl(value)}
             notes={notes}
             onNotesChange={(value) => setNotes(value)}
             equipmentItems={equipmentItems}

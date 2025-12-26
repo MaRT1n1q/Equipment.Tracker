@@ -9,6 +9,7 @@ import { startExitReminderScheduler } from './notifications'
 import { createTray, destroyTray } from './tray'
 import { initAutoUpdater, registerUpdaterHandlers } from './updater'
 import { registerWindowControlHandlers } from './ipc/windowControls'
+import { registerExternalHandlers } from './ipc/external'
 
 let mainWindow: BrowserWindow | null = null
 let exitReminderScheduler: ReturnType<typeof startExitReminderScheduler> = null
@@ -64,6 +65,7 @@ if (!gotTheLock) {
   // Регистрируем IPC-хендлеры управления окном заранее,
   // чтобы renderer мог вызывать их сразу после загрузки.
   registerWindowControlHandlers(getMainWindow)
+  registerExternalHandlers()
 
   app.whenReady().then(async () => {
     await initDatabase()

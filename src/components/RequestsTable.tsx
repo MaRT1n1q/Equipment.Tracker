@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   Ban,
   ChevronDown,
+  Truck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
@@ -60,6 +61,18 @@ export function RequestsTable({
     login?: string | null
     comment: string
   } | null>(null)
+
+  const handleOpenDelivery = async (url: string) => {
+    try {
+      const result = await window.electronAPI.openExternal(url)
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось открыть ссылку')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось открыть ссылку'
+      toast.error(message)
+    }
+  }
 
   const statusVariants = {
     success: {
@@ -481,6 +494,25 @@ export function RequestsTable({
                           <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             SD {request.sd_number}
                           </span>
+                        )}
+                        {request.delivery_url && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn('h-8 w-8', isDense && 'h-7 w-7')}
+                                onClick={() => handleOpenDelivery(request.delivery_url!)}
+                                aria-label="Открыть отслеживание доставки"
+                              >
+                                <Truck className={cn('h-4 w-4', isDense && 'h-3.5 w-3.5')} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Открыть отслеживание доставки</p>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                       <span className={cn(variant.pill, 'ml-auto', isDense && 'px-2.5 py-0.5')}>

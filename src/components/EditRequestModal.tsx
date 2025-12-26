@@ -37,6 +37,8 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     setLoginError,
     sdNumber,
     setSdNumber,
+    deliveryUrl,
+    setDeliveryUrl,
     notes,
     setNotes,
     equipmentItems,
@@ -60,6 +62,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
         employeeName: request.employee_name,
         login: request.login,
         sdNumber: request.sd_number ?? '',
+        deliveryUrl: request.delivery_url ?? '',
         notes: request.notes || '',
         equipmentItems:
           request.equipment_items && request.equipment_items.length > 0
@@ -109,6 +112,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
         employeeName: payload.employee_name,
         login: payload.login,
         sdNumber: payload.sd_number ?? '',
+        deliveryUrl: payload.delivery_url ?? '',
         notes: payload.notes ?? '',
         equipmentItems: payload.equipment_items,
       })
@@ -129,6 +133,7 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
       employeeName: request.employee_name,
       login: request.login,
       sdNumber: request.sd_number ?? '',
+      deliveryUrl: request.delivery_url ?? '',
       notes: request.notes || '',
       equipmentItems:
         request.equipment_items && request.equipment_items.length > 0
@@ -183,6 +188,8 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
             loginError={loginError}
             sdNumber={sdNumber}
             onSdNumberChange={(value) => setSdNumber(value)}
+            deliveryUrl={deliveryUrl}
+            onDeliveryUrlChange={(value) => setDeliveryUrl(value)}
             notes={notes}
             onNotesChange={(value) => setNotes(value)}
             equipmentItems={equipmentItems}

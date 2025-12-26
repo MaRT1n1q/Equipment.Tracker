@@ -136,4 +136,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   reorderTemplates: (order: number[]): Promise<ApiResponse> =>
     ipcRenderer.invoke('reorder-templates', { order }),
+
+  openExternal: (url: string): Promise<ApiResponse> => ipcRenderer.invoke('open-external', url),
 })
