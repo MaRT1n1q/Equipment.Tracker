@@ -43,6 +43,7 @@ const createDraftFromExit = (exit?: EmployeeExit | null): ExitFormDraft => {
       employeeName: '',
       login: '',
       sdNumber: '',
+      deliveryUrl: '',
       exitDate: '',
       equipmentItems: [createEmptyExitEquipmentItem()],
     }
@@ -193,6 +194,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
         employeeName: employeeName.trim(),
         login: login.trim(),
         sdNumber: sdNumber.trim(),
+        deliveryUrl: formDraft.deliveryUrl.trim(),
         exitDate,
         equipmentItems: validItems.map((item) => ({ ...item })),
       })
