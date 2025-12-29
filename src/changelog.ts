@@ -32,7 +32,7 @@ export interface ChangelogEntry {
 // Добавляйте новые версии В НАЧАЛО массива
 export const changelog: ChangelogEntry[] = [
   {
-    version: '1.0.23',
+    version: '1.0.25',
     date: '2024-12-29',
     title: 'Файлы в шаблонах',
     sections: [
