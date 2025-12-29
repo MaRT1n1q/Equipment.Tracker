@@ -64,37 +64,8 @@ export default defineConfig({
     renderer(),
   ],
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // Выносим node_modules в отдельные чанки
-          if (id.includes('node_modules')) {
-            // React и связанные библиотеки
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react'
-            }
-            // DnD Kit
-            if (id.includes('@dnd-kit')) {
-              return 'vendor-dnd'
-            }
-            // TanStack Query
-            if (id.includes('@tanstack')) {
-              return 'vendor-query'
-            }
-            // Radix UI
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix'
-            }
-            // Lucide icons
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons'
-            }
-            // Остальные зависимости
-            return 'vendor'
-          }
-        },
-      },
-    },
+    // Убрали manualChunks — агрессивное разбиение создавало циклические зависимости
+    // и ошибку "Cannot access 'X' before initialization"
   },
   resolve: {
     alias: {
