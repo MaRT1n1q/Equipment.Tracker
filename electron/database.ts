@@ -198,6 +198,25 @@ async function ensureSchema(database: Knex) {
       table.string('updated_at').notNullable()
       table.integer('sort_order').notNullable().defaultTo(0)
     })
+  }
+
+  // Таблица файлов шаблонов
+  const hasTemplateFilesTable = await database.schema.hasTable('template_files')
+  if (!hasTemplateFilesTable) {
+    await database.schema.createTable('template_files', (table) => {
+      table.increments('id').primary()
+      table
+        .integer('template_id')
+        .notNullable()
+        .references('id')
+        .inTable('templates')
+        .onDelete('CASCADE')
+      table.string('filename').notNullable() // Уникальное имя файла на диске
+      table.string('original_name').notNullable() // Оригинальное имя файла
+      table.integer('file_size').notNullable() // Размер в байтах
+      table.string('mime_type').notNullable() // MIME тип файла
+      table.string('created_at').notNullable()
+    })
   } else {
     const hasSortOrderColumn = await database.schema.hasColumn('templates', 'sort_order')
     if (!hasSortOrderColumn) {
@@ -225,6 +244,9 @@ async function ensureSchema(database: Knex) {
   )
   await database.raw('CREATE INDEX IF NOT EXISTS idx_templates_title ON templates(title)')
   await database.raw('CREATE INDEX IF NOT EXISTS idx_templates_sort_order ON templates(sort_order)')
+  await database.raw(
+    'CREATE INDEX IF NOT EXISTS idx_template_files_template ON template_files(template_id)'
+  )
 
   await runMigrations(database)
 
@@ -394,6 +416,18 @@ export function ensureBackupsDirectory(): string {
     fs.mkdirSync(backupsDir, { recursive: true })
   }
   return backupsDir
+}
+
+export function getTemplateFilesDirectory(): string {
+  return path.join(app.getPath('userData'), 'template_files')
+}
+
+export function ensureTemplateFilesDirectory(): string {
+  const filesDir = getTemplateFilesDirectory()
+  if (!fs.existsSync(filesDir)) {
+    fs.mkdirSync(filesDir, { recursive: true })
+  }
+  return filesDir
 }
 
 export { getDatabasePath }

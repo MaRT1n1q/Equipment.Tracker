@@ -18,10 +18,11 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Copy, Edit, GripVertical, Loader2, Plus, Trash2 } from 'lucide-react'
+import { Copy, Edit, GripVertical, Loader2, Paperclip, Plus, Trash2 } from 'lucide-react'
 import type { Template } from '../types/ipc'
 import { Button } from './ui/button'
 import { useTemplates } from '../hooks/useTemplates'
+import { useTemplateFileCounts } from '../hooks/useTemplateFiles'
 import { AddTemplateModal } from './AddTemplateModal'
 import { EditTemplateModal } from './EditTemplateModal'
 import { cn } from '../lib/utils'
@@ -36,6 +37,7 @@ interface SortableTemplateCardProps {
   onDelete: (template: Template) => void
   dateFormatter: Intl.DateTimeFormat
   disableActions: boolean
+  fileCount: number
 }
 
 interface TemplateCardProps {
@@ -47,6 +49,7 @@ interface TemplateCardProps {
   disableActions: boolean
   isDragging?: boolean
   dragHandleProps?: Record<string, unknown>
+  fileCount: number
 }
 
 function TemplateCard({
@@ -58,6 +61,7 @@ function TemplateCard({
   disableActions,
   isDragging = false,
   dragHandleProps,
+  fileCount,
 }: TemplateCardProps) {
   return (
     <div
@@ -79,9 +83,17 @@ function TemplateCard({
           <GripVertical className="h-4 w-4" />
         </button>
       )}
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Шаблон
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Шаблон
+        </span>
+        {fileCount > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            <Paperclip className="h-3 w-3" />
+            {fileCount}
+          </span>
+        )}
+      </div>
       <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-lg font-semibold text-foreground line-clamp-2">{template.title}</h3>
         <p className="text-xs text-muted-foreground">
@@ -138,6 +150,7 @@ function SortableTemplateCard({
   onDelete,
   dateFormatter,
   disableActions,
+  fileCount,
 }: SortableTemplateCardProps) {
   const { isDragging, setNodeRef, attributes, listeners, transform, transition } = useSortable({
     id: template.id,
@@ -159,6 +172,7 @@ function SortableTemplateCard({
         disableActions={disableActions}
         isDragging={isDragging}
         dragHandleProps={{ ...attributes, ...listeners }}
+        fileCount={fileCount}
       />
     </div>
   )
@@ -177,6 +191,7 @@ export function TemplatesView() {
     reorderTemplates,
     isReordering,
   } = useTemplates()
+  const { fileCounts } = useTemplateFileCounts()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
@@ -356,6 +371,7 @@ export function TemplatesView() {
                         onDelete={handleDelete}
                         dateFormatter={dateFormatter}
                         disableActions={disableActions}
+                        fileCount={fileCounts[template.id] || 0}
                       />
                     ))}
                   </div>
@@ -371,6 +387,7 @@ export function TemplatesView() {
                         dateFormatter={dateFormatter}
                         disableActions={disableActions}
                         isDragging={true}
+                        fileCount={fileCounts[activeTemplate.id] || 0}
                       />
                     </div>
                   ) : null}

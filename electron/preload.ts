@@ -15,6 +15,7 @@ import type {
   RequestSummary,
   ScheduleRequestReturnData,
   Template,
+  TemplateFile,
   UpdateRequestData,
   UpdateStatusPayload,
   UpdateTemplateData,
@@ -136,6 +137,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   reorderTemplates: (order: number[]): Promise<ApiResponse> =>
     ipcRenderer.invoke('reorder-templates', { order }),
+
+  // Template Files API
+  getTemplateFiles: (templateId: number): Promise<ApiResponse<TemplateFile[]>> =>
+    ipcRenderer.invoke('get-template-files', templateId),
+
+  uploadTemplateFilesDialog: (templateId: number): Promise<ApiResponse<TemplateFile[]>> =>
+    ipcRenderer.invoke('upload-template-files-dialog', templateId),
+
+  downloadTemplateFile: (fileId: number): Promise<ApiResponse<{ path: string }>> =>
+    ipcRenderer.invoke('download-template-file', fileId),
+
+  openTemplateFile: (fileId: number): Promise<ApiResponse> =>
+    ipcRenderer.invoke('open-template-file', fileId),
+
+  deleteTemplateFile: (fileId: number): Promise<ApiResponse<TemplateFile>> =>
+    ipcRenderer.invoke('delete-template-file', fileId),
+
+  getTemplateFileCounts: (): Promise<ApiResponse<Record<number, number>>> =>
+    ipcRenderer.invoke('get-template-file-counts'),
 
   openExternal: (url: string): Promise<ApiResponse> => ipcRenderer.invoke('open-external', url),
 })

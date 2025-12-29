@@ -13,6 +13,7 @@ import type {
   RequestSummary,
   ScheduleRequestReturnData,
   Template,
+  TemplateFile,
   UpdateRequestData,
   UpdateStatusPayload,
   UpdateTemplateData,
@@ -66,6 +67,13 @@ declare global {
       updateTemplate: (id: number, data: UpdateTemplateData) => Promise<ApiResponse<Template>>
       deleteTemplate: (id: number) => Promise<ApiResponse<Template>>
       reorderTemplates: (order: number[]) => Promise<ApiResponse>
+      // Template Files API
+      getTemplateFiles: (templateId: number) => Promise<ApiResponse<TemplateFile[]>>
+      uploadTemplateFilesDialog: (templateId: number) => Promise<ApiResponse<TemplateFile[]>>
+      downloadTemplateFile: (fileId: number) => Promise<ApiResponse<{ path: string }>>
+      openTemplateFile: (fileId: number) => Promise<ApiResponse>
+      deleteTemplateFile: (fileId: number) => Promise<ApiResponse<TemplateFile>>
+      getTemplateFileCounts: () => Promise<ApiResponse<Record<number, number>>>
 
       openExternal: (url: string) => Promise<ApiResponse>
     }

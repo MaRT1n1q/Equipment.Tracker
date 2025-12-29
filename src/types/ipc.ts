@@ -57,6 +57,17 @@ export const reorderTemplatesSchema = z.object({
   order: z.array(z.number().int().positive()).min(1),
 })
 
+// Схема для файлов шаблонов
+export const templateFileRecordSchema = z.object({
+  id: z.number().int().positive(),
+  template_id: z.number().int().positive(),
+  filename: z.string(),
+  original_name: z.string(),
+  file_size: z.number().int().nonnegative(),
+  mime_type: z.string(),
+  created_at: z.string(),
+})
+
 export const equipmentItemInputSchema = z.object({
   equipment_name: z.string().trim().min(1, 'Название оборудования обязательно'),
   serial_number: z.string().trim().min(1, 'Серийный номер обязателен'),
@@ -250,6 +261,7 @@ export type RequestReturnEvent = RequestSummary['returnEvents'][number]
 export type CreateTemplateData = z.infer<typeof createTemplateSchema>
 export type UpdateTemplateData = z.infer<typeof updateTemplateSchema>
 export type Template = z.infer<typeof templateRecordSchema>
+export type TemplateFile = z.infer<typeof templateFileRecordSchema>
 export type ReorderTemplatesData = z.infer<typeof reorderTemplatesSchema>
 
 export interface ApiResponse<T = unknown> {
