@@ -69,7 +69,20 @@ if (!gotTheLock) {
   registerExternalHandlers()
 
   app.whenReady().then(async () => {
-    await initDatabase()
+    try {
+      await initDatabase()
+    } catch (error) {
+      console.error('Критическая ошибка инициализации БД:', error)
+      const { dialog } = await import('electron')
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка инициализации базы данных'
+      dialog.showErrorBox(
+        'Ошибка инициализации',
+        `Не удалось инициализировать базу данных.\n\n${message}\n\nПопробуйте перезапустить приложение или удалить папку данных.`
+      )
+      app.quit()
+      return
+    }
 
     // Включаем автозапуск приложения
     app.setLoginItemSettings({

@@ -243,9 +243,14 @@ async function ensureSchema(database: Knex) {
   )
   await database.raw('CREATE INDEX IF NOT EXISTS idx_templates_title ON templates(title)')
   await database.raw('CREATE INDEX IF NOT EXISTS idx_templates_sort_order ON templates(sort_order)')
-  await database.raw(
-    'CREATE INDEX IF NOT EXISTS idx_template_files_template ON template_files(template_id)'
-  )
+
+  // Индекс для template_files создаём только если таблица существует
+  const templateFilesExists = await database.schema.hasTable('template_files')
+  if (templateFilesExists) {
+    await database.raw(
+      'CREATE INDEX IF NOT EXISTS idx_template_files_template ON template_files(template_id)'
+    )
+  }
 
   await runMigrations(database)
 

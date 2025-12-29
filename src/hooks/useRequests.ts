@@ -12,7 +12,13 @@ import type {
 export const REQUESTS_QUERY_KEY = ['requests'] as const
 export const REQUEST_SUMMARY_QUERY_KEY = ['requestSummary'] as const
 
+// Проверка доступности API
+const isApiAvailable = () => typeof window !== 'undefined' && !!window.electronAPI
+
 async function fetchRequests(params: RequestListParams): Promise<PaginatedRequestsResponse> {
+  if (!isApiAvailable()) {
+    throw new Error('API не доступен')
+  }
   const response = await window.electronAPI.getRequests(params)
 
   if (!response.success || !response.data) {
@@ -26,6 +32,9 @@ async function fetchRequests(params: RequestListParams): Promise<PaginatedReques
 }
 
 async function fetchRequestSummary(): Promise<RequestSummary> {
+  if (!isApiAvailable()) {
+    throw new Error('API не доступен')
+  }
   const response = await window.electronAPI.getRequestSummary()
 
   if (!response.success || !response.data) {
@@ -83,6 +92,9 @@ export function useRequestActions() {
 
   const createMutation = useMutation<void, Error, CreateRequestData>({
     mutationFn: async (payload) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.createRequest(payload)
 
       if (!result.success) {
@@ -94,6 +106,9 @@ export function useRequestActions() {
 
   const updateMutation = useMutation<void, Error, UpdatePayload>({
     mutationFn: async ({ id, data }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.updateRequest(id, data)
 
       if (!result.success) {
@@ -105,6 +120,9 @@ export function useRequestActions() {
 
   const toggleIssuedMutation = useMutation<void, Error, ToggleIssuedPayload>({
     mutationFn: async ({ id, value }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.updateIssued(id, value)
 
       if (!result.success) {
@@ -116,6 +134,9 @@ export function useRequestActions() {
 
   const deleteMutation = useMutation<Request, Error, number>({
     mutationFn: async (id) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.deleteRequest(id)
 
       if (!result.success || !result.data) {
@@ -129,6 +150,9 @@ export function useRequestActions() {
 
   const restoreMutation = useMutation<void, Error, RestorePayload>({
     mutationFn: async (payload) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.restoreRequest(payload)
 
       if (!result.success) {
@@ -140,6 +164,9 @@ export function useRequestActions() {
 
   const scheduleReturnMutation = useMutation<void, Error, ScheduleReturnPayload>({
     mutationFn: async ({ id, data }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.scheduleRequestReturn(id, data)
 
       if (!result.success) {
@@ -151,6 +178,9 @@ export function useRequestActions() {
 
   const completeReturnMutation = useMutation<void, Error, UpdateReturnCompletionPayload>({
     mutationFn: async ({ id, value }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.completeRequestReturn(id, value)
 
       if (!result.success) {
@@ -162,6 +192,9 @@ export function useRequestActions() {
 
   const cancelReturnMutation = useMutation<void, Error, number>({
     mutationFn: async (id) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.cancelRequestReturn(id)
 
       if (!result.success) {

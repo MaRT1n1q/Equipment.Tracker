@@ -10,9 +10,15 @@ import type {
 export const EMPLOYEE_EXITS_QUERY_KEY = ['employeeExits'] as const
 export const EMPLOYEE_EXIT_SUMMARY_QUERY_KEY = ['employeeExitSummary'] as const
 
+// Проверка доступности API
+const isApiAvailable = () => typeof window !== 'undefined' && !!window.electronAPI
+
 async function fetchEmployeeExits(
   params: EmployeeExitListParams
 ): Promise<PaginatedEmployeeExitsResponse> {
+  if (!isApiAvailable()) {
+    throw new Error('API не доступен')
+  }
   const response = await window.electronAPI.getEmployeeExits(params)
 
   if (!response.success || !response.data) {
@@ -23,6 +29,9 @@ async function fetchEmployeeExits(
 }
 
 async function fetchEmployeeExitSummary(): Promise<EmployeeExitSummary> {
+  if (!isApiAvailable()) {
+    throw new Error('API не доступен')
+  }
   const response = await window.electronAPI.getEmployeeExitSummary()
 
   if (!response.success || !response.data) {
@@ -68,6 +77,9 @@ export function useEmployeeExitActions() {
 
   const createMutation = useMutation<void, Error, CreateEmployeeExitData>({
     mutationFn: async (payload) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.createEmployeeExit(payload)
 
       if (!result.success) {
@@ -79,6 +91,9 @@ export function useEmployeeExitActions() {
 
   const updateMutation = useMutation<void, Error, UpdatePayload>({
     mutationFn: async ({ id, data }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.updateEmployeeExit(id, data)
 
       if (!result.success) {
@@ -90,6 +105,9 @@ export function useEmployeeExitActions() {
 
   const deleteMutation = useMutation<EmployeeExit, Error, number>({
     mutationFn: async (id) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.deleteEmployeeExit(id)
 
       if (!result.success) {
@@ -107,6 +125,9 @@ export function useEmployeeExitActions() {
 
   const restoreMutation = useMutation<void, Error, EmployeeExit>({
     mutationFn: async (payload) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.restoreEmployeeExit(payload)
 
       if (!result.success) {
@@ -118,6 +139,9 @@ export function useEmployeeExitActions() {
 
   const updateCompletedMutation = useMutation<void, Error, UpdateCompletedPayload>({
     mutationFn: async ({ id, value }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const result = await window.electronAPI.updateExitCompleted(id, value)
 
       if (!result.success) {

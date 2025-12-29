@@ -2,12 +2,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateTemplateData, UpdateTemplateData } from '../types/ipc'
 import { toast } from 'sonner'
 
+// Проверка доступности API
+const isApiAvailable = () => typeof window !== 'undefined' && !!window.electronAPI
+
 export function useTemplates() {
   const queryClient = useQueryClient()
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['templates'],
     queryFn: async () => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.getTemplates()
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Не удалось загрузить шаблоны')
@@ -18,6 +24,9 @@ export function useTemplates() {
 
   const createTemplate = useMutation({
     mutationFn: async (data: CreateTemplateData) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.createTemplate(data)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось создать шаблон')
@@ -35,6 +44,9 @@ export function useTemplates() {
 
   const updateTemplate = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: UpdateTemplateData }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.updateTemplate(id, data)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось обновить шаблон')
@@ -52,6 +64,9 @@ export function useTemplates() {
 
   const deleteTemplate = useMutation({
     mutationFn: async (id: number) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.deleteTemplate(id)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось удалить шаблон')
@@ -69,6 +84,9 @@ export function useTemplates() {
 
   const reorderTemplates = useMutation({
     mutationFn: async (order: number[]) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.reorderTemplates(order)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось обновить порядок шаблонов')
