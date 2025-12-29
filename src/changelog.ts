@@ -50,19 +50,6 @@ export const changelog: ChangelogEntry[] = [
       },
     ],
   },
-  // Пример предыдущих версий:
-  // {
-  //   version: '1.0.21',
-  //   date: '2024-12-28',
-  //   sections: [
-  //     {
-  //       type: 'fixed',
-  //       items: [
-  //         'Исправлена ошибка при сохранении заявки',
-  //       ],
-  //     },
-  //   ],
-  // },
 ]
 
 /**
@@ -93,8 +80,13 @@ export function getChangelogSinceVersion(lastSeenVersion: string): ChangelogEntr
 }
 
 /**
- * Получить последнюю версию из changelog
+ * Версия приложения из package.json (инжектится Vite)
+ */
+declare const __APP_VERSION__: string
+
+/**
+ * Получить текущую версию приложения
  */
 export function getLatestVersion(): string {
-  return changelog[0]?.version || '0.0.0'
+  return typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : changelog[0]?.version || '0.0.0'
 }
