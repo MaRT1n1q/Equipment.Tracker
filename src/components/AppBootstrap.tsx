@@ -6,41 +6,25 @@ type FatalErrorPayload = {
   details?: string
 }
 
-class AppErrorBoundary extends Component<
-  { onError: (payload: FatalErrorPayload) => void; children: ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false }
-
-  static getDerivedStateFromError() {
-    return { hasError: true }
-  }
-
-  componentDidCatch(error: unknown) {
-    const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
-    const details = error instanceof Error ? error.stack : undefined
-    console.error('Renderer crashed:', error)
-    this.props.onError({ message, details })
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return null
-    }
-
-    return this.props.children
-  }
-}
-
 function FatalErrorScreen({ error }: { error: FatalErrorPayload }) {
+  const handleClearAndReload = () => {
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch (e) {
+      console.error('Failed to clear storage:', e)
+    }
+    window.location.reload()
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-8 py-10">
         <div className="surface-card space-y-3 p-6">
           <h1 className="text-lg font-semibold tracking-tight">Ошибка при запуске приложения</h1>
           <p className="text-sm text-muted-foreground">
-            Приложение не смогло корректно загрузиться. Обычно это связано с обновлением или
-            повреждёнными локальными данными.
+            Приложение не смогло корректно загрузиться. Это может произойти после обновления. Ваши
+            данные (заявки, выходы) сохранятся — сбрасываются только настройки интерфейса.
           </p>
           <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
             <p className="font-medium">Сообщение:</p>
@@ -52,9 +36,16 @@ function FatalErrorScreen({ error }: { error: FatalErrorPayload }) {
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              onClick={handleClearAndReload}
+            >
+              Сбросить настройки и перезагрузить
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground hover:bg-muted/50"
               onClick={() => window.location.reload()}
             >
-              Перезагрузить
+              Просто перезагрузить
             </button>
           </div>
           {error.details && (
@@ -71,6 +62,35 @@ function FatalErrorScreen({ error }: { error: FatalErrorPayload }) {
       </div>
     </div>
   )
+}
+
+class AppErrorBoundary extends Component<
+  { onError: (payload: FatalErrorPayload) => void; children: ReactNode },
+  { hasError: boolean; errorInfo: FatalErrorPayload | null }
+> {
+  state = { hasError: false, errorInfo: null as FatalErrorPayload | null }
+
+  static getDerivedStateFromError(error: unknown) {
+    const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
+    const details = error instanceof Error ? error.stack : undefined
+    return { hasError: true, errorInfo: { message, details } }
+  }
+
+  componentDidCatch(error: unknown) {
+    const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
+    const details = error instanceof Error ? error.stack : undefined
+    console.error('Renderer crashed:', error)
+    this.props.onError({ message, details })
+  }
+
+  render() {
+    if (this.state.hasError && this.state.errorInfo) {
+      // Рендерим FatalErrorScreen прямо здесь, не ждём setState в родителе
+      return <FatalErrorScreen error={this.state.errorInfo} />
+    }
+
+    return this.props.children
+  }
 }
 
 export function AppBootstrap() {
