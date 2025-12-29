@@ -70,6 +70,10 @@ declare global {
       // Template Files API
       getTemplateFiles: (templateId: number) => Promise<ApiResponse<TemplateFile[]>>
       uploadTemplateFilesDialog: (templateId: number) => Promise<ApiResponse<TemplateFile[]>>
+      uploadTemplateFilesByPaths: (
+        templateId: number,
+        filePaths: string[]
+      ) => Promise<ApiResponse<TemplateFile[]>>
       downloadTemplateFile: (fileId: number) => Promise<ApiResponse<{ path: string }>>
       openTemplateFile: (fileId: number) => Promise<ApiResponse>
       deleteTemplateFile: (fileId: number) => Promise<ApiResponse<TemplateFile>>

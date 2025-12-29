@@ -37,6 +37,26 @@ export function useTemplateFiles(templateId: number | null) {
     },
   })
 
+  const uploadFilesByPaths = useMutation({
+    mutationFn: async ({ tid, paths }: { tid: number; paths: string[] }) => {
+      const response = await window.electronAPI.uploadTemplateFilesByPaths(tid, paths)
+      if (!response.success) {
+        throw new Error(response.error || 'Не удалось загрузить файлы')
+      }
+      return response.data || []
+    },
+    onSuccess: (files) => {
+      if (files.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['templateFiles', templateId] })
+        queryClient.invalidateQueries({ queryKey: ['templateFileCounts'] })
+        toast.success(`Загружено файлов: ${files.length}`)
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Ошибка загрузки файлов')
+    },
+  })
+
   const downloadFile = useMutation({
     mutationFn: async (fileId: number) => {
       const response = await window.electronAPI.downloadTemplateFile(fileId)
@@ -92,7 +112,8 @@ export function useTemplateFiles(templateId: number | null) {
     isError,
     refetch,
     uploadFiles,
-    isUploading: uploadFiles.isPending,
+    uploadFilesByPaths,
+    isUploading: uploadFiles.isPending || uploadFilesByPaths.isPending,
     downloadFile,
     isDownloading: downloadFile.isPending,
     openFile,

@@ -145,6 +145,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   uploadTemplateFilesDialog: (templateId: number): Promise<ApiResponse<TemplateFile[]>> =>
     ipcRenderer.invoke('upload-template-files-dialog', templateId),
 
+  uploadTemplateFilesByPaths: (
+    templateId: number,
+    filePaths: string[]
+  ): Promise<ApiResponse<TemplateFile[]>> =>
+    ipcRenderer.invoke('upload-template-files-by-paths', templateId, filePaths),
+
   downloadTemplateFile: (fileId: number): Promise<ApiResponse<{ path: string }>> =>
     ipcRenderer.invoke('download-template-file', fileId),
 

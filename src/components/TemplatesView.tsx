@@ -25,6 +25,7 @@ import { useTemplates } from '../hooks/useTemplates'
 import { useTemplateFileCounts } from '../hooks/useTemplateFiles'
 import { AddTemplateModal } from './AddTemplateModal'
 import { EditTemplateModal } from './EditTemplateModal'
+import { ViewTemplateModal } from './ViewTemplateModal'
 import { cn } from '../lib/utils'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
@@ -32,6 +33,7 @@ import { EmptyState } from './EmptyState'
 
 interface SortableTemplateCardProps {
   template: Template
+  onView: (template: Template) => void
   onCopy: (template: Template) => void
   onEdit: (template: Template) => void
   onDelete: (template: Template) => void
@@ -42,6 +44,7 @@ interface SortableTemplateCardProps {
 
 interface TemplateCardProps {
   template: Template
+  onView: (template: Template) => void
   onCopy: (template: Template) => void
   onEdit: (template: Template) => void
   onDelete: (template: Template) => void
@@ -54,6 +57,7 @@ interface TemplateCardProps {
 
 function TemplateCard({
   template,
+  onView,
   onCopy,
   onEdit,
   onDelete,
@@ -63,14 +67,22 @@ function TemplateCard({
   dragHandleProps,
   fileCount,
 }: TemplateCardProps) {
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Не открывать просмотр если клик по кнопкам или drag handle
+    const target = e.target as HTMLElement
+    if (target.closest('button')) return
+    onView(template)
+  }
+
   return (
     <div
       className={cn(
-        'group relative flex h-full flex-col rounded-2xl border border-border/60 bg-gradient-to-b from-card to-card/70 p-4 shadow-sm ring-1 ring-transparent transition-all duration-200',
+        'group relative flex h-full flex-col rounded-2xl border border-border/60 bg-gradient-to-b from-card to-card/70 p-4 shadow-sm ring-1 ring-transparent transition-all duration-200 cursor-pointer',
         isDragging
           ? 'z-10 shadow-brand ring-primary/40 opacity-50'
           : 'hover:-translate-y-0.5 hover:shadow-brand hover:ring-primary/20'
       )}
+      onClick={handleCardClick}
     >
       {dragHandleProps && (
         <button
@@ -145,6 +157,7 @@ function TemplateCard({
 
 function SortableTemplateCard({
   template,
+  onView,
   onCopy,
   onEdit,
   onDelete,
@@ -165,6 +178,7 @@ function SortableTemplateCard({
     <div ref={setNodeRef} style={style}>
       <TemplateCard
         template={template}
+        onView={onView}
         onCopy={onCopy}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -194,7 +208,9 @@ export function TemplatesView() {
   const { fileCounts } = useTemplateFileCounts()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
+  const [viewingTemplate, setViewingTemplate] = useState<Template | null>(null)
   const [orderedTemplates, setOrderedTemplates] = useState<Template[]>([])
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null)
 
@@ -222,6 +238,11 @@ export function TemplatesView() {
       }),
     []
   )
+
+  const handleView = (template: Template) => {
+    setViewingTemplate(template)
+    setIsViewModalOpen(true)
+  }
 
   const handleEdit = (template: Template) => {
     setEditingTemplate(template)
@@ -366,6 +387,7 @@ export function TemplatesView() {
                       <SortableTemplateCard
                         key={template.id}
                         template={template}
+                        onView={handleView}
                         onCopy={handleCopy}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
@@ -381,6 +403,7 @@ export function TemplatesView() {
                     <div className="rotate-3 scale-105 opacity-95">
                       <TemplateCard
                         template={activeTemplate}
+                        onView={handleView}
                         onCopy={handleCopy}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
@@ -417,6 +440,11 @@ export function TemplatesView() {
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         template={editingTemplate}
+      />
+      <ViewTemplateModal
+        open={isViewModalOpen}
+        onOpenChange={setIsViewModalOpen}
+        template={viewingTemplate}
       />
     </>
   )

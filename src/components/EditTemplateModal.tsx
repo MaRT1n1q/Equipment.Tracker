@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Download, ExternalLink, File, Loader2, Paperclip, Trash2, Upload } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Download, ExternalLink, Loader2, Paperclip, Trash2, Upload } from 'lucide-react'
 import { Button } from './ui/button'
 import {
   Dialog,
@@ -113,13 +113,16 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
   const [content, setContent] = useState('')
   const [titleError, setTitleError] = useState(false)
   const [contentError, setContentError] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const firstInputRef = useRef<HTMLInputElement>(null)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
   const { updateTemplate, isUpdating } = useTemplates()
   const {
     files,
     isLoading: isLoadingFiles,
     uploadFiles,
+    uploadFilesByPaths,
     isUploading,
     downloadFile,
     openFile,
@@ -136,6 +139,44 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
       }, 100)
     }
   }, [open, template])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Проверяем, что мы действительно покинули зону
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false)
+    }
+  }, [])
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(false)
+
+      if (!template) return
+
+      const droppedFiles = Array.from(e.dataTransfer.files)
+      if (droppedFiles.length === 0) return
+
+      // Получаем пути файлов (доступно в Electron)
+      const filePaths = droppedFiles
+        .map((file) => (file as File & { path?: string }).path)
+        .filter((path): path is string => !!path)
+
+      if (filePaths.length > 0) {
+        uploadFilesByPaths.mutate({ tid: template.id, paths: filePaths })
+      }
+    },
+    [template, uploadFilesByPaths]
+  )
 
   const resetForm = () => {
     setTitle('')
@@ -241,8 +282,17 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
               />
             </div>
 
-            {/* Секция файлов */}
-            <div className="space-y-3">
+            {/* Секция файлов с drag-and-drop */}
+            <div
+              ref={dropZoneRef}
+              className={cn(
+                'space-y-3 rounded-lg p-3 -mx-3 transition-all',
+                isDragOver && 'bg-primary/5 ring-2 ring-primary/30 ring-dashed'
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2">
                   <Paperclip className="h-4 w-4" />
@@ -271,15 +321,35 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
                   Загрузка файлов...
                 </div>
               ) : files.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border/60 bg-muted/20">
-                  <File className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground">Нет прикреплённых файлов</p>
+                <div
+                  className={cn(
+                    'flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed transition-colors',
+                    isDragOver ? 'border-primary bg-primary/10' : 'border-border/60 bg-muted/20'
+                  )}
+                >
+                  <Upload
+                    className={cn(
+                      'h-8 w-8 mb-2 transition-colors',
+                      isDragOver ? 'text-primary' : 'text-muted-foreground/50'
+                    )}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {isDragOver ? 'Отпустите файлы для загрузки' : 'Нет прикреплённых файлов'}
+                  </p>
                   <p className="text-xs text-muted-foreground/70 mt-1">
-                    Добавьте любые файлы к этому шаблону
+                    Перетащите файлы сюда или нажмите «Добавить файлы»
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {isDragOver && (
+                    <div className="flex items-center justify-center py-4 text-center rounded-lg border border-dashed border-primary bg-primary/10 mb-2">
+                      <Upload className="h-5 w-5 text-primary mr-2" />
+                      <span className="text-sm text-primary font-medium">
+                        Отпустите для добавления файлов
+                      </span>
+                    </div>
+                  )}
                   {files.map((file) => (
                     <FileItem
                       key={file.id}

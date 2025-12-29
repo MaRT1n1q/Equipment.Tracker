@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Loader2, Paperclip } from 'lucide-react'
 import { Button } from './ui/button'
 import {
   Dialog,
@@ -12,6 +13,7 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 import { useTemplates } from '../hooks/useTemplates'
+import { toast } from 'sonner'
 
 interface AddTemplateModalProps {
   open: boolean
@@ -23,6 +25,8 @@ export function AddTemplateModal({ open, onOpenChange }: AddTemplateModalProps) 
   const [content, setContent] = useState('')
   const [titleError, setTitleError] = useState(false)
   const [contentError, setContentError] = useState(false)
+  const [addFilesAfterCreate, setAddFilesAfterCreate] = useState(false)
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false)
 
   const firstInputRef = useRef<HTMLInputElement>(null)
   const { createTemplate, isCreating } = useTemplates()
@@ -40,9 +44,10 @@ export function AddTemplateModal({ open, onOpenChange }: AddTemplateModalProps) 
     setContent('')
     setTitleError(false)
     setContentError(false)
+    setAddFilesAfterCreate(false)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, withFiles = false) => {
     e.preventDefault()
 
     const trimmedTitle = title.trim()
@@ -58,10 +63,26 @@ export function AddTemplateModal({ open, onOpenChange }: AddTemplateModalProps) 
       return
     }
 
+    setAddFilesAfterCreate(withFiles)
+
     createTemplate(
       { title: trimmedTitle, content: trimmedContent },
       {
-        onSuccess: () => {
+        onSuccess: async (response) => {
+          // Если пользователь хочет добавить файлы
+          if (withFiles && response.data?.id) {
+            setIsUploadingFiles(true)
+            try {
+              const result = await window.electronAPI.uploadTemplateFilesDialog(response.data.id)
+              if (result.success && result.data && result.data.length > 0) {
+                toast.success(`Загружено файлов: ${result.data.length}`)
+              }
+            } catch (error) {
+              console.error('Ошибка загрузки файлов:', error)
+            } finally {
+              setIsUploadingFiles(false)
+            }
+          }
           resetForm()
           onOpenChange(false)
         },
@@ -74,6 +95,8 @@ export function AddTemplateModal({ open, onOpenChange }: AddTemplateModalProps) 
     onOpenChange(false)
   }
 
+  const isSubmitting = isCreating || isUploadingFiles
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -81,7 +104,7 @@ export function AddTemplateModal({ open, onOpenChange }: AddTemplateModalProps) 
           <DialogTitle>Создать шаблон</DialogTitle>
           <DialogDescription>Создайте новый шаблон быстрого ответа</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => handleSubmit(e, false)}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="template-title">
@@ -118,12 +141,38 @@ export function AddTemplateModal({ open, onOpenChange }: AddTemplateModalProps) 
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={isCreating}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
               Отмена
             </Button>
-            <Button type="submit" disabled={isCreating}>
-              {isCreating ? 'Создание...' : 'Создать'}
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isSubmitting}
+              onClick={(e) => handleSubmit(e, true)}
+              className="gap-2"
+            >
+              {isUploadingFiles ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Загрузка файлов...
+                </>
+              ) : (
+                <>
+                  <Paperclip className="h-4 w-4" />
+                  Создать с файлами
+                </>
+              )}
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isCreating && !addFilesAfterCreate ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Создание...
+                </>
+              ) : (
+                'Создать'
+              )}
             </Button>
           </DialogFooter>
         </form>

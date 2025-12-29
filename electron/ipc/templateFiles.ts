@@ -255,6 +255,73 @@ export function registerTemplateFileHandlers() {
       }
     }
   )
+
+  // Загрузить файлы по путям (для drag-and-drop)
+  ipcMain.handle(
+    'upload-template-files-by-paths',
+    async (
+      _event,
+      templateId: number,
+      filePaths: string[]
+    ): Promise<ApiResponse<TemplateFile[]>> => {
+      try {
+        if (!filePaths || filePaths.length === 0) {
+          return { success: true, data: [] }
+        }
+
+        const db = getDatabase()
+        const filesDir = ensureTemplateFilesDirectory()
+        const now = new Date().toISOString()
+        const uploadedFiles: TemplateFile[] = []
+
+        for (const filePath of filePaths) {
+          try {
+            if (!fs.existsSync(filePath)) {
+              console.error(`Файл не существует: ${filePath}`)
+              continue
+            }
+
+            const stats = fs.statSync(filePath)
+            const originalName = path.basename(filePath)
+            const ext = path.extname(originalName)
+            const uniqueFilename = `${templateId}_${crypto.randomUUID()}${ext}`
+            const destPath = path.join(filesDir, uniqueFilename)
+
+            // Копируем файл
+            fs.copyFileSync(filePath, destPath)
+
+            // Определяем MIME тип
+            const mimeType = getMimeType(ext)
+
+            // Сохраняем запись в БД
+            const [id] = await db('template_files').insert({
+              template_id: templateId,
+              filename: uniqueFilename,
+              original_name: originalName,
+              file_size: stats.size,
+              mime_type: mimeType,
+              created_at: now,
+            })
+
+            const createdFile = await db('template_files').where({ id }).first()
+            if (createdFile) {
+              uploadedFiles.push(createdFile)
+            }
+          } catch (fileError) {
+            console.error(`Ошибка загрузки файла ${filePath}:`, fileError)
+          }
+        }
+
+        return { success: true, data: uploadedFiles }
+      } catch (error) {
+        console.error('Ошибка загрузки файлов:', error)
+        return {
+          success: false,
+          error: 'Не удалось загрузить файлы',
+        }
+      }
+    }
+  )
 }
 
 function getMimeType(ext: string): string {
