@@ -6,10 +6,12 @@ import { Sidebar } from './components/Sidebar'
 import { EmployeeExitView } from './components/EmployeeExitView'
 import { RequestsView } from './components/RequestsView'
 import { TemplatesView } from './components/TemplatesView'
+import { ChangelogModal } from './components/ChangelogModal'
 import { Toaster } from 'sonner'
 import type { Request } from './types/ipc'
 import { usePersistentState } from './hooks/usePersistentState'
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
+import { useChangelog } from './hooks/useChangelog'
 import { cn } from './lib/utils'
 import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
@@ -37,6 +39,7 @@ function App() {
   const [highlightExitId, setHighlightExitId] = useState<number | null>(null)
   const [highlightRequestSearch, setHighlightRequestSearch] = useState<string | null>(null)
   const [highlightExitSearch, setHighlightExitSearch] = useState<string | null>(null)
+  const { newChanges, isOpen: isChangelogOpen, dismissChangelog } = useChangelog()
   const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
     deserializer: (value) => (isAppView(value) ? value : 'dashboard'),
@@ -178,6 +181,8 @@ function App() {
         onOpenChange={handleReturnModalOpenChange}
         request={returnTargetRequest}
       />
+
+      <ChangelogModal open={isChangelogOpen} onClose={dismissChangelog} changes={newChanges} />
     </div>
   )
 }
