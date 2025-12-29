@@ -217,22 +217,21 @@ async function ensureSchema(database: Knex) {
       table.string('mime_type').notNullable() // MIME тип файла
       table.string('created_at').notNullable()
     })
-  } else {
-    const hasSortOrderColumn = await database.schema.hasColumn('templates', 'sort_order')
-    if (!hasSortOrderColumn) {
-      await database.schema.alterTable('templates', (table) => {
-        table.integer('sort_order').notNullable().defaultTo(0)
-      })
+  }
 
-      const existingTemplates = await database('templates')
-        .select('id')
-        .orderBy('created_at', 'asc')
-      await Promise.all(
-        existingTemplates.map((template, index) =>
-          database('templates').where({ id: template.id }).update({ sort_order: index })
-        )
+  // Миграция для templates: добавление sort_order
+  const hasSortOrderColumn = await database.schema.hasColumn('templates', 'sort_order')
+  if (!hasSortOrderColumn) {
+    await database.schema.alterTable('templates', (table) => {
+      table.integer('sort_order').notNullable().defaultTo(0)
+    })
+
+    const existingTemplates = await database('templates').select('id').orderBy('created_at', 'asc')
+    await Promise.all(
+      existingTemplates.map((template, index) =>
+        database('templates').where({ id: template.id }).update({ sort_order: index })
       )
-    }
+    )
   }
 
   await database.raw(

@@ -18,40 +18,53 @@ export function useChangelog() {
       return
     }
 
-    // Получаем текущую версию приложения
-    const currentVersion = window.electronAPI?.getAppVersion?.() || '0.0.0'
-
-    // Получаем последнюю просмотренную версию из localStorage
-    const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY)
-
-    // Если версия не сохранена (первый запуск), сохраняем текущую и не показываем окно
-    if (!lastSeenVersion) {
-      localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
+    // Проверяем, доступен ли electronAPI
+    if (!window.electronAPI?.getAppVersion) {
       return
     }
 
-    // Если версии совпадают, ничего не показываем
-    if (lastSeenVersion === currentVersion) {
-      return
-    }
+    try {
+      // Получаем текущую версию приложения
+      const currentVersion = window.electronAPI.getAppVersion() || '0.0.0'
 
-    // Получаем изменения с последней просмотренной версии
-    const changes = getChangelogSinceVersion(lastSeenVersion)
+      // Получаем последнюю просмотренную версию из localStorage
+      const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY)
 
-    if (changes.length > 0) {
-      setNewChanges(changes)
-      setIsOpen(true)
-    } else {
-      // Если нет записей в changelog для новой версии, просто обновляем сохранённую версию
-      localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
+      // Если версия не сохранена (первый запуск), сохраняем текущую и не показываем окно
+      if (!lastSeenVersion) {
+        localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
+        return
+      }
+
+      // Если версии совпадают, ничего не показываем
+      if (lastSeenVersion === currentVersion) {
+        return
+      }
+
+      // Получаем изменения с последней просмотренной версии
+      const changes = getChangelogSinceVersion(lastSeenVersion)
+
+      if (changes.length > 0) {
+        setNewChanges(changes)
+        setIsOpen(true)
+      } else {
+        // Если нет записей в changelog для новой версии, просто обновляем сохранённую версию
+        localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
+      }
+    } catch (error) {
+      console.error('Error in useChangelog:', error)
     }
   }, [])
 
   const dismissChangelog = useCallback(() => {
     // В режиме разработки не сохраняем версию, чтобы окно показывалось каждый раз
-    if (!import.meta.env.DEV) {
-      const currentVersion = window.electronAPI?.getAppVersion?.() || '0.0.0'
-      localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
+    if (!import.meta.env.DEV && window.electronAPI?.getAppVersion) {
+      try {
+        const currentVersion = window.electronAPI.getAppVersion() || '0.0.0'
+        localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
+      } catch (error) {
+        console.error('Error saving version:', error)
+      }
     }
     setIsOpen(false)
   }, [])

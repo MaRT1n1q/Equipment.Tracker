@@ -8,6 +8,7 @@ export function useTemplateFiles(templateId: number | null) {
     queryKey: ['templateFiles', templateId],
     queryFn: async () => {
       if (!templateId) return []
+      if (!window.electronAPI?.getTemplateFiles) return []
       const response = await window.electronAPI.getTemplateFiles(templateId)
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Не удалось загрузить файлы')
@@ -19,6 +20,9 @@ export function useTemplateFiles(templateId: number | null) {
 
   const uploadFiles = useMutation({
     mutationFn: async (tid: number) => {
+      if (!window.electronAPI?.uploadTemplateFilesDialog) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.uploadTemplateFilesDialog(tid)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось загрузить файлы')
@@ -39,6 +43,9 @@ export function useTemplateFiles(templateId: number | null) {
 
   const uploadFilesByPaths = useMutation({
     mutationFn: async ({ tid, paths }: { tid: number; paths: string[] }) => {
+      if (!window.electronAPI?.uploadTemplateFilesByPaths) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.uploadTemplateFilesByPaths(tid, paths)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось загрузить файлы')
@@ -59,6 +66,9 @@ export function useTemplateFiles(templateId: number | null) {
 
   const downloadFile = useMutation({
     mutationFn: async (fileId: number) => {
+      if (!window.electronAPI?.downloadTemplateFile) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.downloadTemplateFile(fileId)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось скачать файл')
@@ -77,6 +87,9 @@ export function useTemplateFiles(templateId: number | null) {
 
   const openFile = useMutation({
     mutationFn: async (fileId: number) => {
+      if (!window.electronAPI?.openTemplateFile) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.openTemplateFile(fileId)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось открыть файл')
@@ -90,6 +103,9 @@ export function useTemplateFiles(templateId: number | null) {
 
   const deleteFile = useMutation({
     mutationFn: async (fileId: number) => {
+      if (!window.electronAPI?.deleteTemplateFile) {
+        throw new Error('API не доступен')
+      }
       const response = await window.electronAPI.deleteTemplateFile(fileId)
       if (!response.success) {
         throw new Error(response.error || 'Не удалось удалить файл')
@@ -127,6 +143,9 @@ export function useTemplateFileCounts() {
   const { data, isLoading } = useQuery({
     queryKey: ['templateFileCounts'],
     queryFn: async () => {
+      if (!window.electronAPI?.getTemplateFileCounts) {
+        return {}
+      }
       const response = await window.electronAPI.getTemplateFileCounts()
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Не удалось получить данные')
