@@ -471,7 +471,7 @@ export function TemplatesView() {
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             dateFormatter={dateFormatter}
-                            disableActions={disableActions || !!debouncedSearch.trim()}
+                            disableActions={disableActions}
                             fileCount={fileCounts[template.id] || 0}
                           />
                         ))}
