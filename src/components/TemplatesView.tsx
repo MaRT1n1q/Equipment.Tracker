@@ -349,58 +349,62 @@ export function TemplatesView() {
   return (
     <>
       <div className="space-y-6">
-        <PageHeader
-          title="Шаблоны"
-          description="Подготовленные ответы для типовых запросов — быстро копируйте и редактируйте."
-          actions={
-            <Button
-              size="lg"
-              className="gap-2 shadow-brand"
-              onClick={() => setIsAddModalOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Создать шаблон
-            </Button>
-          }
-        />
+        {/* Шапка с поиском */}
+        <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+          <PageHeader
+            className="border-0 bg-transparent px-0 py-0 shadow-none"
+            title="Шаблоны"
+            description="Подготовленные ответы для типовых запросов — быстро копируйте и редактируйте."
+            actions={
+              <Button
+                size="lg"
+                className="gap-2 shadow-brand"
+                onClick={() => setIsAddModalOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Создать шаблон
+              </Button>
+            }
+          />
 
-        {/* Поиск */}
-        {!isLoading && !isError && orderedTemplates.length > 0 && (
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по названию и содержимому..."
-                className="pl-10 pr-10"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+          {/* Поиск */}
+          {!isLoading && !isError && orderedTemplates.length > 0 && (
+            <div className="mt-5 space-y-3">
+              <div className="relative flex items-center">
+                <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по названию и содержимому..."
+                  className="h-12 rounded-xl bg-muted/40 pl-9 pr-10 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition focus:border-[hsl(var(--primary)/0.35)] focus:bg-background"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  {debouncedSearch.trim()
+                    ? `Найдено: ${filteredTemplates.length} из ${orderedTemplates.length}`
+                    : `Всего шаблонов: ${orderedTemplates.length}`}
+                </span>
+                <span className="flex items-center gap-1 text-xs">
+                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">Ctrl</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded border bg-muted">F</kbd>
+                  <span className="ml-1">— поиск</span>
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                {debouncedSearch.trim()
-                  ? `Найдено: ${filteredTemplates.length} из ${orderedTemplates.length}`
-                  : `Всего шаблонов: ${orderedTemplates.length}`}
-              </span>
-              <span className="flex items-center gap-1 text-xs">
-                <kbd className="px-1.5 py-0.5 rounded border bg-muted">Ctrl</kbd>
-                <span>+</span>
-                <kbd className="px-1.5 py-0.5 rounded border bg-muted">F</kbd>
-                <span className="ml-1">— поиск</span>
-              </span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div>
           {isLoading ? (
