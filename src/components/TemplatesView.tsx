@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   closestCenter,
   DndContext,
@@ -18,7 +18,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Copy, Edit, GripVertical, Loader2, Paperclip, Plus, Trash2 } from 'lucide-react'
+import { Copy, Edit, GripVertical, Loader2, Paperclip, Plus, Search, Trash2, X } from 'lucide-react'
+import { useDebounce } from '../hooks/useDebounce'
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
+import { Input } from './ui/input'
 import type { Template } from '../types/ipc'
 import { Button } from './ui/button'
 import { useTemplates } from '../hooks/useTemplates'
@@ -213,6 +216,25 @@ export function TemplatesView() {
   const [viewingTemplate, setViewingTemplate] = useState<Template | null>(null)
   const [orderedTemplates, setOrderedTemplates] = useState<Template[]>([])
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebounce(searchQuery, 300)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Глобальный поиск Ctrl+F
+  useKeyboardShortcut({ key: 'f', ctrlKey: true }, () => {
+    searchInputRef.current?.focus()
+  })
+
+  // Фильтрация шаблонов по поисковому запросу
+  const filteredTemplates = useMemo(() => {
+    if (!debouncedSearch.trim()) return orderedTemplates
+    const query = debouncedSearch.toLowerCase()
+    return orderedTemplates.filter(
+      (template) =>
+        template.title.toLowerCase().includes(query) ||
+        template.content.toLowerCase().includes(query)
+    )
+  }, [orderedTemplates, debouncedSearch])
 
   useEffect(() => {
     setOrderedTemplates([...templates].sort((a, b) => a.sort_order - b.sort_order))
@@ -342,6 +364,44 @@ export function TemplatesView() {
           }
         />
 
+        {/* Поиск */}
+        {!isLoading && !isError && orderedTemplates.length > 0 && (
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по названию и содержимому..."
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {debouncedSearch.trim()
+                  ? `Найдено: ${filteredTemplates.length} из ${orderedTemplates.length}`
+                  : `Всего шаблонов: ${orderedTemplates.length}`}
+              </span>
+              <span className="flex items-center gap-1 text-xs">
+                <kbd className="px-1.5 py-0.5 rounded border bg-muted">Ctrl</kbd>
+                <span>+</span>
+                <kbd className="px-1.5 py-0.5 rounded border bg-muted">F</kbd>
+                <span className="ml-1">— поиск</span>
+              </span>
+            </div>
+          </div>
+        )}
+
         <div>
           {isLoading ? (
             renderSkeletonCards()
@@ -358,64 +418,85 @@ export function TemplatesView() {
             />
           ) : hasTemplates ? (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2">
-                  <GripVertical className="h-4 w-4 opacity-70" />
-                  Перетащите карточки, чтобы поменять их порядок.
-                </p>
-                {isReordering && (
-                  <span className="inline-flex items-center gap-2 text-primary">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Сохраняем порядок…
-                  </span>
-                )}
-              </div>
-
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragCancel={handleDragCancel}
-              >
-                <SortableContext
-                  items={orderedTemplates.map((template) => template.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {orderedTemplates.map((template) => (
-                      <SortableTemplateCard
-                        key={template.id}
-                        template={template}
-                        onView={handleView}
-                        onCopy={handleCopy}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        dateFormatter={dateFormatter}
-                        disableActions={disableActions}
-                        fileCount={fileCounts[template.id] || 0}
-                      />
-                    ))}
+              {filteredTemplates.length === 0 && debouncedSearch.trim() ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card/70 px-6 py-12 text-center">
+                  <Search className="h-10 w-10 text-muted-foreground/50 mb-4" />
+                  <p className="text-lg font-medium text-foreground">Ничего не найдено</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    По запросу «{debouncedSearch}» шаблоны не найдены
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-4 text-sm text-primary hover:underline"
+                  >
+                    Сбросить поиск
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+                    <p className="flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 opacity-70" />
+                      {debouncedSearch.trim()
+                        ? 'Порядок карточек можно изменить, сбросив поиск.'
+                        : 'Перетащите карточки, чтобы поменять их порядок.'}
+                    </p>
+                    {isReordering && (
+                      <span className="inline-flex items-center gap-2 text-primary">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Сохраняем порядок…
+                      </span>
+                    )}
                   </div>
-                </SortableContext>
-                <DragOverlay dropAnimation={null}>
-                  {activeTemplate ? (
-                    <div className="rotate-3 scale-105 opacity-95">
-                      <TemplateCard
-                        template={activeTemplate}
-                        onView={handleView}
-                        onCopy={handleCopy}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        dateFormatter={dateFormatter}
-                        disableActions={disableActions}
-                        isDragging={true}
-                        fileCount={fileCounts[activeTemplate.id] || 0}
-                      />
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
+
+                  <DndContext
+                    sensors={debouncedSearch.trim() ? [] : sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
+                  >
+                    <SortableContext
+                      items={filteredTemplates.map((template) => template.id)}
+                      strategy={rectSortingStrategy}
+                    >
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {filteredTemplates.map((template) => (
+                          <SortableTemplateCard
+                            key={template.id}
+                            template={template}
+                            onView={handleView}
+                            onCopy={handleCopy}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            dateFormatter={dateFormatter}
+                            disableActions={disableActions || !!debouncedSearch.trim()}
+                            fileCount={fileCounts[template.id] || 0}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                    <DragOverlay dropAnimation={null}>
+                      {activeTemplate ? (
+                        <div className="rotate-3 scale-105 opacity-95">
+                          <TemplateCard
+                            template={activeTemplate}
+                            onView={handleView}
+                            onCopy={handleCopy}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            dateFormatter={dateFormatter}
+                            disableActions={disableActions}
+                            isDragging={true}
+                            fileCount={fileCounts[activeTemplate.id] || 0}
+                          />
+                        </div>
+                      ) : null}
+                    </DragOverlay>
+                  </DndContext>
+                </>
+              )}
             </div>
           ) : (
             <div className="rounded-3xl border border-dashed border-border/60 bg-card/70">

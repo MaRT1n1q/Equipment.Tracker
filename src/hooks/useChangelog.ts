@@ -9,14 +9,14 @@ export function useChangelog() {
 
   useEffect(() => {
     // В режиме разработки всегда показываем changelog для тестирования
-    if (import.meta.env.DEV) {
-      // Показываем последнюю версию из changelog
-      if (changelog.length > 0) {
-        setNewChanges(changelog.slice(0, 1))
-        setIsOpen(true)
-      }
-      return
-    }
+    // if (import.meta.env.DEV) {
+    //   // Показываем последнюю версию из changelog
+    //   if (changelog.length > 0) {
+    //     setNewChanges(changelog.slice(0, 1))
+    //     setIsOpen(true)
+    //   }
+    //   return
+    // }
 
     // Проверяем, доступен ли electronAPI
     if (!window.electronAPI?.getAppVersion) {
@@ -30,25 +30,40 @@ export function useChangelog() {
       // Получаем последнюю просмотренную версию из localStorage
       const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY)
 
+      console.log('[Changelog] currentVersion:', currentVersion)
+      console.log('[Changelog] lastSeenVersion:', lastSeenVersion)
+      console.log(
+        '[Changelog] changelog entries:',
+        changelog.map((c) => c.version)
+      )
+
       // Если версия не сохранена (первый запуск), сохраняем текущую и не показываем окно
       if (!lastSeenVersion) {
+        console.log('[Changelog] First run, saving current version')
         localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
         return
       }
 
       // Если версии совпадают, ничего не показываем
       if (lastSeenVersion === currentVersion) {
+        console.log('[Changelog] Versions match, not showing changelog')
         return
       }
 
       // Получаем изменения с последней просмотренной версии
       const changes = getChangelogSinceVersion(lastSeenVersion)
+      console.log(
+        '[Changelog] Changes found:',
+        changes.length,
+        changes.map((c) => c.version)
+      )
 
       if (changes.length > 0) {
         setNewChanges(changes)
         setIsOpen(true)
       } else {
         // Если нет записей в changelog для новой версии, просто обновляем сохранённую версию
+        console.log('[Changelog] No changes to show, updating lastSeenVersion')
         localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
       }
     } catch (error) {
