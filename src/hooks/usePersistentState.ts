@@ -37,6 +37,9 @@ export function usePersistentState<T>(
 ): [T, Dispatch<SetStateAction<T>>] {
   const enabled = options?.enabled ?? true
 
+  // Сохраняем initialValue в ref, чтобы избежать бесконечного цикла
+  const initialValueRef = useRef(initialValue)
+
   const defaultSerializer = useCallback<Serializer<T>>((value) => JSON.stringify(value), [])
   const defaultDeserializer = useCallback<Deserializer<T>>((value) => JSON.parse(value) as T, [])
 
@@ -51,21 +54,12 @@ export function usePersistentState<T>(
     deserializerRef.current = options?.deserializer ?? defaultDeserializer
   }, [defaultDeserializer, options?.deserializer])
 
-  const readValue = useCallback(
-    () => getStoredValue(key, initialValue, deserializerRef.current),
-    [initialValue, key]
+  // Инициализация состояния - читаем из localStorage только один раз
+  const [state, setState] = useState<T>(() =>
+    getStoredValue(key, initialValueRef.current, deserializerRef.current)
   )
 
-  const [state, setState] = useState<T>(readValue)
-
-  useEffect(() => {
-    if (!enabled) {
-      return
-    }
-
-    setState(readValue())
-  }, [enabled, readValue])
-
+  // Синхронизация с другими вкладками через storage event
   useEffect(() => {
     if (!enabled || !isBrowser) {
       return
@@ -78,7 +72,7 @@ export function usePersistentState<T>(
 
       setState((prev) => {
         if (event.newValue === null) {
-          return initialValue
+          return initialValueRef.current
         }
 
         try {
@@ -92,7 +86,7 @@ export function usePersistentState<T>(
 
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [enabled, initialValue, key])
+  }, [enabled, key])
 
   const setPersistentState = useCallback<Dispatch<SetStateAction<T>>>(
     (valueOrUpdater) => {
