@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Info,
   FileText,
+  BookOpen,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useEffect, useMemo, useState } from 'react'
@@ -19,8 +20,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { ThemeToggle } from './ThemeToggle'
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'requests' | 'employee-exit' | 'templates'
-  onViewChange: (view: 'dashboard' | 'requests' | 'employee-exit' | 'templates') => void
+  currentView: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
+  onViewChange: (
+    view: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
+  ) => void
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -247,6 +250,11 @@ export function Sidebar({
       id: 'templates' as const,
       label: 'Шаблоны',
       icon: FileText,
+    },
+    {
+      id: 'instructions' as const,
+      label: 'Инструкции',
+      icon: BookOpen,
     },
   ]
 

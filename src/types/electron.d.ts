@@ -1,19 +1,24 @@
 import type {
   ApiResponse,
   CreateEmployeeExitData,
+  CreateInstructionData,
   CreateRequestData,
   CreateTemplateData,
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
+  Instruction,
+  MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
+  ReorderInstructionsData,
   Request,
   RequestListParams,
   RequestSummary,
   ScheduleRequestReturnData,
   Template,
   TemplateFile,
+  UpdateInstructionData,
   UpdateRequestData,
   UpdateStatusPayload,
   UpdateTemplateData,
@@ -80,6 +85,19 @@ declare global {
       getTemplateFileCounts: () => Promise<ApiResponse<Record<number, number>>>
 
       openExternal: (url: string) => Promise<ApiResponse>
+
+      // Instructions API
+      getInstructions: () => Promise<ApiResponse<Instruction[]>>
+      getInstruction: (id: number) => Promise<ApiResponse<Instruction>>
+      createInstruction: (data: CreateInstructionData) => Promise<ApiResponse<Instruction>>
+      updateInstruction: (
+        id: number,
+        data: UpdateInstructionData
+      ) => Promise<ApiResponse<Instruction>>
+      moveInstruction: (id: number, data: MoveInstructionData) => Promise<ApiResponse<Instruction>>
+      reorderInstructions: (data: ReorderInstructionsData) => Promise<ApiResponse>
+      deleteInstruction: (id: number) => Promise<ApiResponse<Instruction>>
+      duplicateInstruction: (id: number) => Promise<ApiResponse<Instruction>>
     }
   }
 }

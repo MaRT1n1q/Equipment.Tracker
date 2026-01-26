@@ -264,6 +264,51 @@ export type Template = z.infer<typeof templateRecordSchema>
 export type TemplateFile = z.infer<typeof templateFileRecordSchema>
 export type ReorderTemplatesData = z.infer<typeof reorderTemplatesSchema>
 
+// === Instructions (древовидная структура) ===
+export const createInstructionSchema = z.object({
+  parent_id: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().min(1, 'Название обязательно'),
+  content: z.string().trim().optional().default(''),
+  is_folder: z.boolean().optional().default(false),
+})
+
+export const updateInstructionSchema = z.object({
+  title: z.string().trim().min(1, 'Название обязательно').optional(),
+  content: z.string().trim().optional(),
+  is_folder: z.boolean().optional(),
+})
+
+export const moveInstructionSchema = z.object({
+  parent_id: z.number().int().positive().nullable(),
+  sort_order: z.number().int().min(0),
+})
+
+export const instructionRecordSchema = z.object({
+  id: z.number().int().positive(),
+  parent_id: z.number().int().positive().nullable(),
+  title: z.string(),
+  content: z.string(),
+  sort_order: z.number().int(),
+  is_folder: z.number().int(), // 1 = папка, 0 = документ
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export const reorderInstructionsSchema = z.object({
+  parent_id: z.number().int().positive().nullable(),
+  order: z.array(z.number().int().positive()).min(1),
+})
+
+export type CreateInstructionData = z.infer<typeof createInstructionSchema>
+export type UpdateInstructionData = z.infer<typeof updateInstructionSchema>
+export type MoveInstructionData = z.infer<typeof moveInstructionSchema>
+export type Instruction = z.infer<typeof instructionRecordSchema>
+export type ReorderInstructionsData = z.infer<typeof reorderInstructionsSchema>
+
+export interface InstructionTreeNode extends Instruction {
+  children: InstructionTreeNode[]
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T

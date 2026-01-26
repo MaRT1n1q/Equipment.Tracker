@@ -3,19 +3,24 @@ import type { IpcRendererEvent } from 'electron'
 import type {
   ApiResponse,
   CreateEmployeeExitData,
+  CreateInstructionData,
   CreateRequestData,
   CreateTemplateData,
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
+  Instruction,
+  MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
+  ReorderInstructionsData,
   Request,
   RequestListParams,
   RequestSummary,
   ScheduleRequestReturnData,
   Template,
   TemplateFile,
+  UpdateInstructionData,
   UpdateRequestData,
   UpdateStatusPayload,
   UpdateTemplateData,
@@ -164,4 +169,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-template-file-counts'),
 
   openExternal: (url: string): Promise<ApiResponse> => ipcRenderer.invoke('open-external', url),
+
+  // Instructions API
+  getInstructions: (): Promise<ApiResponse<Instruction[]>> =>
+    ipcRenderer.invoke('get-instructions'),
+
+  getInstruction: (id: number): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('get-instruction', id),
+
+  createInstruction: (data: CreateInstructionData): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('create-instruction', data),
+
+  updateInstruction: (id: number, data: UpdateInstructionData): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('update-instruction', id, data),
+
+  moveInstruction: (id: number, data: MoveInstructionData): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('move-instruction', id, data),
+
+  reorderInstructions: (data: ReorderInstructionsData): Promise<ApiResponse> =>
+    ipcRenderer.invoke('reorder-instructions', data),
+
+  deleteInstruction: (id: number): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('delete-instruction', id),
+
+  duplicateInstruction: (id: number): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('duplicate-instruction', id),
 })

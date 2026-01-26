@@ -252,6 +252,31 @@ async function ensureSchema(database: Knex) {
     )
   }
 
+  // Таблица инструкций с древовидной структурой
+  const hasInstructionsTable = await database.schema.hasTable('instructions')
+  if (!hasInstructionsTable) {
+    await database.schema.createTable('instructions', (table) => {
+      table.increments('id').primary()
+      table
+        .integer('parent_id')
+        .nullable()
+        .references('id')
+        .inTable('instructions')
+        .onDelete('CASCADE')
+      table.string('title').notNullable()
+      table.text('content').notNullable().defaultTo('')
+      table.integer('sort_order').notNullable().defaultTo(0)
+      table.integer('is_folder').notNullable().defaultTo(0) // 1 = папка, 0 = документ
+      table.string('created_at').notNullable()
+      table.string('updated_at').notNullable()
+    })
+  }
+
+  await database.raw(
+    'CREATE INDEX IF NOT EXISTS idx_instructions_parent ON instructions(parent_id)'
+  )
+  await database.raw('CREATE INDEX IF NOT EXISTS idx_instructions_sort ON instructions(sort_order)')
+
   await runMigrations(database)
 
   await seedInitialData(database)

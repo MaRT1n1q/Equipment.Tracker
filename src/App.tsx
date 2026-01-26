@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar'
 import { EmployeeExitView } from './components/EmployeeExitView'
 import { RequestsView } from './components/RequestsView'
 import { TemplatesView } from './components/TemplatesView'
+import { InstructionsView } from './components/InstructionsView'
 import { ChangelogModal } from './components/ChangelogModal'
 import { Toaster } from 'sonner'
 import type { Request } from './types/ipc'
@@ -17,7 +18,7 @@ import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
 import { WindowTitleBar } from './components/WindowTitleBar'
 
-type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates'
+type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
 
 const VIEW_STORAGE_KEY = 'equipment-tracker:current-view'
 const SIDEBAR_STORAGE_KEY = 'equipment-tracker:sidebar-collapsed'
@@ -26,7 +27,8 @@ const isAppView = (value: string): value is AppView =>
   value === 'dashboard' ||
   value === 'requests' ||
   value === 'employee-exit' ||
-  value === 'templates'
+  value === 'templates' ||
+  value === 'instructions'
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -149,6 +151,10 @@ function App() {
             ) : currentView === 'templates' ? (
               <div className="animate-fade-in">
                 <TemplatesView />
+              </div>
+            ) : currentView === 'instructions' ? (
+              <div className="animate-fade-in">
+                <InstructionsView />
               </div>
             ) : (
               <div className="animate-fade-in">
