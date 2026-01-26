@@ -1,7 +1,8 @@
-import { FileText, Edit, Copy, ExternalLink } from 'lucide-react'
+import { FileText, Edit, Copy } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Button } from './ui/button'
 import { toast } from 'sonner'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import type { InstructionTreeNode } from '../types/ipc'
 
 interface ViewInstructionModalProps {
@@ -28,34 +29,6 @@ export function ViewInstructionModal({
     }
   }
 
-  // Простой парсинг ссылок в тексте
-  const renderContent = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g
-    const parts = text.split(urlRegex)
-
-    return parts.map((part, index) => {
-      if (part.match(urlRegex)) {
-        return (
-          <a
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline inline-flex items-center gap-1"
-            onClick={(e) => {
-              e.preventDefault()
-              window.electronAPI?.openExternal(part)
-            }}
-          >
-            {part}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        )
-      }
-      return part
-    })
-  }
-
   const formattedDate = new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
     month: 'long',
@@ -75,16 +48,8 @@ export function ViewInstructionModal({
           <div className="text-xs text-muted-foreground mt-1">Обновлено: {formattedDate}</div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
-          {instruction.content ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed bg-transparent p-0 m-0 border-0">
-                {renderContent(instruction.content)}
-              </pre>
-            </div>
-          ) : (
-            <div className="text-muted-foreground text-center py-8">Инструкция пуста</div>
-          )}
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar py-2">
+          <MarkdownRenderer content={instruction.content} />
         </div>
 
         <div className="flex-shrink-0 flex items-center justify-between pt-4 border-t">

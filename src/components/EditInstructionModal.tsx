@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { Textarea } from './ui/textarea'
+import { FormattedTextEditor } from './FormattedTextEditor'
 import { useInstructions } from '../hooks/useInstructions'
 import type { Instruction } from '../types/ipc'
 
@@ -60,7 +60,7 @@ export function EditInstructionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={isFolder ? 'sm:max-w-lg' : 'sm:max-w-2xl'}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="w-5 h-5" />
@@ -84,13 +84,12 @@ export function EditInstructionModal({
           {!isFolder && (
             <div className="space-y-2">
               <Label htmlFor="edit-content">Содержимое</Label>
-              <Textarea
+              <FormattedTextEditor
                 id="edit-content"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={setContent}
                 placeholder="Текст инструкции..."
                 rows={12}
-                className="resize-none font-mono text-sm"
               />
             </div>
           )}
