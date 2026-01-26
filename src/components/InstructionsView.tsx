@@ -14,6 +14,7 @@ import {
   FolderPlus,
   FilePlus,
   X,
+  BookOpen,
 } from 'lucide-react'
 import { useInstructions } from '../hooks/useInstructions'
 import { useDebounce } from '../hooks/useDebounce'
@@ -32,8 +33,9 @@ import { ErrorState } from './ErrorState'
 import { EmptyState } from './EmptyState'
 import { AddInstructionModal } from './AddInstructionModal'
 import { EditInstructionModal } from './EditInstructionModal'
-import { ViewInstructionModal } from './ViewInstructionModal'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import type { InstructionTreeNode, Instruction } from '../types/ipc'
+import { toast } from 'sonner'
 
 interface TreeNodeProps {
   node: InstructionTreeNode
@@ -282,6 +284,102 @@ function getExpandedIdsForSearch(nodes: InstructionTreeNode[], searchTerm: strin
   return ids
 }
 
+// Находим узел по ID в дереве
+function findNodeById(nodes: InstructionTreeNode[], id: number): InstructionTreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    if (node.children.length > 0) {
+      const found = findNodeById(node.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// Панель просмотра инструкции
+interface InstructionPanelProps {
+  instruction: InstructionTreeNode | null
+  onEdit: () => void
+}
+
+function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
+  const handleCopyContent = async () => {
+    if (!instruction) return
+    try {
+      await navigator.clipboard.writeText(instruction.content)
+      toast.success('Скопировано в буфер обмена')
+    } catch {
+      toast.error('Не удалось скопировать')
+    }
+  }
+
+  if (!instruction) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
+        <BookOpen className="w-16 h-16 mb-4 opacity-20" />
+        <p className="text-lg font-medium">Выберите инструкцию</p>
+        <p className="text-sm">Кликните на инструкцию в дереве слева для просмотра</p>
+      </div>
+    )
+  }
+
+  const isFolder = instruction.is_folder === 1
+
+  if (isFolder) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
+        <Folder className="w-16 h-16 mb-4 text-amber-500 opacity-50" />
+        <p className="text-lg font-medium">{instruction.title}</p>
+        <p className="text-sm">
+          {instruction.children.length > 0
+            ? `${instruction.children.length} элементов`
+            : 'Пустая папка'}
+        </p>
+      </div>
+    )
+  }
+
+  const formattedDate = new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(instruction.updated_at))
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Header */}
+      <div className="flex-shrink-0 px-6 py-4 border-b border-border">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-semibold text-foreground truncate flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+              {instruction.title}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">Обновлено: {formattedDate}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={handleCopyContent}>
+              <Copy className="w-4 h-4 mr-2" />
+              Копировать
+            </Button>
+            <Button size="sm" onClick={onEdit}>
+              <Edit className="w-4 h-4 mr-2" />
+              Редактировать
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-6">
+        <MarkdownRenderer content={instruction.content} />
+      </div>
+    </div>
+  )
+}
+
 export function InstructionsView() {
   const { tree, isLoading, isError, error, refetch, deleteInstruction, duplicateInstruction } =
     useInstructions()
@@ -300,9 +398,6 @@ export function InstructionsView() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingInstruction, setEditingInstruction] = useState<Instruction | null>(null)
 
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-  const [viewingInstruction, setViewingInstruction] = useState<InstructionTreeNode | null>(null)
-
   // Фильтрация дерева по поиску
   const filteredTree = useMemo(() => filterTree(tree, searchTerm), [tree, searchTerm])
 
@@ -319,6 +414,12 @@ export function InstructionsView() {
     return expandedIds
   }, [expandedIds, searchExpandedIds, searchTerm])
 
+  // Находим выбранную инструкцию
+  const selectedInstruction = useMemo(() => {
+    if (selectedId === null) return null
+    return findNodeById(tree, selectedId)
+  }, [tree, selectedId])
+
   const handleToggleExpand = useCallback((id: number) => {
     setExpandedIds((prev) => {
       const next = new Set(prev)
@@ -333,11 +434,6 @@ export function InstructionsView() {
 
   const handleSelect = useCallback((node: InstructionTreeNode) => {
     setSelectedId(node.id)
-    // Если это не папка, открываем просмотр
-    if (node.is_folder !== 1) {
-      setViewingInstruction(node)
-      setIsViewModalOpen(true)
-    }
   }, [])
 
   const handleEdit = useCallback((node: InstructionTreeNode) => {
@@ -386,6 +482,12 @@ export function InstructionsView() {
   const handleClearSearch = () => {
     setSearchInput('')
   }
+
+  const handleEditSelected = useCallback(() => {
+    if (selectedInstruction) {
+      handleEdit(selectedInstruction)
+    }
+  }, [selectedInstruction, handleEdit])
 
   if (isLoading) {
     return (
@@ -438,63 +540,73 @@ export function InstructionsView() {
         }
       />
 
-      <div className="flex-1 flex flex-col gap-4 min-h-0">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Поиск по названию или содержимому..."
-            className="pl-9 pr-9"
-          />
-          {searchInput && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+      {/* Two-panel layout */}
+      <div className="flex-1 flex gap-4 min-h-0 mt-4">
+        {/* Left panel - Tree */}
+        <div className="w-80 flex-shrink-0 flex flex-col min-h-0 rounded-lg border border-border bg-card/50">
+          {/* Search */}
+          <div className="flex-shrink-0 p-3 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Поиск..."
+                className="pl-9 pr-9 h-9"
+              />
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tree */}
+          <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-2">
+            {filteredTree.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title={searchTerm ? 'Ничего не найдено' : 'Нет инструкций'}
+                description={searchTerm ? 'Попробуйте изменить запрос' : 'Создайте первую папку'}
+                actions={
+                  !searchTerm ? (
+                    <Button size="sm" onClick={() => handleAddRoot(true)}>
+                      Создать
+                    </Button>
+                  ) : undefined
+                }
+                className="py-8"
+              />
+            ) : (
+              <div className="space-y-0.5">
+                {filteredTree.map((node) => (
+                  <TreeNode
+                    key={node.id}
+                    node={node}
+                    level={0}
+                    expandedIds={effectiveExpandedIds}
+                    selectedId={selectedId}
+                    onToggleExpand={handleToggleExpand}
+                    onSelect={handleSelect}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    onAddChild={handleAddChild}
+                    searchTerm={searchTerm}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Tree */}
-        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar rounded-lg border border-border bg-card/50 p-2">
-          {filteredTree.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title={searchTerm ? 'Ничего не найдено' : 'Нет инструкций'}
-              description={
-                searchTerm
-                  ? 'Попробуйте изменить поисковый запрос'
-                  : 'Создайте первую папку или инструкцию'
-              }
-              actions={
-                !searchTerm ? (
-                  <Button onClick={() => handleAddRoot(true)}>Создать папку</Button>
-                ) : undefined
-              }
-            />
-          ) : (
-            <div className="space-y-0.5">
-              {filteredTree.map((node) => (
-                <TreeNode
-                  key={node.id}
-                  node={node}
-                  level={0}
-                  expandedIds={effectiveExpandedIds}
-                  selectedId={selectedId}
-                  onToggleExpand={handleToggleExpand}
-                  onSelect={handleSelect}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDuplicate={handleDuplicate}
-                  onAddChild={handleAddChild}
-                  searchTerm={searchTerm}
-                />
-              ))}
-            </div>
-          )}
+        {/* Right panel - Content */}
+        <div className="flex-1 min-w-0 rounded-lg border border-border bg-card/50 flex flex-col">
+          <InstructionPanel instruction={selectedInstruction} onEdit={handleEditSelected} />
         </div>
       </div>
 
@@ -510,18 +622,6 @@ export function InstructionsView() {
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         instruction={editingInstruction}
-      />
-
-      <ViewInstructionModal
-        open={isViewModalOpen}
-        onOpenChange={setIsViewModalOpen}
-        instruction={viewingInstruction}
-        onEdit={() => {
-          if (viewingInstruction) {
-            setIsViewModalOpen(false)
-            handleEdit(viewingInstruction)
-          }
-        }}
       />
     </div>
   )
