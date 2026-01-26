@@ -46,6 +46,7 @@ export function AddInstructionModal({
         title: title.trim(),
         content: isFolder ? '' : content.trim(),
         is_folder: isFolder,
+        tags: [],
       })
       onOpenChange(false)
     } finally {

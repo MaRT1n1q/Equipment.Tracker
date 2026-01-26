@@ -267,8 +267,44 @@ async function ensureSchema(database: Knex) {
       table.text('content').notNullable().defaultTo('')
       table.integer('sort_order').notNullable().defaultTo(0)
       table.integer('is_folder').notNullable().defaultTo(0) // 1 = папка, 0 = документ
+      table.integer('is_favorite').notNullable().defaultTo(0) // 1 = избранное
+      table.text('tags').notNullable().defaultTo('') // JSON массив тегов
       table.string('created_at').notNullable()
       table.string('updated_at').notNullable()
+    })
+  }
+
+  // Миграция для instructions: добавление is_favorite и tags
+  const hasIsFavoriteColumn = await database.schema.hasColumn('instructions', 'is_favorite')
+  if (!hasIsFavoriteColumn) {
+    await database.schema.alterTable('instructions', (table) => {
+      table.integer('is_favorite').notNullable().defaultTo(0)
+    })
+  }
+
+  const hasTagsColumn = await database.schema.hasColumn('instructions', 'tags')
+  if (!hasTagsColumn) {
+    await database.schema.alterTable('instructions', (table) => {
+      table.text('tags').notNullable().defaultTo('')
+    })
+  }
+
+  // Таблица вложений инструкций
+  const hasInstructionAttachmentsTable = await database.schema.hasTable('instruction_attachments')
+  if (!hasInstructionAttachmentsTable) {
+    await database.schema.createTable('instruction_attachments', (table) => {
+      table.increments('id').primary()
+      table
+        .integer('instruction_id')
+        .notNullable()
+        .references('id')
+        .inTable('instructions')
+        .onDelete('CASCADE')
+      table.string('filename').notNullable() // Уникальное имя файла на диске
+      table.string('original_name').notNullable() // Оригинальное имя файла
+      table.integer('file_size').notNullable() // Размер в байтах
+      table.string('mime_type').notNullable() // MIME тип файла
+      table.string('created_at').notNullable()
     })
   }
 
@@ -276,6 +312,12 @@ async function ensureSchema(database: Knex) {
     'CREATE INDEX IF NOT EXISTS idx_instructions_parent ON instructions(parent_id)'
   )
   await database.raw('CREATE INDEX IF NOT EXISTS idx_instructions_sort ON instructions(sort_order)')
+  await database.raw(
+    'CREATE INDEX IF NOT EXISTS idx_instructions_favorite ON instructions(is_favorite)'
+  )
+  await database.raw(
+    'CREATE INDEX IF NOT EXISTS idx_instruction_attachments_instruction ON instruction_attachments(instruction_id)'
+  )
 
   await runMigrations(database)
 

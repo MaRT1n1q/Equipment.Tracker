@@ -52,6 +52,63 @@ function buildTree(instructions: Instruction[]): InstructionTreeNode[] {
   return roots
 }
 
+// Получить все ID из дерева (для раскрытия всех)
+export function getAllTreeIds(tree: InstructionTreeNode[]): number[] {
+  const ids: number[] = []
+  const collect = (nodes: InstructionTreeNode[]) => {
+    for (const node of nodes) {
+      ids.push(node.id)
+      if (node.children.length > 0) {
+        collect(node.children)
+      }
+    }
+  }
+  collect(tree)
+  return ids
+}
+
+// Получить все ID папок из дерева
+export function getAllFolderIds(tree: InstructionTreeNode[]): number[] {
+  const ids: number[] = []
+  const collect = (nodes: InstructionTreeNode[]) => {
+    for (const node of nodes) {
+      if (node.is_folder === 1) {
+        ids.push(node.id)
+      }
+      if (node.children.length > 0) {
+        collect(node.children)
+      }
+    }
+  }
+  collect(tree)
+  return ids
+}
+
+// Получить путь (хлебные крошки) к инструкции
+export function getInstructionPath(
+  tree: InstructionTreeNode[],
+  targetId: number
+): InstructionTreeNode[] {
+  const path: InstructionTreeNode[] = []
+
+  const findPath = (nodes: InstructionTreeNode[], currentPath: InstructionTreeNode[]): boolean => {
+    for (const node of nodes) {
+      const newPath = [...currentPath, node]
+      if (node.id === targetId) {
+        path.push(...newPath)
+        return true
+      }
+      if (node.children.length > 0 && findPath(node.children, newPath)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  findPath(tree, [])
+  return path
+}
+
 export function useInstructions() {
   const queryClient = useQueryClient()
 
@@ -199,6 +256,47 @@ export function useInstructions() {
     },
   })
 
+  const toggleFavorite = useMutation({
+    mutationFn: async (id: number) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
+      const response = await window.electronAPI.toggleInstructionFavorite(id)
+      if (!response.success) {
+        throw new Error(response.error || 'Не удалось обновить избранное')
+      }
+      return response
+    },
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['instructions'] })
+      const isFavorite = response.data?.is_favorite === 1
+      toast.success(isFavorite ? 'Добавлено в избранное' : 'Удалено из избранного')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Ошибка обновления избранного')
+    },
+  })
+
+  const updateTags = useMutation({
+    mutationFn: async ({ id, tags }: { id: number; tags: string[] }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
+      const response = await window.electronAPI.updateInstructionTags(id, tags)
+      if (!response.success) {
+        throw new Error(response.error || 'Не удалось обновить теги')
+      }
+      return response
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructions'] })
+      queryClient.invalidateQueries({ queryKey: ['instruction-tags'] })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Ошибка обновления тегов')
+    },
+  })
+
   return {
     // Данные
     instructions: flatData ?? [],
@@ -215,6 +313,8 @@ export function useInstructions() {
     reorderInstructions,
     deleteInstruction,
     duplicateInstruction,
+    toggleFavorite,
+    updateTags,
   }
 }
 
@@ -241,5 +341,121 @@ export function useInstruction(id: number | null) {
     isError,
     error,
     refetch,
+  }
+}
+
+// Хук для получения всех тегов
+export function useInstructionTags() {
+  const queryClient = useQueryClient()
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['instruction-tags'],
+    queryFn: async () => {
+      if (!isApiAvailable()) {
+        return []
+      }
+      const response = await window.electronAPI.getAllInstructionTags()
+      if (!response.success || !response.data) {
+        return []
+      }
+      return response.data
+    },
+  })
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['instruction-tags'] })
+  }
+
+  return {
+    tags: data ?? [],
+    isLoading,
+    refetch,
+    invalidate,
+  }
+}
+
+// Хук для работы с вложениями инструкции
+export function useInstructionAttachments(instructionId: number | null) {
+  const queryClient = useQueryClient()
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['instruction-attachments', instructionId],
+    queryFn: async () => {
+      if (!isApiAvailable() || instructionId === null) {
+        return []
+      }
+      const response = await window.electronAPI.getInstructionAttachments(instructionId)
+      if (!response.success || !response.data) {
+        return []
+      }
+      return response.data
+    },
+    enabled: instructionId !== null,
+  })
+
+  const addAttachment = useMutation({
+    mutationFn: async (filePath: string) => {
+      if (!isApiAvailable() || instructionId === null) {
+        throw new Error('API не доступен')
+      }
+      const response = await window.electronAPI.addInstructionAttachment(instructionId, filePath)
+      if (!response.success) {
+        throw new Error(response.error || 'Не удалось добавить вложение')
+      }
+      return response
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instruction-attachments', instructionId] })
+      toast.success('Файл прикреплён')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Ошибка добавления файла')
+    },
+  })
+
+  const deleteAttachment = useMutation({
+    mutationFn: async (attachmentId: number) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
+      const response = await window.electronAPI.deleteInstructionAttachment(attachmentId)
+      if (!response.success) {
+        throw new Error(response.error || 'Не удалось удалить вложение')
+      }
+      return response
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instruction-attachments', instructionId] })
+      toast.success('Файл удалён')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Ошибка удаления файла')
+    },
+  })
+
+  const openAttachment = async (attachmentId: number) => {
+    if (!isApiAvailable()) return
+    const response = await window.electronAPI.openInstructionAttachment(attachmentId)
+    if (!response.success) {
+      toast.error(response.error || 'Не удалось открыть файл')
+    }
+  }
+
+  const selectAndAddFile = async () => {
+    if (!isApiAvailable()) return
+    const response = await window.electronAPI.selectInstructionAttachmentFile()
+    if (response.success && response.data) {
+      addAttachment.mutate(response.data)
+    }
+  }
+
+  return {
+    attachments: data ?? [],
+    isLoading,
+    refetch,
+    addAttachment,
+    deleteAttachment,
+    openAttachment,
+    selectAndAddFile,
   }
 }

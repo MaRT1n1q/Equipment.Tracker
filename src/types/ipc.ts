@@ -270,12 +270,14 @@ export const createInstructionSchema = z.object({
   title: z.string().trim().min(1, 'Название обязательно'),
   content: z.string().trim().optional().default(''),
   is_folder: z.boolean().optional().default(false),
+  tags: z.array(z.string().trim()).optional().default([]),
 })
 
 export const updateInstructionSchema = z.object({
   title: z.string().trim().min(1, 'Название обязательно').optional(),
   content: z.string().trim().optional(),
   is_folder: z.boolean().optional(),
+  tags: z.array(z.string().trim()).optional(),
 })
 
 export const moveInstructionSchema = z.object({
@@ -290,6 +292,8 @@ export const instructionRecordSchema = z.object({
   content: z.string(),
   sort_order: z.number().int(),
   is_folder: z.number().int(), // 1 = папка, 0 = документ
+  is_favorite: z.number().int(), // 1 = избранное, 0 = обычное
+  tags: z.array(z.string()), // массив тегов
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -299,11 +303,23 @@ export const reorderInstructionsSchema = z.object({
   order: z.array(z.number().int().positive()).min(1),
 })
 
+// Схема для вложений инструкций
+export const instructionAttachmentSchema = z.object({
+  id: z.number().int().positive(),
+  instruction_id: z.number().int().positive(),
+  filename: z.string(),
+  original_name: z.string(),
+  file_size: z.number().int().nonnegative(),
+  mime_type: z.string(),
+  created_at: z.string(),
+})
+
 export type CreateInstructionData = z.infer<typeof createInstructionSchema>
 export type UpdateInstructionData = z.infer<typeof updateInstructionSchema>
 export type MoveInstructionData = z.infer<typeof moveInstructionSchema>
 export type Instruction = z.infer<typeof instructionRecordSchema>
 export type ReorderInstructionsData = z.infer<typeof reorderInstructionsSchema>
+export type InstructionAttachment = z.infer<typeof instructionAttachmentSchema>
 
 export interface InstructionTreeNode extends Instruction {
   children: InstructionTreeNode[]

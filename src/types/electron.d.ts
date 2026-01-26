@@ -8,6 +8,7 @@ import type {
   EmployeeExitListParams,
   EmployeeExitSummary,
   Instruction,
+  InstructionAttachment,
   MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
@@ -98,6 +99,20 @@ declare global {
       reorderInstructions: (data: ReorderInstructionsData) => Promise<ApiResponse>
       deleteInstruction: (id: number) => Promise<ApiResponse<Instruction>>
       duplicateInstruction: (id: number) => Promise<ApiResponse<Instruction>>
+      toggleInstructionFavorite: (id: number) => Promise<ApiResponse<Instruction>>
+      updateInstructionTags: (id: number, tags: string[]) => Promise<ApiResponse<Instruction>>
+      getAllInstructionTags: () => Promise<ApiResponse<string[]>>
+      // Instruction Attachments API
+      getInstructionAttachments: (
+        instructionId: number
+      ) => Promise<ApiResponse<InstructionAttachment[]>>
+      addInstructionAttachment: (
+        instructionId: number,
+        filePath: string
+      ) => Promise<ApiResponse<InstructionAttachment>>
+      deleteInstructionAttachment: (attachmentId: number) => Promise<ApiResponse>
+      openInstructionAttachment: (attachmentId: number) => Promise<ApiResponse>
+      selectInstructionAttachmentFile: () => Promise<ApiResponse<string | null>>
     }
   }
 }

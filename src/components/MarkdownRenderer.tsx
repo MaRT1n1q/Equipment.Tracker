@@ -4,6 +4,8 @@ import { cn } from '../lib/utils'
 interface MarkdownRendererProps {
   content: string
   className?: string
+  searchTerm?: string
+  onInternalLinkClick?: (instructionId: number) => void
 }
 
 // Экранирование HTML
@@ -14,6 +16,23 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
+}
+
+// Подсветка поискового термина в финальном HTML
+function highlightSearchInHtml(html: string, searchTerm?: string): string {
+  if (!searchTerm?.trim()) return html
+
+  const escapedSearch = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escapedSearch})`, 'gi')
+
+  // Подсвечиваем только текст вне HTML-тегов
+  return html.replace(/>([^<]+)</g, (_match, text) => {
+    const highlighted = text.replace(
+      regex,
+      '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>'
+    )
+    return `>${highlighted}<`
+  })
 }
 
 // Парсинг инлайн-элементов
@@ -42,6 +61,14 @@ function parseInline(text: string): string {
     /\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="$2" class="text-primary hover:underline inline-flex items-center gap-1 markdown-link" data-href="$2">$1<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>'
   )
+
+  // Внутренние ссылки [[id:название]] или [[id]]
+  result = result.replace(
+    /\[\[(\d+)(?::([^\]]+))?\]\]/g,
+    '<a href="#" class="text-primary hover:underline internal-link" data-instruction-id="$1">$2$1</a>'
+  )
+  // Исправляем отображение внутренней ссылки - убираем ID если есть название
+  result = result.replace(/data-instruction-id="(\d+)">([^<]+)\1</g, 'data-instruction-id="$1">$2<')
 
   // Автоматические ссылки для URL
   result = result.replace(
@@ -81,7 +108,12 @@ function parseListItem(
   return null
 }
 
-export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
+export function MarkdownRenderer({
+  content,
+  className,
+  searchTerm,
+  onInternalLinkClick,
+}: MarkdownRendererProps) {
   const html = useMemo(() => {
     if (!content) return ''
 
@@ -181,12 +213,27 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     }
 
     closeList()
-    return result.join('')
-  }, [content])
+
+    // Применяем подсветку поиска к финальному HTML
+    return highlightSearchInHtml(result.join(''), searchTerm)
+  }, [content, searchTerm])
 
   // Обработчик кликов по ссылкам
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement
+
+    // Проверяем внутреннюю ссылку
+    const internalLink = target.closest('.internal-link') as HTMLAnchorElement | null
+    if (internalLink) {
+      e.preventDefault()
+      const instructionId = internalLink.dataset.instructionId
+      if (instructionId && onInternalLinkClick) {
+        onInternalLinkClick(parseInt(instructionId, 10))
+      }
+      return
+    }
+
+    // Проверяем внешнюю ссылку
     const link = target.closest('.markdown-link') as HTMLAnchorElement | null
     if (link) {
       e.preventDefault()

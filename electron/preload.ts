@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, shell } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type {
   ApiResponse,
@@ -10,6 +10,7 @@ import type {
   EmployeeExitListParams,
   EmployeeExitSummary,
   Instruction,
+  InstructionAttachment,
   MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
@@ -194,4 +195,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   duplicateInstruction: (id: number): Promise<ApiResponse<Instruction>> =>
     ipcRenderer.invoke('duplicate-instruction', id),
+
+  toggleInstructionFavorite: (id: number): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('toggle-instruction-favorite', id),
+
+  updateInstructionTags: (id: number, tags: string[]): Promise<ApiResponse<Instruction>> =>
+    ipcRenderer.invoke('update-instruction-tags', id, tags),
+
+  getAllInstructionTags: (): Promise<ApiResponse<string[]>> =>
+    ipcRenderer.invoke('get-all-instruction-tags'),
+
+  // Instruction Attachments API
+  getInstructionAttachments: (
+    instructionId: number
+  ): Promise<ApiResponse<InstructionAttachment[]>> =>
+    ipcRenderer.invoke('get-instruction-attachments', instructionId),
+
+  addInstructionAttachment: (
+    instructionId: number,
+    filePath: string
+  ): Promise<ApiResponse<InstructionAttachment>> =>
+    ipcRenderer.invoke('add-instruction-attachment', instructionId, filePath),
+
+  deleteInstructionAttachment: (attachmentId: number): Promise<ApiResponse> =>
+    ipcRenderer.invoke('delete-instruction-attachment', attachmentId),
+
+  openInstructionAttachment: async (attachmentId: number): Promise<ApiResponse> => {
+    const result = await ipcRenderer.invoke('open-instruction-attachment', attachmentId)
+    if (result.success && result.data) {
+      await shell.openPath(result.data)
+    }
+    return result
+  },
+
+  selectInstructionAttachmentFile: (): Promise<ApiResponse<string | null>> =>
+    ipcRenderer.invoke('select-instruction-attachment-file'),
 })

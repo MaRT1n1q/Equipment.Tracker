@@ -1,4 +1,6 @@
-import { ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
+import fs from 'fs'
+import path from 'path'
 import { z } from 'zod'
 
 import { getDatabase } from '../database'
@@ -8,7 +10,7 @@ import {
   moveInstructionSchema,
   reorderInstructionsSchema,
 } from '../../src/types/ipc'
-import type { ApiResponse, Instruction } from '../../src/types/ipc'
+import type { ApiResponse, Instruction, InstructionAttachment } from '../../src/types/ipc'
 
 interface InstructionRow {
   id: number
@@ -17,11 +19,30 @@ interface InstructionRow {
   content: string
   sort_order: number
   is_folder: number
+  is_favorite: number
+  tags: string
   created_at: string
   updated_at: string
 }
 
+interface AttachmentRow {
+  id: number
+  instruction_id: number
+  filename: string
+  original_name: string
+  file_size: number
+  mime_type: string
+  created_at: string
+}
+
 function rowToInstruction(row: InstructionRow): Instruction {
+  let tags: string[] = []
+  try {
+    tags = row.tags ? JSON.parse(row.tags) : []
+  } catch {
+    tags = []
+  }
+
   return {
     id: row.id,
     parent_id: row.parent_id,
@@ -29,8 +50,33 @@ function rowToInstruction(row: InstructionRow): Instruction {
     content: row.content,
     sort_order: row.sort_order,
     is_folder: row.is_folder,
+    is_favorite: row.is_favorite,
+    tags,
     created_at: row.created_at,
     updated_at: row.updated_at,
+  }
+}
+
+function rowToAttachment(row: AttachmentRow): InstructionAttachment {
+  return {
+    id: row.id,
+    instruction_id: row.instruction_id,
+    filename: row.filename,
+    original_name: row.original_name,
+    file_size: row.file_size,
+    mime_type: row.mime_type,
+    created_at: row.created_at,
+  }
+}
+
+function getAttachmentsDirectory(): string {
+  return path.join(app.getPath('userData'), 'instruction_attachments')
+}
+
+function ensureAttachmentsDirectory(): void {
+  const dir = getAttachmentsDirectory()
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
   }
 }
 
@@ -101,6 +147,8 @@ export function registerInstructionsHandlers(): void {
           title: parsed.title,
           content: parsed.content ?? '',
           is_folder: parsed.is_folder ? 1 : 0,
+          is_favorite: 0,
+          tags: JSON.stringify(parsed.tags ?? []),
           sort_order: sortOrder,
           created_at: now,
           updated_at: now,
@@ -146,6 +194,9 @@ export function registerInstructionsHandlers(): void {
         }
         if (parsed.is_folder !== undefined) {
           updateData.is_folder = parsed.is_folder ? 1 : 0
+        }
+        if (parsed.tags !== undefined) {
+          updateData.tags = JSON.stringify(parsed.tags)
         }
 
         await db('instructions').where({ id: idParsed }).update(updateData)
@@ -299,6 +350,8 @@ export function registerInstructionsHandlers(): void {
           title: `${original.title} (копия)`,
           content: original.content,
           is_folder: original.is_folder,
+          is_favorite: 0,
+          tags: original.tags,
           sort_order: sortOrder,
           created_at: now,
           updated_at: now,
@@ -321,6 +374,320 @@ export function registerInstructionsHandlers(): void {
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Не удалось дублировать инструкцию',
+        }
+      }
+    }
+  )
+
+  // Переключить избранное
+  ipcMain.handle(
+    'toggle-instruction-favorite',
+    async (_event, id: number): Promise<ApiResponse<Instruction>> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(id)
+
+        const existing = await db<InstructionRow>('instructions').where({ id: idParsed }).first()
+
+        if (!existing) {
+          return { success: false, error: 'Инструкция не найдена' }
+        }
+
+        const newFavorite = existing.is_favorite === 1 ? 0 : 1
+        const now = new Date().toISOString()
+
+        await db('instructions')
+          .where({ id: idParsed })
+          .update({ is_favorite: newFavorite, updated_at: now })
+
+        const updated = await db<InstructionRow>('instructions').where({ id: idParsed }).first()
+
+        return { success: true, data: rowToInstruction(updated!) }
+      } catch (error) {
+        console.error('Ошибка переключения избранного:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось обновить избранное',
+        }
+      }
+    }
+  )
+
+  // Обновить теги инструкции
+  ipcMain.handle(
+    'update-instruction-tags',
+    async (_event, id: number, tags: string[]): Promise<ApiResponse<Instruction>> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(id)
+        const parsedTags = z.array(z.string().trim()).parse(tags)
+
+        const existing = await db<InstructionRow>('instructions').where({ id: idParsed }).first()
+
+        if (!existing) {
+          return { success: false, error: 'Инструкция не найдена' }
+        }
+
+        const now = new Date().toISOString()
+
+        await db('instructions')
+          .where({ id: idParsed })
+          .update({ tags: JSON.stringify(parsedTags), updated_at: now })
+
+        const updated = await db<InstructionRow>('instructions').where({ id: idParsed }).first()
+
+        return { success: true, data: rowToInstruction(updated!) }
+      } catch (error) {
+        console.error('Ошибка обновления тегов:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось обновить теги',
+        }
+      }
+    }
+  )
+
+  // Получить все уникальные теги
+  ipcMain.handle('get-all-instruction-tags', async (): Promise<ApiResponse<string[]>> => {
+    try {
+      const db = getDatabase()
+      const rows = await db<InstructionRow>('instructions').select('tags')
+
+      const allTags = new Set<string>()
+      for (const row of rows) {
+        try {
+          const tags = row.tags ? JSON.parse(row.tags) : []
+          if (Array.isArray(tags)) {
+            tags.forEach((tag: string) => {
+              if (tag && typeof tag === 'string') {
+                allTags.add(tag)
+              }
+            })
+          }
+        } catch {
+          // Игнорируем ошибки парсинга
+        }
+      }
+
+      return { success: true, data: Array.from(allTags).sort() }
+    } catch (error) {
+      console.error('Ошибка получения тегов:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Не удалось получить теги',
+      }
+    }
+  })
+
+  // === Вложения ===
+
+  // Получить вложения инструкции
+  ipcMain.handle(
+    'get-instruction-attachments',
+    async (_event, instructionId: number): Promise<ApiResponse<InstructionAttachment[]>> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(instructionId)
+
+        const rows = await db<AttachmentRow>('instruction_attachments')
+          .where({ instruction_id: idParsed })
+          .orderBy('created_at', 'desc')
+
+        return { success: true, data: rows.map(rowToAttachment) }
+      } catch (error) {
+        console.error('Ошибка получения вложений:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось загрузить вложения',
+        }
+      }
+    }
+  )
+
+  // Добавить вложение
+  ipcMain.handle(
+    'add-instruction-attachment',
+    async (
+      _event,
+      instructionId: number,
+      filePath: string
+    ): Promise<ApiResponse<InstructionAttachment>> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(instructionId)
+
+        // Проверяем существование инструкции
+        const instruction = await db('instructions').where({ id: idParsed }).first()
+        if (!instruction) {
+          return { success: false, error: 'Инструкция не найдена' }
+        }
+
+        // Проверяем существование файла
+        if (!fs.existsSync(filePath)) {
+          return { success: false, error: 'Файл не найден' }
+        }
+
+        ensureAttachmentsDirectory()
+
+        const stats = fs.statSync(filePath)
+        const originalName = path.basename(filePath)
+        const ext = path.extname(originalName)
+        const uniqueName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`
+        const destPath = path.join(getAttachmentsDirectory(), uniqueName)
+
+        // Копируем файл
+        fs.copyFileSync(filePath, destPath)
+
+        // Определяем MIME тип
+        const mimeTypes: Record<string, string> = {
+          '.pdf': 'application/pdf',
+          '.doc': 'application/msword',
+          '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          '.xls': 'application/vnd.ms-excel',
+          '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.webp': 'image/webp',
+          '.svg': 'image/svg+xml',
+          '.txt': 'text/plain',
+          '.zip': 'application/zip',
+          '.rar': 'application/x-rar-compressed',
+          '.7z': 'application/x-7z-compressed',
+        }
+        const mimeType = mimeTypes[ext.toLowerCase()] || 'application/octet-stream'
+
+        const now = new Date().toISOString()
+
+        const [insertedId] = await db('instruction_attachments').insert({
+          instruction_id: idParsed,
+          filename: uniqueName,
+          original_name: originalName,
+          file_size: stats.size,
+          mime_type: mimeType,
+          created_at: now,
+        })
+
+        const created = await db<AttachmentRow>('instruction_attachments')
+          .where({ id: insertedId })
+          .first()
+
+        return { success: true, data: rowToAttachment(created!) }
+      } catch (error) {
+        console.error('Ошибка добавления вложения:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось добавить вложение',
+        }
+      }
+    }
+  )
+
+  // Удалить вложение
+  ipcMain.handle(
+    'delete-instruction-attachment',
+    async (_event, attachmentId: number): Promise<ApiResponse> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(attachmentId)
+
+        const attachment = await db<AttachmentRow>('instruction_attachments')
+          .where({ id: idParsed })
+          .first()
+
+        if (!attachment) {
+          return { success: false, error: 'Вложение не найдено' }
+        }
+
+        // Удаляем файл с диска
+        const filePath = path.join(getAttachmentsDirectory(), attachment.filename)
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+        }
+
+        // Удаляем запись из БД
+        await db('instruction_attachments').where({ id: idParsed }).delete()
+
+        return { success: true }
+      } catch (error) {
+        console.error('Ошибка удаления вложения:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось удалить вложение',
+        }
+      }
+    }
+  )
+
+  // Открыть вложение
+  ipcMain.handle(
+    'open-instruction-attachment',
+    async (_event, attachmentId: number): Promise<ApiResponse<string>> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(attachmentId)
+
+        const attachment = await db<AttachmentRow>('instruction_attachments')
+          .where({ id: idParsed })
+          .first()
+
+        if (!attachment) {
+          return { success: false, error: 'Вложение не найдено' }
+        }
+
+        const filePath = path.join(getAttachmentsDirectory(), attachment.filename)
+
+        if (!fs.existsSync(filePath)) {
+          return { success: false, error: 'Файл не найден на диске' }
+        }
+
+        // Возвращаем путь к файлу для открытия через shell
+        return { success: true, data: filePath }
+      } catch (error) {
+        console.error('Ошибка открытия вложения:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось открыть вложение',
+        }
+      }
+    }
+  )
+
+  // Диалог выбора файла для вложения
+  ipcMain.handle(
+    'select-instruction-attachment-file',
+    async (): Promise<ApiResponse<string | null>> => {
+      try {
+        const result = await dialog.showOpenDialog({
+          title: 'Выберите файл для вложения',
+          properties: ['openFile'],
+          filters: [
+            {
+              name: 'Все файлы',
+              extensions: ['*'],
+            },
+            {
+              name: 'Документы',
+              extensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
+            },
+            {
+              name: 'Изображения',
+              extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'],
+            },
+          ],
+        })
+
+        if (result.canceled || result.filePaths.length === 0) {
+          return { success: true, data: null }
+        }
+
+        return { success: true, data: result.filePaths[0] }
+      } catch (error) {
+        console.error('Ошибка выбора файла:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось выбрать файл',
         }
       }
     }
@@ -379,6 +746,8 @@ async function duplicateChildrenRecursive(
       title: child.title,
       content: child.content,
       is_folder: child.is_folder,
+      is_favorite: 0,
+      tags: child.tags,
       sort_order: child.sort_order,
       created_at: now,
       updated_at: now,

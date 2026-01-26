@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import {
   ChevronRight,
   ChevronDown,
@@ -15,12 +15,28 @@ import {
   FilePlus,
   X,
   BookOpen,
+  Star,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  GripVertical,
+  ChevronLast,
+  Paperclip,
+  Tag,
+  ExternalLink,
+  File,
 } from 'lucide-react'
-import { useInstructions } from '../hooks/useInstructions'
+import {
+  useInstructions,
+  useInstructionAttachments,
+  getAllFolderIds,
+  getInstructionPath,
+} from '../hooks/useInstructions'
 import { useDebounce } from '../hooks/useDebounce'
+import { usePersistentState } from '../hooks/usePersistentState'
 import { cn } from '../lib/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { Badge } from './ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,17 +53,29 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import type { InstructionTreeNode, Instruction } from '../types/ipc'
 import { toast } from 'sonner'
 
+// Минимальная и максимальная ширина левой панели
+const MIN_PANEL_WIDTH = 200
+const MAX_PANEL_WIDTH = 600
+const DEFAULT_PANEL_WIDTH = 320
+
 interface TreeNodeProps {
   node: InstructionTreeNode
   level: number
   expandedIds: Set<number>
   selectedId: number | null
+  draggedId: number | null
+  dropTargetId: number | null
   onToggleExpand: (id: number) => void
   onSelect: (node: InstructionTreeNode) => void
   onEdit: (node: InstructionTreeNode) => void
   onDelete: (node: InstructionTreeNode) => void
   onDuplicate: (node: InstructionTreeNode) => void
   onAddChild: (parentId: number, isFolder: boolean) => void
+  onToggleFavorite: (node: InstructionTreeNode) => void
+  onDragStart: (id: number) => void
+  onDragOver: (id: number) => void
+  onDragEnd: () => void
+  onDrop: (targetId: number) => void
   searchTerm: string
 }
 
@@ -72,18 +100,28 @@ function TreeNode({
   level,
   expandedIds,
   selectedId,
+  draggedId,
+  dropTargetId,
   onToggleExpand,
   onSelect,
   onEdit,
   onDelete,
   onDuplicate,
   onAddChild,
+  onToggleFavorite,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
   searchTerm,
 }: TreeNodeProps) {
   const isExpanded = expandedIds.has(node.id)
   const isSelected = selectedId === node.id
   const isFolder = node.is_folder === 1
   const hasChildren = node.children.length > 0
+  const isFavorite = node.is_favorite === 1
+  const isDragging = draggedId === node.id
+  const isDropTarget = dropTargetId === node.id && isFolder && draggedId !== node.id
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -104,18 +142,61 @@ function TreeNode({
     }
   }
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', node.id.toString())
+    onDragStart(node.id)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    if (isFolder && draggedId !== node.id) {
+      e.dataTransfer.dropEffect = 'move'
+      onDragOver(node.id)
+    }
+  }
+
+  const handleDragLeave = () => {
+    // handled by parent
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isFolder && draggedId !== node.id) {
+      onDrop(node.id)
+    }
+  }
+
+  const handleDragEnd = () => {
+    onDragEnd()
+  }
+
   return (
     <div>
       <div
         className={cn(
           'group flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-colors',
           'hover:bg-muted/50',
-          isSelected && 'bg-primary/10 hover:bg-primary/15'
+          isSelected && 'bg-primary/10 hover:bg-primary/15',
+          isDragging && 'opacity-50',
+          isDropTarget && 'ring-2 ring-primary ring-inset bg-primary/5'
         )}
         style={{ paddingLeft: `${level * 16 + 8}px` }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        draggable
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onDragEnd={handleDragEnd}
       >
+        {/* Drag handle */}
+        <div className="w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-50 cursor-grab">
+          <GripVertical className="w-3 h-3 text-muted-foreground" />
+        </div>
+
         {/* Expand/Collapse arrow */}
         <button
           className={cn(
@@ -133,7 +214,7 @@ function TreeNode({
         </button>
 
         {/* Icon */}
-        <div className="w-5 h-5 flex items-center justify-center">
+        <div className="w-5 h-5 flex items-center justify-center relative">
           {isFolder ? (
             isExpanded ? (
               <FolderOpen className="w-4 h-4 text-amber-500" />
@@ -142,6 +223,9 @@ function TreeNode({
             )
           ) : (
             <FileText className="w-4 h-4 text-blue-500" />
+          )}
+          {isFavorite && (
+            <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500 absolute -top-0.5 -right-0.5" />
           )}
         </div>
 
@@ -155,6 +239,14 @@ function TreeNode({
           {highlightMatch(node.title, searchTerm)}
         </span>
 
+        {/* Tags indicator */}
+        {node.tags.length > 0 && (
+          <div className="flex items-center gap-0.5">
+            <Tag className="w-3 h-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">{node.tags.length}</span>
+          </div>
+        )}
+
         {/* Actions dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -166,6 +258,13 @@ function TreeNode({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => onToggleFavorite(node)}>
+              <Star
+                className={cn('w-4 h-4 mr-2', isFavorite && 'fill-yellow-500 text-yellow-500')}
+              />
+              {isFavorite ? 'Убрать из избранного' : 'В избранное'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onEdit(node)}>
               <Edit className="w-4 h-4 mr-2" />
               Редактировать
@@ -209,12 +308,19 @@ function TreeNode({
               level={level + 1}
               expandedIds={expandedIds}
               selectedId={selectedId}
+              draggedId={draggedId}
+              dropTargetId={dropTargetId}
               onToggleExpand={onToggleExpand}
               onSelect={onSelect}
               onEdit={onEdit}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
               onAddChild={onAddChild}
+              onToggleFavorite={onToggleFavorite}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDragEnd={onDragEnd}
+              onDrop={onDrop}
               searchTerm={searchTerm}
             />
           ))}
@@ -299,10 +405,24 @@ function findNodeById(nodes: InstructionTreeNode[], id: number): InstructionTree
 // Панель просмотра инструкции
 interface InstructionPanelProps {
   instruction: InstructionTreeNode | null
+  breadcrumbs: InstructionTreeNode[]
+  searchTerm: string
   onEdit: () => void
+  onNavigate: (id: number) => void
+  onToggleFavorite: () => void
 }
 
-function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
+function InstructionPanel({
+  instruction,
+  breadcrumbs,
+  searchTerm,
+  onEdit,
+  onNavigate,
+  onToggleFavorite,
+}: InstructionPanelProps) {
+  const { attachments, selectAndAddFile, deleteAttachment, openAttachment } =
+    useInstructionAttachments(instruction?.id ?? null)
+
   const handleCopyContent = async () => {
     if (!instruction) return
     try {
@@ -311,6 +431,12 @@ function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
     } catch {
       toast.error('Не удалось скопировать')
     }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} Б`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`
   }
 
   if (!instruction) {
@@ -324,17 +450,37 @@ function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
   }
 
   const isFolder = instruction.is_folder === 1
+  const isFavorite = instruction.is_favorite === 1
 
   if (isFolder) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
-        <Folder className="w-16 h-16 mb-4 text-amber-500 opacity-50" />
-        <p className="text-lg font-medium">{instruction.title}</p>
-        <p className="text-sm">
-          {instruction.children.length > 0
-            ? `${instruction.children.length} элементов`
-            : 'Пустая папка'}
-        </p>
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Breadcrumbs */}
+        {breadcrumbs.length > 0 && (
+          <div className="flex-shrink-0 px-6 py-2 border-b border-border flex items-center gap-1 text-sm overflow-x-auto">
+            {breadcrumbs.map((crumb, idx) => (
+              <div key={crumb.id} className="flex items-center gap-1 flex-shrink-0">
+                {idx > 0 && <ChevronLast className="w-3 h-3 text-muted-foreground rotate-180" />}
+                <button
+                  className="text-muted-foreground hover:text-foreground truncate max-w-[150px]"
+                  onClick={() => onNavigate(crumb.id)}
+                >
+                  {crumb.title}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
+          <Folder className="w-16 h-16 mb-4 text-amber-500 opacity-50" />
+          <p className="text-lg font-medium">{instruction.title}</p>
+          <p className="text-sm">
+            {instruction.children.length > 0
+              ? `${instruction.children.length} элементов`
+              : 'Пустая папка'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -349,6 +495,28 @@ function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {/* Breadcrumbs */}
+      {breadcrumbs.length > 0 && (
+        <div className="flex-shrink-0 px-6 py-2 border-b border-border flex items-center gap-1 text-sm overflow-x-auto">
+          {breadcrumbs.map((crumb, idx) => (
+            <div key={crumb.id} className="flex items-center gap-1 flex-shrink-0">
+              {idx > 0 && <ChevronLast className="w-3 h-3 text-muted-foreground rotate-180" />}
+              <button
+                className={cn(
+                  'truncate max-w-[150px]',
+                  idx === breadcrumbs.length - 1
+                    ? 'text-foreground font-medium'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                onClick={() => onNavigate(crumb.id)}
+              >
+                {crumb.title}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-border">
         <div className="flex items-start justify-between gap-4">
@@ -356,10 +524,25 @@ function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
             <h2 className="text-xl font-semibold text-foreground truncate flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
               {instruction.title}
+              {isFavorite && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">Обновлено: {formattedDate}</p>
+
+            {/* Tags */}
+            {instruction.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {instruction.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="ghost" size="icon" onClick={onToggleFavorite} title="Избранное">
+              <Star className={cn('w-4 h-4', isFavorite && 'fill-yellow-500 text-yellow-500')} />
+            </Button>
             <Button variant="outline" size="sm" onClick={handleCopyContent}>
               <Copy className="w-4 h-4 mr-2" />
               Копировать
@@ -374,21 +557,105 @@ function InstructionPanel({ instruction, onEdit }: InstructionPanelProps) {
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-6">
-        <MarkdownRenderer content={instruction.content} />
+        <MarkdownRenderer
+          content={instruction.content}
+          searchTerm={searchTerm}
+          onInternalLinkClick={onNavigate}
+        />
+
+        {/* Attachments */}
+        {attachments.length > 0 && (
+          <div className="mt-8 pt-6 border-t border-border">
+            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+              <Paperclip className="w-4 h-4" />
+              Вложения ({attachments.length})
+            </h3>
+            <div className="space-y-2">
+              {attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-3 p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                >
+                  <File className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{att.original_name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(att.file_size)}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openAttachment(att.id)}
+                    title="Открыть"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (window.confirm('Удалить вложение?')) {
+                        deleteAttachment.mutate(att.id)
+                      }
+                    }}
+                    title="Удалить"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add attachment button */}
+        <div className="mt-4">
+          <Button variant="outline" size="sm" onClick={selectAndAddFile}>
+            <Paperclip className="w-4 h-4 mr-2" />
+            Прикрепить файл
+          </Button>
+        </div>
       </div>
     </div>
   )
 }
 
 export function InstructionsView() {
-  const { tree, isLoading, isError, error, refetch, deleteInstruction, duplicateInstruction } =
-    useInstructions()
+  const {
+    tree,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    deleteInstruction,
+    duplicateInstruction,
+    toggleFavorite,
+    moveInstruction,
+  } = useInstructions()
 
   const [searchInput, setSearchInput] = useState('')
   const searchTerm = useDebounce(searchInput, 300)
 
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  // Сохранение состояния в localStorage
+  const [expandedIds, setExpandedIds] = usePersistentState<number[]>(
+    'equipment-tracker:instructions-expanded',
+    []
+  )
+  const [selectedId, setSelectedId] = usePersistentState<number | null>(
+    'equipment-tracker:instructions-selected',
+    null
+  )
+  const [panelWidth, setPanelWidth] = usePersistentState<number>(
+    'equipment-tracker:instructions-panel-width',
+    DEFAULT_PANEL_WIDTH
+  )
+
+  // Drag & Drop state
+  const [draggedId, setDraggedId] = useState<number | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<number | null>(null)
+
+  // Resizing state
+  const [isResizing, setIsResizing] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Модальные окна
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -397,6 +664,9 @@ export function InstructionsView() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingInstruction, setEditingInstruction] = useState<Instruction | null>(null)
+
+  // Конвертация в Set для работы с TreeNode
+  const expandedIdsSet = useMemo(() => new Set(expandedIds), [expandedIds])
 
   // Фильтрация дерева по поиску
   const filteredTree = useMemo(() => filterTree(tree, searchTerm), [tree, searchTerm])
@@ -411,8 +681,8 @@ export function InstructionsView() {
     if (searchTerm.trim()) {
       return new Set([...expandedIds, ...searchExpandedIds])
     }
-    return expandedIds
-  }, [expandedIds, searchExpandedIds, searchTerm])
+    return expandedIdsSet
+  }, [expandedIds, expandedIdsSet, searchExpandedIds, searchTerm])
 
   // Находим выбранную инструкцию
   const selectedInstruction = useMemo(() => {
@@ -420,21 +690,54 @@ export function InstructionsView() {
     return findNodeById(tree, selectedId)
   }, [tree, selectedId])
 
-  const handleToggleExpand = useCallback((id: number) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }, [])
+  // Вычисляем хлебные крошки
+  const breadcrumbs = useMemo(() => {
+    if (selectedId === null) return []
+    return getInstructionPath(tree, selectedId)
+  }, [tree, selectedId])
 
-  const handleSelect = useCallback((node: InstructionTreeNode) => {
-    setSelectedId(node.id)
-  }, [])
+  // Обработка ресайза панели
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return
+      const containerRect = containerRef.current.getBoundingClientRect()
+      const newWidth = e.clientX - containerRect.left
+      setPanelWidth(Math.min(Math.max(newWidth, MIN_PANEL_WIDTH), MAX_PANEL_WIDTH))
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, setPanelWidth])
+
+  const handleToggleExpand = useCallback(
+    (id: number) => {
+      setExpandedIds((prev) => {
+        if (prev.includes(id)) {
+          return prev.filter((i) => i !== id)
+        }
+        return [...prev, id]
+      })
+    },
+    [setExpandedIds]
+  )
+
+  const handleSelect = useCallback(
+    (node: InstructionTreeNode) => {
+      setSelectedId(node.id)
+    },
+    [setSelectedId]
+  )
 
   const handleEdit = useCallback((node: InstructionTreeNode) => {
     setEditingInstruction(node)
@@ -455,7 +758,7 @@ export function InstructionsView() {
         }
       }
     },
-    [deleteInstruction, selectedId]
+    [deleteInstruction, selectedId, setSelectedId]
   )
 
   const handleDuplicate = useCallback(
@@ -465,13 +768,16 @@ export function InstructionsView() {
     [duplicateInstruction]
   )
 
-  const handleAddChild = useCallback((parentId: number, isFolder: boolean) => {
-    setAddModalParentId(parentId)
-    setAddModalIsFolder(isFolder)
-    setIsAddModalOpen(true)
-    // Раскрываем родительскую папку
-    setExpandedIds((prev) => new Set([...prev, parentId]))
-  }, [])
+  const handleAddChild = useCallback(
+    (parentId: number, isFolder: boolean) => {
+      setAddModalParentId(parentId)
+      setAddModalIsFolder(isFolder)
+      setIsAddModalOpen(true)
+      // Раскрываем родительскую папку
+      setExpandedIds((prev) => (prev.includes(parentId) ? prev : [...prev, parentId]))
+    },
+    [setExpandedIds]
+  )
 
   const handleAddRoot = useCallback((isFolder: boolean) => {
     setAddModalParentId(null)
@@ -488,6 +794,73 @@ export function InstructionsView() {
       handleEdit(selectedInstruction)
     }
   }, [selectedInstruction, handleEdit])
+
+  // Drag & Drop handlers
+  const handleDragStart = useCallback((id: number) => {
+    setDraggedId(id)
+  }, [])
+
+  const handleDragOver = useCallback((id: number) => {
+    setDropTargetId(id)
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedId(null)
+    setDropTargetId(null)
+  }, [])
+
+  const handleDrop = useCallback(
+    (targetId: number) => {
+      if (draggedId === null || draggedId === targetId) return
+
+      const draggedNode = findNodeById(tree, draggedId)
+      if (!draggedNode) return
+
+      // Перемещаем инструкцию в новую папку (в конец)
+      moveInstruction.mutate({
+        id: draggedId,
+        data: { parent_id: targetId, sort_order: 999 },
+      })
+
+      // Раскрываем целевую папку
+      setExpandedIds((prev) => (prev.includes(targetId) ? prev : [...prev, targetId]))
+
+      setDraggedId(null)
+      setDropTargetId(null)
+    },
+    [draggedId, tree, moveInstruction, setExpandedIds]
+  )
+
+  // Toggle favorite handler
+  const handleToggleFavorite = useCallback(
+    (node: InstructionTreeNode) => {
+      toggleFavorite.mutate(node.id)
+    },
+    [toggleFavorite]
+  )
+
+  // Navigate to instruction (for breadcrumbs and internal links)
+  const handleNavigate = useCallback(
+    (id: number) => {
+      setSelectedId(id)
+      // Раскрываем путь до выбранной инструкции
+      const path = getInstructionPath(tree, id)
+      const idsToExpand = path.slice(0, -1).map((n) => n.id)
+      setExpandedIds((prev) => [...new Set([...prev, ...idsToExpand])])
+    },
+    [tree, setSelectedId, setExpandedIds]
+  )
+
+  // Collapse all folders
+  const handleCollapseAll = useCallback(() => {
+    setExpandedIds([])
+  }, [setExpandedIds])
+
+  // Expand all folders
+  const handleExpandAll = useCallback(() => {
+    const allFolderIds = getAllFolderIds(tree)
+    setExpandedIds(allFolderIds)
+  }, [tree, setExpandedIds])
 
   if (isLoading) {
     return (
@@ -514,7 +887,7 @@ export function InstructionsView() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" ref={containerRef}>
       <PageHeader
         title="Инструкции"
         description="База знаний и документация"
@@ -541,11 +914,14 @@ export function InstructionsView() {
       />
 
       {/* Two-panel layout */}
-      <div className="flex-1 flex gap-4 min-h-0 mt-4">
+      <div className="flex-1 flex min-h-0 mt-4">
         {/* Left panel - Tree */}
-        <div className="w-80 flex-shrink-0 flex flex-col min-h-0 rounded-lg border border-border bg-card/50">
-          {/* Search */}
-          <div className="flex-shrink-0 p-3 border-b border-border">
+        <div
+          className="flex-shrink-0 flex flex-col min-h-0 rounded-lg border border-border bg-card/50"
+          style={{ width: panelWidth }}
+        >
+          {/* Search and controls */}
+          <div className="flex-shrink-0 p-3 border-b border-border space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -562,6 +938,29 @@ export function InstructionsView() {
                   <X className="w-4 h-4" />
                 </button>
               )}
+            </div>
+            {/* Collapse/Expand buttons */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={handleCollapseAll}
+                title="Свернуть все"
+              >
+                <ChevronsDownUp className="w-3.5 h-3.5 mr-1" />
+                Свернуть
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={handleExpandAll}
+                title="Развернуть все"
+              >
+                <ChevronsUpDown className="w-3.5 h-3.5 mr-1" />
+                Развернуть
+              </Button>
             </div>
           </div>
 
@@ -590,12 +989,19 @@ export function InstructionsView() {
                     level={0}
                     expandedIds={effectiveExpandedIds}
                     selectedId={selectedId}
+                    draggedId={draggedId}
+                    dropTargetId={dropTargetId}
                     onToggleExpand={handleToggleExpand}
                     onSelect={handleSelect}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDuplicate={handleDuplicate}
                     onAddChild={handleAddChild}
+                    onToggleFavorite={handleToggleFavorite}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                    onDrop={handleDrop}
                     searchTerm={searchTerm}
                   />
                 ))}
@@ -604,9 +1010,29 @@ export function InstructionsView() {
           </div>
         </div>
 
+        {/* Resizer */}
+        <div
+          className={cn(
+            'w-1 mx-1 cursor-col-resize hover:bg-primary/30 transition-colors rounded',
+            isResizing && 'bg-primary/50'
+          )}
+          onMouseDown={() => setIsResizing(true)}
+        />
+
         {/* Right panel - Content */}
         <div className="flex-1 min-w-0 rounded-lg border border-border bg-card/50 flex flex-col">
-          <InstructionPanel instruction={selectedInstruction} onEdit={handleEditSelected} />
+          <InstructionPanel
+            instruction={selectedInstruction}
+            breadcrumbs={breadcrumbs}
+            searchTerm={searchTerm}
+            onEdit={handleEditSelected}
+            onNavigate={handleNavigate}
+            onToggleFavorite={() => {
+              if (selectedInstruction) {
+                handleToggleFavorite(selectedInstruction)
+              }
+            }}
+          />
         </div>
       </div>
 
