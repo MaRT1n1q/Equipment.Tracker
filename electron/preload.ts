@@ -9,6 +9,7 @@ import type {
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
+  EquipmentStatus,
   Instruction,
   InstructionAttachment,
   MoveInstructionData,
@@ -128,6 +129,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   updateExitCompleted: (id: number, is_completed: boolean): Promise<ApiResponse> =>
     ipcRenderer.invoke('update-exit-completed', id, is_completed),
+
+  updateExitEquipmentStatus: (
+    exitId: number,
+    equipmentIndex: number,
+    status: EquipmentStatus
+  ): Promise<ApiResponse> =>
+    ipcRenderer.invoke('update-exit-equipment-status', { exitId, equipmentIndex, status }),
 
   exportEmployeeExits: (exits: EmployeeExit[]): Promise<ApiResponse<{ path: string }>> =>
     ipcRenderer.invoke('export-employee-exits', exits),

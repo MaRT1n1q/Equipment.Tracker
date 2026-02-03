@@ -11,9 +11,11 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { toast } from 'sonner'
-import { Plus, Trash2, UserMinus } from 'lucide-react'
+import { Plus, Trash2, UserMinus, ShoppingCart, Truck, Warehouse, CheckCircle } from 'lucide-react'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
-import type { EmployeeExit } from '../types/ipc'
+import type { EmployeeExit, EquipmentStatus } from '../types/ipc'
+import { equipmentStatusLabels } from '../types/ipc'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
   createEmptyExitEquipmentItem,
   formatExitEquipmentList,
@@ -21,6 +23,20 @@ import {
   type ExitEquipmentItem,
 } from '../lib/employeeExitEquipment'
 import { usePersistentState } from '../hooks/usePersistentState'
+
+const statusIcons: Record<EquipmentStatus, React.ReactNode> = {
+  ordered: <ShoppingCart className="w-4 h-4" />,
+  in_transit: <Truck className="w-4 h-4" />,
+  in_stock: <Warehouse className="w-4 h-4" />,
+  issued: <CheckCircle className="w-4 h-4" />,
+}
+
+const statusColors: Record<EquipmentStatus, string> = {
+  ordered: 'text-amber-500',
+  in_transit: 'text-blue-500',
+  in_stock: 'text-emerald-500',
+  issued: 'text-violet-500',
+}
 
 interface EditEmployeeExitModalProps {
   exit: EmployeeExit | null
@@ -124,7 +140,11 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
     })
   }
 
-  const updateEquipmentItem = (index: number, field: keyof ExitEquipmentItem, value: string) => {
+  const updateEquipmentItem = (
+    index: number,
+    field: keyof ExitEquipmentItem,
+    value: string | EquipmentStatus
+  ) => {
     setFormDraft((draft) => ({
       ...draft,
       equipmentItems: draft.equipmentItems.map((item, i) =>
@@ -158,6 +178,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
     const preparedItems = equipmentItems.map((item) => ({
       name: item.name.trim(),
       serial: item.serial.trim(),
+      status: item.status || 'in_stock',
     }))
     const validItems = preparedItems.filter((item) => item.name && item.serial)
 
@@ -371,6 +392,31 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
                         disabled={isSubmitting}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Статус</Label>
+                    <Select
+                      value={item.status || 'in_stock'}
+                      onValueChange={(value) =>
+                        updateEquipmentItem(index, 'status', value as EquipmentStatus)
+                      }
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="w-full max-w-[200px]">
+                        <SelectValue placeholder="Выберите статус" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(equipmentStatusLabels) as EquipmentStatus[]).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            <span className="flex items-center gap-2">
+                              <span className={statusColors[status]}>{statusIcons[status]}</span>
+                              {equipmentStatusLabels[status]}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               ))}

@@ -68,6 +68,11 @@ declare global {
       deleteEmployeeExit: (id: number) => Promise<ApiResponse<EmployeeExit>>
       restoreEmployeeExit: (exit: EmployeeExit) => Promise<ApiResponse>
       updateExitCompleted: (id: number, is_completed: boolean) => Promise<ApiResponse>
+      updateExitEquipmentStatus: (
+        exitId: number,
+        equipmentIndex: number,
+        status: EquipmentStatus
+      ) => Promise<ApiResponse>
       exportEmployeeExits: (exits: EmployeeExit[]) => Promise<ApiResponse<{ path: string }>>
       // Templates API
       getTemplates: () => Promise<ApiResponse<Template[]>>

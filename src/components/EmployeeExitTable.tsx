@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import type { EmployeeExit } from '../types/ipc'
+import type { EmployeeExit, EquipmentStatus } from '../types/ipc'
+import { equipmentStatusLabels } from '../types/ipc'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
 import {
@@ -14,6 +15,10 @@ import {
   Edit2,
   Hash,
   Truck,
+  ShoppingCart,
+  TruckIcon,
+  Warehouse,
+  PackageCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
@@ -25,6 +30,21 @@ import {
   stringifyExitEquipmentItems,
   type ExitEquipmentItem,
 } from '../lib/employeeExitEquipment'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+
+const statusIcons: Record<EquipmentStatus, React.ComponentType<{ className?: string }>> = {
+  ordered: ShoppingCart,
+  in_transit: TruckIcon,
+  in_stock: Warehouse,
+  issued: PackageCheck,
+}
+
+const statusColors: Record<EquipmentStatus, string> = {
+  ordered: 'text-blue-500',
+  in_transit: 'text-amber-500',
+  in_stock: 'text-emerald-500',
+  issued: 'text-violet-500',
+}
 
 interface EmployeeExitTableProps {
   exits: EmployeeExit[]
@@ -43,7 +63,12 @@ export function EmployeeExitTable({
   highlightExitId,
   onHighlightConsumed,
 }: EmployeeExitTableProps) {
-  const { updateExitCompleted, deleteEmployeeExit, restoreEmployeeExit } = useEmployeeExitActions()
+  const {
+    updateExitCompleted,
+    deleteEmployeeExit,
+    restoreEmployeeExit,
+    updateExitEquipmentStatus,
+  } = useEmployeeExitActions()
   const isDense = density === 'dense'
   const statusVariants = {
     success: {
@@ -78,12 +103,40 @@ export function EmployeeExitTable({
     }
   }
 
-  const handleToggleCompleted = async (id: number, currentStatus: boolean) => {
+  const handleToggleCompleted = async (exit: EmployeeExit, currentStatus: boolean) => {
     try {
-      await updateExitCompleted({ id, value: !currentStatus })
+      // Если отмечаем как завершено, автоматически меняем статусы оборудования на "issued"
+      if (!currentStatus) {
+        const equipmentItems = parseExitEquipmentList(exit.equipment_list)
+        // Обновляем статусы оборудования на "issued" для всех элементов
+        for (let i = 0; i < equipmentItems.length; i++) {
+          if (equipmentItems[i].status !== 'issued') {
+            await updateExitEquipmentStatus({
+              exitId: exit.id,
+              equipmentIndex: i,
+              status: 'issued',
+            })
+          }
+        }
+      }
+      await updateExitCompleted({ id: exit.id, value: !currentStatus })
       toast.success(
         !currentStatus ? 'Выдача оборудования отмечена как завершённая' : 'Статус отменен'
       )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
+    }
+  }
+
+  const handleEquipmentStatusChange = async (
+    exitId: number,
+    equipmentIndex: number,
+    newStatus: EquipmentStatus
+  ) => {
+    try {
+      await updateExitEquipmentStatus({ exitId, equipmentIndex, status: newStatus })
+      toast.success('Статус оборудования обновлён')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
       toast.error(message)
@@ -332,7 +385,7 @@ export function EmployeeExitTable({
                   >
                     <Checkbox
                       checked={isCompleted}
-                      onCheckedChange={() => handleToggleCompleted(exit.id, isCompleted)}
+                      onCheckedChange={() => handleToggleCompleted(exit, isCompleted)}
                       aria-label={
                         isCompleted
                           ? 'Отменить отметку о завершении выдачи'
@@ -390,25 +443,71 @@ export function EmployeeExitTable({
                     {equipmentItems.length > 0 ? (
                       <ul
                         className={cn(
-                          'ml-6 list-disc space-y-1.5 text-sm marker:text-[hsl(var(--primary))]',
+                          'ml-6 list-disc space-y-2 text-sm marker:text-[hsl(var(--primary))]',
                           {
-                            'space-y-1': isDense,
+                            'space-y-1.5': isDense,
                           }
                         )}
                       >
-                        {equipmentItems.map((item, idx) => (
-                          <li key={idx} className="flex flex-wrap items-center gap-2">
-                            <span className="font-medium text-foreground">{item.name || '—'}</span>
-                            {item.serial && (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Hash className="h-3 w-3" />
-                                <span className="font-mono" title={item.serial}>
-                                  {item.serial}
-                                </span>
+                        {equipmentItems.map((item, idx) => {
+                          const itemStatus = item.status || 'in_stock'
+                          const StatusIcon = statusIcons[itemStatus]
+                          return (
+                            <li key={idx} className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-foreground">
+                                {item.name || '—'}
                               </span>
-                            )}
-                          </li>
-                        ))}
+                              {item.serial && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Hash className="h-3 w-3" />
+                                  <span className="font-mono" title={item.serial}>
+                                    {item.serial}
+                                  </span>
+                                </span>
+                              )}
+                              <Select
+                                value={itemStatus}
+                                onValueChange={(value) =>
+                                  handleEquipmentStatusChange(
+                                    exit.id,
+                                    idx,
+                                    value as EquipmentStatus
+                                  )
+                                }
+                              >
+                                <SelectTrigger
+                                  className={cn(
+                                    'h-7 w-[140px] border-border/50 bg-background/50 text-xs',
+                                    statusColors[itemStatus]
+                                  )}
+                                >
+                                  <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(
+                                    Object.entries(equipmentStatusLabels) as [
+                                      EquipmentStatus,
+                                      string,
+                                    ][]
+                                  ).map(([value, label]) => {
+                                    const Icon = statusIcons[value]
+                                    return (
+                                      <SelectItem key={value} value={value}>
+                                        <span className="flex items-center gap-2">
+                                          <Icon
+                                            className={cn('h-3.5 w-3.5', statusColors[value])}
+                                          />
+                                          {label}
+                                        </span>
+                                      </SelectItem>
+                                    )
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            </li>
+                          )
+                        })}
                       </ul>
                     ) : (
                       <p className="ml-6 text-sm text-muted-foreground">Нет оборудования</p>

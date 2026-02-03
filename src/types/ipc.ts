@@ -168,6 +168,12 @@ export const updateExitCompletedSchema = z.object({
   is_completed: z.boolean(),
 })
 
+export const updateExitEquipmentStatusSchema = z.object({
+  exitId: requestIdSchema,
+  equipmentIndex: z.number().int().min(0),
+  status: equipmentStatusSchema,
+})
+
 export const paginationParamsSchema = z.object({
   page: z.number().int().min(1).optional(),
   pageSize: z.number().int().min(5).max(200).optional(),

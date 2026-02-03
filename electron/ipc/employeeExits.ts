@@ -9,6 +9,7 @@ import {
   paginatedEmployeeExitsResponseSchema,
   requestIdSchema,
   restoreEmployeeExitSchema,
+  updateExitEquipmentStatusSchema,
 } from '../../src/types/ipc'
 import fs from 'fs'
 
@@ -305,6 +306,46 @@ export function registerEmployeeExitHandlers(
         .update({ is_completed: isCompleted ? 1 : 0 })
 
       notifyChange()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('update-exit-equipment-status', async (_event, rawData) => {
+    try {
+      const { exitId, equipmentIndex, status } = updateExitEquipmentStatusSchema.parse(rawData)
+      const database = getDatabase()
+
+      // Получаем текущую запись
+      const exit = await database('employee_exits').where({ id: exitId }).first()
+      if (!exit) {
+        return { success: false, error: 'Запись не найдена' }
+      }
+
+      // Парсим список оборудования
+      let equipmentList: Array<{ name: string; serial?: string; status?: string }>
+      try {
+        equipmentList = JSON.parse(exit.equipment_list || '[]')
+      } catch {
+        // Если старый формат (текст с переводами строк), конвертируем
+        const lines = (exit.equipment_list || '').split('\n').filter((l: string) => l.trim())
+        equipmentList = lines.map((line: string) => ({ name: line.trim(), status: 'in_stock' }))
+      }
+
+      // Проверяем индекс
+      if (equipmentIndex < 0 || equipmentIndex >= equipmentList.length) {
+        return { success: false, error: 'Неверный индекс оборудования' }
+      }
+
+      // Обновляем статус
+      equipmentList[equipmentIndex].status = status
+
+      // Сохраняем обратно
+      await database('employee_exits')
+        .where({ id: exitId })
+        .update({ equipment_list: JSON.stringify(equipmentList) })
+
       return { success: true }
     } catch (error) {
       return { success: false, error: (error as Error).message }

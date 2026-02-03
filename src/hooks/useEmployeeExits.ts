@@ -4,6 +4,7 @@ import type {
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
+  EquipmentStatus,
   PaginatedEmployeeExitsResponse,
 } from '../types/ipc'
 
@@ -49,6 +50,12 @@ type UpdatePayload = {
 type UpdateCompletedPayload = {
   id: number
   value: boolean
+}
+
+type UpdateEquipmentStatusPayload = {
+  exitId: number
+  equipmentIndex: number
+  status: EquipmentStatus
 }
 
 export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
@@ -151,11 +158,30 @@ export function useEmployeeExitActions() {
     onSuccess: invalidate,
   })
 
+  const updateEquipmentStatusMutation = useMutation<void, Error, UpdateEquipmentStatusPayload>({
+    mutationFn: async ({ exitId, equipmentIndex, status }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
+      const result = await window.electronAPI.updateExitEquipmentStatus(
+        exitId,
+        equipmentIndex,
+        status
+      )
+
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось изменить статус оборудования')
+      }
+    },
+    onSuccess: invalidate,
+  })
+
   return {
     createEmployeeExit: createMutation.mutateAsync,
     updateEmployeeExit: updateMutation.mutateAsync,
     deleteEmployeeExit: deleteMutation.mutateAsync,
     restoreEmployeeExit: restoreMutation.mutateAsync,
     updateExitCompleted: updateCompletedMutation.mutateAsync,
+    updateExitEquipmentStatus: updateEquipmentStatusMutation.mutateAsync,
   }
 }
