@@ -12,8 +12,18 @@ describe('employeeExitEquipment', () => {
       const input = '[{"name":"Ноутбук","serial":"SN123"},{"name":"Мышь","serial":"SN456"}]'
       const result = parseExitEquipmentList(input)
       expect(result).toEqual([
-        { name: 'Ноутбук', serial: 'SN123' },
-        { name: 'Мышь', serial: 'SN456' },
+        { name: 'Ноутбук', serial: 'SN123', status: 'in_stock' },
+        { name: 'Мышь', serial: 'SN456', status: 'in_stock' },
+      ])
+    })
+
+    it('должен парсить JSON формат с status', () => {
+      const input =
+        '[{"name":"Ноутбук","serial":"SN123","status":"issued"},{"name":"Мышь","serial":"SN456","status":"ordered"}]'
+      const result = parseExitEquipmentList(input)
+      expect(result).toEqual([
+        { name: 'Ноутбук', serial: 'SN123', status: 'issued' },
+        { name: 'Мышь', serial: 'SN456', status: 'ordered' },
       ])
     })
 
@@ -21,9 +31,9 @@ describe('employeeExitEquipment', () => {
       const input = 'Ноутбук\nМышь\nКлавиатура'
       const result = parseExitEquipmentList(input)
       expect(result).toEqual([
-        { name: 'Ноутбук', serial: '' },
-        { name: 'Мышь', serial: '' },
-        { name: 'Клавиатура', serial: '' },
+        { name: 'Ноутбук', serial: '', status: 'in_stock' },
+        { name: 'Мышь', serial: '', status: 'in_stock' },
+        { name: 'Клавиатура', serial: '', status: 'in_stock' },
       ])
     })
 
@@ -41,9 +51,9 @@ describe('employeeExitEquipment', () => {
       const input = '  Ноутбук  \n  Мышь  \n  Клавиатура  '
       const result = parseExitEquipmentList(input)
       expect(result).toEqual([
-        { name: 'Ноутбук', serial: '' },
-        { name: 'Мышь', serial: '' },
-        { name: 'Клавиатура', serial: '' },
+        { name: 'Ноутбук', serial: '', status: 'in_stock' },
+        { name: 'Мышь', serial: '', status: 'in_stock' },
+        { name: 'Клавиатура', serial: '', status: 'in_stock' },
       ])
     })
 
@@ -51,21 +61,23 @@ describe('employeeExitEquipment', () => {
       const input = 'Ноутбук\n\n\nМышь\n\nКлавиатура'
       const result = parseExitEquipmentList(input)
       expect(result).toEqual([
-        { name: 'Ноутбук', serial: '' },
-        { name: 'Мышь', serial: '' },
-        { name: 'Клавиатура', serial: '' },
+        { name: 'Ноутбук', serial: '', status: 'in_stock' },
+        { name: 'Мышь', serial: '', status: 'in_stock' },
+        { name: 'Клавиатура', serial: '', status: 'in_stock' },
       ])
     })
   })
 
   describe('formatExitEquipmentList', () => {
-    it('должен форматировать массив в JSON', () => {
+    it('должен форматировать массив в JSON с status', () => {
       const items: ExitEquipmentItem[] = [
-        { name: 'Ноутбук', serial: 'SN123' },
-        { name: 'Мышь', serial: 'SN456' },
+        { name: 'Ноутбук', serial: 'SN123', status: 'in_stock' },
+        { name: 'Мышь', serial: 'SN456', status: 'issued' },
       ]
       const result = formatExitEquipmentList(items)
-      expect(result).toBe('[{"name":"Ноутбук","serial":"SN123"},{"name":"Мышь","serial":"SN456"}]')
+      expect(result).toBe(
+        '[{"name":"Ноутбук","serial":"SN123","status":"in_stock"},{"name":"Мышь","serial":"SN456","status":"issued"}]'
+      )
     })
 
     it('должен возвращать пустую строку для пустого массива', () => {
@@ -74,26 +86,28 @@ describe('employeeExitEquipment', () => {
 
     it('должен фильтровать элементы без name или serial', () => {
       const items: ExitEquipmentItem[] = [
-        { name: 'Ноутбук', serial: 'SN123' },
-        { name: '', serial: '' },
-        { name: 'Мышь', serial: '' },
-        { name: '', serial: 'SN456' },
+        { name: 'Ноутбук', serial: 'SN123', status: 'in_stock' },
+        { name: '', serial: '', status: 'in_stock' },
+        { name: 'Мышь', serial: '', status: 'ordered' },
+        { name: '', serial: 'SN456', status: 'in_stock' },
       ]
       const result = formatExitEquipmentList(items)
-      expect(result).toBe('[{"name":"Ноутбук","serial":"SN123"}]')
+      expect(result).toBe('[{"name":"Ноутбук","serial":"SN123","status":"in_stock"}]')
     })
 
     it('должен обрезать пробелы', () => {
-      const items: ExitEquipmentItem[] = [{ name: '  Ноутбук  ', serial: '  SN123  ' }]
+      const items: ExitEquipmentItem[] = [
+        { name: '  Ноутбук  ', serial: '  SN123  ', status: 'in_stock' },
+      ]
       const result = formatExitEquipmentList(items)
-      expect(result).toBe('[{"name":"Ноутбук","serial":"SN123"}]')
+      expect(result).toBe('[{"name":"Ноутбук","serial":"SN123","status":"in_stock"}]')
     })
   })
 
   describe('createEmptyExitEquipmentItem', () => {
-    it('должен создавать пустой элемент', () => {
+    it('должен создавать пустой элемент со статусом in_stock', () => {
       const result = createEmptyExitEquipmentItem()
-      expect(result).toEqual({ name: '', serial: '' })
+      expect(result).toEqual({ name: '', serial: '', status: 'in_stock' })
     })
   })
 })
