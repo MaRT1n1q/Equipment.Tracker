@@ -689,10 +689,7 @@ export function RequestsTable({
                                       equipmentStatusColors[itemStatus]
                                     )}
                                   >
-                                    <span className="flex items-center gap-1.5">
-                                      {equipmentStatusIcons[itemStatus]}
-                                      <SelectValue />
-                                    </span>
+                                    <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {(Object.keys(equipmentStatusLabels) as EquipmentStatus[]).map(
