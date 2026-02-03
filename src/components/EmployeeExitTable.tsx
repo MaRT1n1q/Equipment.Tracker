@@ -451,7 +451,6 @@ export function EmployeeExitTable({
                       >
                         {equipmentItems.map((item, idx) => {
                           const itemStatus = item.status || 'in_stock'
-                          const StatusIcon = statusIcons[itemStatus]
                           return (
                             <li key={idx} className="flex flex-wrap items-center gap-2">
                               <span className="font-medium text-foreground">
@@ -481,7 +480,6 @@ export function EmployeeExitTable({
                                     statusColors[itemStatus]
                                   )}
                                 >
-                                  <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
