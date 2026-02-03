@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateRequestData,
+  EquipmentStatus,
   PaginatedRequestsResponse,
   Request,
   RequestListParams,
@@ -62,6 +63,11 @@ type ScheduleReturnPayload = {
 type UpdateReturnCompletionPayload = {
   id: number
   value: boolean
+}
+
+type UpdateEquipmentStatusPayload = {
+  itemId: number
+  status: EquipmentStatus
 }
 
 type RestorePayload = Request
@@ -204,6 +210,20 @@ export function useRequestActions() {
     onSuccess: invalidate,
   })
 
+  const updateEquipmentStatusMutation = useMutation<void, Error, UpdateEquipmentStatusPayload>({
+    mutationFn: async ({ itemId, status }) => {
+      if (!isApiAvailable()) {
+        throw new Error('API не доступен')
+      }
+      const result = await window.electronAPI.updateEquipmentStatus(itemId, status)
+
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось изменить статус оборудования')
+      }
+    },
+    onSuccess: invalidate,
+  })
+
   return {
     createRequest: createMutation.mutateAsync,
     updateRequest: updateMutation.mutateAsync,
@@ -213,5 +233,6 @@ export function useRequestActions() {
     scheduleReturn: scheduleReturnMutation.mutateAsync,
     completeReturn: completeReturnMutation.mutateAsync,
     cancelReturn: cancelReturnMutation.mutateAsync,
+    updateEquipmentStatus: updateEquipmentStatusMutation.mutateAsync,
   }
 }

@@ -1,13 +1,29 @@
 import { forwardRef } from 'react'
-import { Plus, Trash2, Package } from 'lucide-react'
-import type { EquipmentItem } from '../types/ipc'
+import { Plus, Trash2, Package, ShoppingCart, Truck, Warehouse, CheckCircle } from 'lucide-react'
+import type { EquipmentItem, EquipmentStatus } from '../types/ipc'
+import { equipmentStatusLabels } from '../types/ipc'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 const equipmentNamePlaceholder = 'Ноутбук Dell Latitude'
 const serialPlaceholder = 'SN123456789'
+
+const statusIcons: Record<EquipmentStatus, React.ReactNode> = {
+  ordered: <ShoppingCart className="w-4 h-4" />,
+  in_transit: <Truck className="w-4 h-4" />,
+  in_stock: <Warehouse className="w-4 h-4" />,
+  issued: <CheckCircle className="w-4 h-4" />,
+}
+
+const statusColors: Record<EquipmentStatus, string> = {
+  ordered: 'text-amber-500',
+  in_transit: 'text-blue-500',
+  in_stock: 'text-emerald-500',
+  issued: 'text-violet-500',
+}
 
 interface RequestFormFieldsProps {
   employeeName: string
@@ -185,18 +201,43 @@ export const RequestFormFields = forwardRef<HTMLInputElement, RequestFormFieldsP
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Количество</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(event) =>
-                      onUpdateItem(index, 'quantity', Number(event.target.value) || 1)
-                    }
-                    disabled={disabled}
-                    className="w-24"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Количество</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        onUpdateItem(index, 'quantity', Number(event.target.value) || 1)
+                      }
+                      disabled={disabled}
+                      className="w-24"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Статус</Label>
+                    <Select
+                      value={item.status || 'in_stock'}
+                      onValueChange={(value) => onUpdateItem(index, 'status', value)}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Выберите статус" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(equipmentStatusLabels) as EquipmentStatus[]).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            <span className="flex items-center gap-2">
+                              <span className={statusColors[status]}>{statusIcons[status]}</span>
+                              {equipmentStatusLabels[status]}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             ))}

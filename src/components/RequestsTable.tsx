@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import type { Request } from '../types/ipc'
+import type { Request, EquipmentStatus } from '../types/ipc'
+import { equipmentStatusLabels } from '../types/ipc'
 import { Checkbox } from './ui/checkbox'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
   Dialog,
   DialogContent,
@@ -27,11 +29,28 @@ import {
   Ban,
   ChevronDown,
   Truck,
+  ShoppingCart,
+  Warehouse,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRequestActions } from '../hooks/useRequests'
 import { cn } from '../lib/utils'
 import { EmptyState } from './EmptyState'
+
+// Иконки и цвета для статусов оборудования
+const equipmentStatusIcons: Record<EquipmentStatus, React.ReactNode> = {
+  ordered: <ShoppingCart className="w-3.5 h-3.5" />,
+  in_transit: <Truck className="w-3.5 h-3.5" />,
+  in_stock: <Warehouse className="w-3.5 h-3.5" />,
+  issued: <CheckCircle2 className="w-3.5 h-3.5" />,
+}
+
+const equipmentStatusColors: Record<EquipmentStatus, string> = {
+  ordered: 'text-amber-500 bg-amber-500/10 border-amber-500/30',
+  in_transit: 'text-blue-500 bg-blue-500/10 border-blue-500/30',
+  in_stock: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30',
+  issued: 'text-violet-500 bg-violet-500/10 border-violet-500/30',
+}
 
 interface RequestsTableProps {
   requests: Request[]
@@ -52,8 +71,14 @@ export function RequestsTable({
   onHighlightConsumed,
   isFiltered = false,
 }: RequestsTableProps) {
-  const { toggleIssued, deleteRequest, restoreRequest, completeReturn, cancelReturn } =
-    useRequestActions()
+  const {
+    toggleIssued,
+    deleteRequest,
+    restoreRequest,
+    completeReturn,
+    cancelReturn,
+    updateEquipmentStatus,
+  } = useRequestActions()
   const isDense = density === 'dense'
   const [expandedReturns, setExpandedReturns] = useState<Record<number, boolean>>({})
   const [commentModal, setCommentModal] = useState<{
@@ -193,6 +218,16 @@ export function RequestsTable({
         return next
       })
       toast.success('Сдача оборудования отменена')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Произошла ошибка'
+      toast.error(message)
+    }
+  }
+
+  const handleUpdateEquipmentStatus = async (itemId: number, status: EquipmentStatus) => {
+    try {
+      await updateEquipmentStatus({ itemId, status })
+      toast.success(`Статус оборудования изменён на "${equipmentStatusLabels[status]}"`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Произошла ошибка'
       toast.error(message)
@@ -619,31 +654,69 @@ export function RequestsTable({
                     </div>
                     {equipmentItems.length > 0 ? (
                       <ul
-                        className={cn(
-                          'ml-6 list-disc space-y-1.5 text-sm marker:text-[hsl(var(--primary))]',
-                          {
-                            'space-y-1': isDense,
-                          }
-                        )}
+                        className={cn('ml-6 list-none space-y-2 text-sm', {
+                          'space-y-1.5': isDense,
+                        })}
                       >
-                        {equipmentItems.map((item, itemIndex) => (
-                          <li key={itemIndex} className="flex flex-wrap items-center gap-2">
-                            <span className="font-medium text-foreground">
-                              {item.equipment_name}
-                            </span>
-                            {item.quantity > 1 && (
-                              <span className="status-pill status-pill--info">
-                                ×{item.quantity}
+                        {equipmentItems.map((item, itemIndex) => {
+                          const itemStatus = (item.status || 'in_stock') as EquipmentStatus
+                          return (
+                            <li key={itemIndex} className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-foreground">
+                                {item.equipment_name}
                               </span>
-                            )}
-                            {item.serial_number && (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Hash className="h-3 w-3" />
-                                <span className="font-mono">{item.serial_number}</span>
-                              </span>
-                            )}
-                          </li>
-                        ))}
+                              {item.quantity > 1 && (
+                                <span className="status-pill status-pill--info">
+                                  ×{item.quantity}
+                                </span>
+                              )}
+                              {item.serial_number && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Hash className="h-3 w-3" />
+                                  <span className="font-mono">{item.serial_number}</span>
+                                </span>
+                              )}
+                              {item.id && (
+                                <Select
+                                  value={itemStatus}
+                                  onValueChange={(value) =>
+                                    handleUpdateEquipmentStatus(item.id!, value as EquipmentStatus)
+                                  }
+                                >
+                                  <SelectTrigger
+                                    className={cn(
+                                      'h-7 w-auto min-w-[130px] text-xs border rounded-full px-2.5 py-1 gap-1',
+                                      equipmentStatusColors[itemStatus]
+                                    )}
+                                  >
+                                    <span className="flex items-center gap-1.5">
+                                      {equipmentStatusIcons[itemStatus]}
+                                      <SelectValue />
+                                    </span>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(Object.keys(equipmentStatusLabels) as EquipmentStatus[]).map(
+                                      (status) => (
+                                        <SelectItem key={status} value={status}>
+                                          <span className="flex items-center gap-2">
+                                            <span
+                                              className={
+                                                equipmentStatusColors[status].split(' ')[0]
+                                              }
+                                            >
+                                              {equipmentStatusIcons[status]}
+                                            </span>
+                                            {equipmentStatusLabels[status]}
+                                          </span>
+                                        </SelectItem>
+                                      )
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </li>
+                          )
+                        })}
                       </ul>
                     ) : (
                       <p className="ml-6 text-sm text-muted-foreground">Нет оборудования</p>

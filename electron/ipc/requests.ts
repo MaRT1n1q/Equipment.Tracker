@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import type { Knex } from 'knex'
+import { z } from 'zod'
 import {
   createRequestSchema,
   issuedStatusSchema,
@@ -154,6 +155,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
             equipment_name: item.equipment_name,
             serial_number: item.serial_number,
             quantity: item.quantity ?? 1,
+            status: item.status ?? 'in_stock',
           })),
         })
       })
@@ -295,6 +297,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           equipment_name: item.equipment_name,
           serial_number: item.serial_number,
           quantity: item.quantity ?? 1,
+          status: item.status ?? 'in_stock',
         }))
 
         if (equipmentRows.length > 0) {
@@ -317,9 +320,17 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
       const issuedAt = isIssued ? new Date().toISOString() : null
 
       const database = getDatabase()
-      await database('requests')
-        .where({ id })
-        .update({ is_issued: isIssued ? 1 : 0, issued_at: issuedAt })
+
+      await database.transaction(async (trx) => {
+        await trx('requests')
+          .where({ id })
+          .update({ is_issued: isIssued ? 1 : 0, issued_at: issuedAt })
+
+        // При выдаче автоматически обновляем статус всего оборудования на "issued"
+        if (isIssued) {
+          await trx('equipment_items').where({ request_id: id }).update({ status: 'issued' })
+        }
+      })
 
       return { success: true }
     } catch (error) {
@@ -352,6 +363,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           equipment_name: item.equipment_name,
           serial_number: item.serial_number,
           quantity: item.quantity ?? 1,
+          status: item.status ?? 'in_stock',
         }))
 
         if (equipmentRows.length > 0) {
@@ -391,6 +403,7 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           equipment_name: item.equipment_name,
           serial_number: item.serial_number,
           quantity: item.quantity ?? 1,
+          status: item.status ?? 'in_stock',
         })),
       })
 
@@ -431,12 +444,32 @@ export function registerRequestHandlers(getDatabase: GetDatabase) {
           equipment_name: item.equipment_name,
           serial_number: item.serial_number,
           quantity: item.quantity ?? 1,
+          status: item.status ?? 'in_stock',
         }))
 
         if (equipmentRows.length > 0) {
           await trx('equipment_items').insert(equipmentRows)
         }
       })
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Обновление статуса отдельной позиции оборудования
+  ipcMain.handle('update-equipment-status', async (_event, rawItemId, rawStatus) => {
+    try {
+      const itemId = requestIdSchema.parse(rawItemId)
+      const status = z.enum(['ordered', 'in_transit', 'in_stock', 'issued']).parse(rawStatus)
+
+      const database = getDatabase()
+      const updated = await database('equipment_items').where({ id: itemId }).update({ status })
+
+      if (updated === 0) {
+        return { success: false, error: 'Позиция оборудования не найдена' }
+      }
 
       return { success: true }
     } catch (error) {

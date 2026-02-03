@@ -7,6 +7,7 @@ import type {
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
+  EquipmentStatus,
   Instruction,
   InstructionAttachment,
   MoveInstructionData,
@@ -54,6 +55,7 @@ declare global {
       cancelRequestReturn: (id: number) => Promise<ApiResponse>
       deleteRequest: (id: number) => Promise<ApiResponse<Request>>
       restoreRequest: (request: Request) => Promise<ApiResponse>
+      updateEquipmentStatus: (itemId: number, status: EquipmentStatus) => Promise<ApiResponse>
       createBackup: () => Promise<ApiResponse<{ path: string }>>
       restoreBackup: () => Promise<ApiResponse>
       // Employee Exit API

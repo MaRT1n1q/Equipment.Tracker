@@ -156,7 +156,17 @@ async function ensureSchema(database: Knex) {
       table.string('equipment_name').notNullable()
       table.string('serial_number').notNullable()
       table.integer('quantity').defaultTo(1)
+      // Статус оборудования: ordered (заказан), in_transit (в пути), in_stock (на складе), issued (выдан)
+      table.string('status').notNullable().defaultTo('in_stock')
     })
+  } else {
+    // Миграция: добавление колонки status в equipment_items
+    const hasStatusColumn = await database.schema.hasColumn('equipment_items', 'status')
+    if (!hasStatusColumn) {
+      await database.schema.alterTable('equipment_items', (table) => {
+        table.string('status').notNullable().defaultTo('in_stock')
+      })
+    }
   }
 
   const hasEmployeeExitsTable = await database.schema.hasTable('employee_exits')

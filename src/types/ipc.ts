@@ -39,6 +39,18 @@ export const requestStatusFilterSchema = z.enum([
 
 export const employeeExitStatusFilterSchema = z.enum(['all', 'pending', 'completed'])
 
+// Статусы оборудования
+export const equipmentStatusSchema = z.enum(['ordered', 'in_transit', 'in_stock', 'issued'])
+export type EquipmentStatus = z.infer<typeof equipmentStatusSchema>
+
+// Метки статусов оборудования для UI
+export const equipmentStatusLabels: Record<EquipmentStatus, string> = {
+  ordered: 'Заказан',
+  in_transit: 'В пути',
+  in_stock: 'На складе',
+  issued: 'Выдано',
+}
+
 export const createTemplateSchema = z.object({
   title: z.string().trim().min(1, 'Название шаблона обязательно'),
   content: z.string().trim().min(1, 'Содержимое шаблона обязательно'),
@@ -72,6 +84,7 @@ export const equipmentItemInputSchema = z.object({
   equipment_name: z.string().trim().min(1, 'Название оборудования обязательно'),
   serial_number: z.string().trim().min(1, 'Серийный номер обязателен'),
   quantity: z.coerce.number().int().positive().default(1),
+  status: equipmentStatusSchema.default('in_stock'),
 })
 
 export const equipmentItemRecordSchema = equipmentItemInputSchema.extend({
@@ -115,6 +128,7 @@ export const requestRecordSchema = z.object({
       equipment_name: true,
       serial_number: true,
       quantity: true,
+      status: true,
     })
   ),
 })

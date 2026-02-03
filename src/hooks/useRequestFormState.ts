@@ -6,6 +6,7 @@ const createEmptyEquipmentItem = (): EquipmentItem => ({
   equipment_name: '',
   serial_number: '',
   quantity: 1,
+  status: 'in_stock',
 })
 
 interface UseRequestFormStateOptions {
