@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateInstructionData,
@@ -441,6 +442,11 @@ export function useInstructionAttachments(instructionId: number | null) {
     }
   }
 
+  const getAttachmentPreview = useCallback(async (attachmentId: number) => {
+    if (!isApiAvailable()) return null
+    return window.electronAPI.getInstructionAttachmentPreview(attachmentId)
+  }, [])
+
   const selectAndAddFile = async () => {
     if (!isApiAvailable()) return
     const response = await window.electronAPI.selectInstructionAttachmentFile()
@@ -456,6 +462,7 @@ export function useInstructionAttachments(instructionId: number | null) {
     addAttachment,
     deleteAttachment,
     openAttachment,
+    getAttachmentPreview,
     selectAndAddFile,
   }
 }

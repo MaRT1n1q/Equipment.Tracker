@@ -12,6 +12,7 @@ import type {
   EquipmentStatus,
   Instruction,
   InstructionAttachment,
+  InstructionAttachmentPreview,
   MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
@@ -22,6 +23,7 @@ import type {
   ScheduleRequestReturnData,
   Template,
   TemplateFile,
+  TemplateFilePreview,
   UpdateInstructionData,
   UpdateRequestData,
   UpdateStatusPayload,
@@ -177,6 +179,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteTemplateFile: (fileId: number): Promise<ApiResponse<TemplateFile>> =>
     ipcRenderer.invoke('delete-template-file', fileId),
 
+  getTemplateFilePreview: (fileId: number): Promise<ApiResponse<TemplateFilePreview>> =>
+    ipcRenderer.invoke('get-template-file-preview', fileId),
+
   getTemplateFileCounts: (): Promise<ApiResponse<Record<number, number>>> =>
     ipcRenderer.invoke('get-template-file-counts'),
 
@@ -230,6 +235,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   deleteInstructionAttachment: (attachmentId: number): Promise<ApiResponse> =>
     ipcRenderer.invoke('delete-instruction-attachment', attachmentId),
+
+  getInstructionAttachmentPreview: (
+    attachmentId: number
+  ): Promise<ApiResponse<InstructionAttachmentPreview>> =>
+    ipcRenderer.invoke('get-instruction-attachment-preview', attachmentId),
 
   openInstructionAttachment: (attachmentId: number): Promise<ApiResponse> =>
     ipcRenderer.invoke('open-instruction-attachment', attachmentId),

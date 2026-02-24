@@ -24,6 +24,7 @@ import {
   Tag,
   ExternalLink,
   File,
+  Image as ImageIcon,
 } from 'lucide-react'
 import {
   useInstructions,
@@ -44,13 +45,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
 import { EmptyState } from './EmptyState'
 import { AddInstructionModal } from './AddInstructionModal'
 import { EditInstructionModal } from './EditInstructionModal'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import type { InstructionTreeNode, Instruction } from '../types/ipc'
+import type { InstructionTreeNode, Instruction, InstructionAttachment } from '../types/ipc'
 import { toast } from 'sonner'
 
 // Минимальная и максимальная ширина левой панели
@@ -420,8 +422,72 @@ function InstructionPanel({
   onNavigate,
   onToggleFavorite,
 }: InstructionPanelProps) {
-  const { attachments, selectAndAddFile, deleteAttachment, openAttachment } =
+  const { attachments, selectAndAddFile, deleteAttachment, openAttachment, getAttachmentPreview } =
     useInstructionAttachments(instruction?.id ?? null)
+  const [attachmentPreviewUrls, setAttachmentPreviewUrls] = useState<Record<number, string>>({})
+  const [previewAttachment, setPreviewAttachment] = useState<InstructionAttachment | null>(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState('')
+
+  const isImageAttachment = (attachment: InstructionAttachment) =>
+    attachment.mime_type.startsWith('image/')
+
+  useEffect(() => {
+    setAttachmentPreviewUrls({})
+    setPreviewAttachment(null)
+    setPreviewImageUrl('')
+  }, [instruction?.id])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const loadImagePreviews = async () => {
+      const imageAttachments = attachments.filter(
+        (attachment) => isImageAttachment(attachment) && !attachmentPreviewUrls[attachment.id]
+      )
+
+      await Promise.all(
+        imageAttachments.map(async (attachment) => {
+          const response = await getAttachmentPreview(attachment.id)
+          if (!isCancelled && response?.success && response.data) {
+            const dataUrl = response.data.data_url
+            setAttachmentPreviewUrls((prev) =>
+              prev[attachment.id] ? prev : { ...prev, [attachment.id]: dataUrl }
+            )
+          }
+        })
+      )
+    }
+
+    if (attachments.length > 0) {
+      loadImagePreviews()
+    }
+
+    return () => {
+      isCancelled = true
+    }
+  }, [attachments, attachmentPreviewUrls, getAttachmentPreview])
+
+  const handleOpenImagePreview = async (attachment: InstructionAttachment) => {
+    if (!isImageAttachment(attachment)) {
+      await openAttachment(attachment.id)
+      return
+    }
+
+    let dataUrl = attachmentPreviewUrls[attachment.id]
+
+    if (!dataUrl) {
+      const response = await getAttachmentPreview(attachment.id)
+      if (!response?.success || !response.data) {
+        toast.error(response?.error || 'Не удалось загрузить предпросмотр')
+        return
+      }
+      dataUrl = response.data.data_url
+      setAttachmentPreviewUrls((prev) => ({ ...prev, [attachment.id]: dataUrl }))
+    }
+
+    setPreviewAttachment(attachment)
+    setPreviewImageUrl(dataUrl)
+  }
 
   const handleCopyContent = async () => {
     if (!instruction) return
@@ -576,11 +642,40 @@ function InstructionPanel({
                   key={att.id}
                   className="flex items-center gap-3 p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                 >
-                  <File className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  {isImageAttachment(att) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenImagePreview(att)}
+                      className="w-12 h-12 rounded border border-border overflow-hidden bg-muted/30 flex items-center justify-center flex-shrink-0"
+                      title="Открыть предпросмотр"
+                    >
+                      {attachmentPreviewUrls[att.id] ? (
+                        <img
+                          src={attachmentPreviewUrls[att.id]}
+                          alt={att.original_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  ) : (
+                    <File className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{att.original_name}</p>
                     <p className="text-xs text-muted-foreground">{formatFileSize(att.file_size)}</p>
                   </div>
+                  {isImageAttachment(att) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenImagePreview(att)}
+                      title="Предпросмотр"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -615,6 +710,35 @@ function InstructionPanel({
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={previewAttachment !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewAttachment(null)
+            setPreviewImageUrl('')
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">
+              {previewAttachment?.original_name || 'Предпросмотр изображения'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="rounded-lg border border-border bg-muted/20 p-3 max-h-[72vh] overflow-auto flex items-center justify-center">
+            {previewImageUrl ? (
+              <img
+                src={previewImageUrl}
+                alt={previewAttachment?.original_name || 'Изображение'}
+                className="max-w-full max-h-[68vh] object-contain"
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">Предпросмотр недоступен</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

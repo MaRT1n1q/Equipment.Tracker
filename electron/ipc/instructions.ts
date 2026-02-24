@@ -10,7 +10,12 @@ import {
   moveInstructionSchema,
   reorderInstructionsSchema,
 } from '../../src/types/ipc'
-import type { ApiResponse, Instruction, InstructionAttachment } from '../../src/types/ipc'
+import type {
+  ApiResponse,
+  Instruction,
+  InstructionAttachment,
+  InstructionAttachmentPreview,
+} from '../../src/types/ipc'
 
 interface InstructionRow {
   id: number
@@ -653,6 +658,53 @@ export function registerInstructionsHandlers(): void {
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Не удалось открыть вложение',
+        }
+      }
+    }
+  )
+
+  // Получить предпросмотр вложения (для изображений)
+  ipcMain.handle(
+    'get-instruction-attachment-preview',
+    async (_event, attachmentId: number): Promise<ApiResponse<InstructionAttachmentPreview>> => {
+      try {
+        const db = getDatabase()
+        const idParsed = z.number().int().positive().parse(attachmentId)
+
+        const attachment = await db<AttachmentRow>('instruction_attachments')
+          .where({ id: idParsed })
+          .first()
+
+        if (!attachment) {
+          return { success: false, error: 'Вложение не найдено' }
+        }
+
+        if (!attachment.mime_type.startsWith('image/')) {
+          return { success: false, error: 'Предпросмотр доступен только для изображений' }
+        }
+
+        const filePath = path.join(getAttachmentsDirectory(), attachment.filename)
+        if (!fs.existsSync(filePath)) {
+          return { success: false, error: 'Файл не найден на диске' }
+        }
+
+        const buffer = fs.readFileSync(filePath)
+        const dataUrl = `data:${attachment.mime_type};base64,${buffer.toString('base64')}`
+
+        return {
+          success: true,
+          data: {
+            attachment_id: attachment.id,
+            original_name: attachment.original_name,
+            mime_type: attachment.mime_type,
+            data_url: dataUrl,
+          },
+        }
+      } catch (error) {
+        console.error('Ошибка получения предпросмотра вложения:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Не удалось получить предпросмотр',
         }
       }
     }

@@ -11,6 +11,7 @@ import type {
   EquipmentStatus,
   Instruction,
   InstructionAttachment,
+  InstructionAttachmentPreview,
   MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
@@ -21,6 +22,7 @@ import type {
   ScheduleRequestReturnData,
   Template,
   TemplateFile,
+  TemplateFilePreview,
   UpdateInstructionData,
   UpdateRequestData,
   UpdateStatusPayload,
@@ -937,6 +939,22 @@ function createWebElectronApi() {
       })
     },
 
+    getTemplateFilePreview: async (fileId: number): Promise<ApiResponse<TemplateFilePreview>> => {
+      const db = loadDb()
+      const file = db.templateFiles.find((item) => item.id === fileId)
+      if (!file) return failure('Файл не найден')
+      if (!file.mime_type.startsWith('image/')) {
+        return failure('Предпросмотр доступен только для изображений')
+      }
+
+      return success({
+        file_id: file.id,
+        original_name: file.original_name,
+        mime_type: file.mime_type,
+        data_url: file.data_url,
+      })
+    },
+
     getTemplateFileCounts: async (): Promise<ApiResponse<Record<number, number>>> => {
       const db = loadDb()
       const counts = db.templateFiles.reduce<Record<number, number>>((acc, file) => {
@@ -1200,6 +1218,24 @@ function createWebElectronApi() {
       })
 
       return removed ? success() : failure('Вложение не найдено')
+    },
+
+    getInstructionAttachmentPreview: async (
+      attachmentId: number
+    ): Promise<ApiResponse<InstructionAttachmentPreview>> => {
+      const db = loadDb()
+      const attachment = db.instructionAttachments.find((item) => item.id === attachmentId)
+      if (!attachment) return failure('Вложение не найдено')
+      if (!attachment.mime_type.startsWith('image/')) {
+        return failure('Предпросмотр доступен только для изображений')
+      }
+
+      return success({
+        attachment_id: attachment.id,
+        original_name: attachment.original_name,
+        mime_type: attachment.mime_type,
+        data_url: attachment.data_url,
+      })
     },
 
     openInstructionAttachment: async (attachmentId: number): Promise<ApiResponse> => {

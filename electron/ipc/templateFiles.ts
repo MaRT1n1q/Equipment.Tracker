@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { getDatabase, ensureTemplateFilesDirectory, getTemplateFilesDirectory } from '../database'
-import type { ApiResponse } from '../../src/types/ipc'
+import type { ApiResponse, TemplateFilePreview } from '../../src/types/ipc'
 
 export interface TemplateFile {
   id: number
@@ -223,6 +223,59 @@ export function registerTemplateFileHandlers() {
         return {
           success: false,
           error: 'Не удалось удалить файл',
+        }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'get-template-file-preview',
+    async (_event, fileId: number): Promise<ApiResponse<TemplateFilePreview>> => {
+      try {
+        const db = getDatabase()
+        const file = await db('template_files').where({ id: fileId }).first()
+
+        if (!file) {
+          return {
+            success: false,
+            error: 'Файл не найден',
+          }
+        }
+
+        if (!String(file.mime_type).startsWith('image/')) {
+          return {
+            success: false,
+            error: 'Предпросмотр доступен только для изображений',
+          }
+        }
+
+        const filesDir = getTemplateFilesDirectory()
+        const filePath = path.join(filesDir, file.filename)
+
+        if (!fs.existsSync(filePath)) {
+          return {
+            success: false,
+            error: 'Файл не найден на диске',
+          }
+        }
+
+        const buffer = fs.readFileSync(filePath)
+        const mimeType = String(file.mime_type)
+
+        return {
+          success: true,
+          data: {
+            file_id: file.id,
+            original_name: file.original_name,
+            mime_type: mimeType,
+            data_url: `data:${mimeType};base64,${buffer.toString('base64')}`,
+          },
+        }
+      } catch (error) {
+        console.error('Ошибка предпросмотра файла шаблона:', error)
+        return {
+          success: false,
+          error: 'Не удалось получить предпросмотр файла',
         }
       }
     }

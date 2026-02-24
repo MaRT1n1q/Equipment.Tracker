@@ -80,6 +80,13 @@ export const templateFileRecordSchema = z.object({
   created_at: z.string(),
 })
 
+export const templateFilePreviewSchema = z.object({
+  file_id: z.number().int().positive(),
+  original_name: z.string(),
+  mime_type: z.string(),
+  data_url: z.string(),
+})
+
 export const equipmentItemInputSchema = z.object({
   equipment_name: z.string().trim().min(1, 'Название оборудования обязательно'),
   serial_number: z.string().trim().min(1, 'Серийный номер обязателен'),
@@ -282,6 +289,7 @@ export type CreateTemplateData = z.infer<typeof createTemplateSchema>
 export type UpdateTemplateData = z.infer<typeof updateTemplateSchema>
 export type Template = z.infer<typeof templateRecordSchema>
 export type TemplateFile = z.infer<typeof templateFileRecordSchema>
+export type TemplateFilePreview = z.infer<typeof templateFilePreviewSchema>
 export type ReorderTemplatesData = z.infer<typeof reorderTemplatesSchema>
 
 // === Instructions (древовидная структура) ===
@@ -334,12 +342,20 @@ export const instructionAttachmentSchema = z.object({
   created_at: z.string(),
 })
 
+export const instructionAttachmentPreviewSchema = z.object({
+  attachment_id: z.number().int().positive(),
+  original_name: z.string(),
+  mime_type: z.string(),
+  data_url: z.string(),
+})
+
 export type CreateInstructionData = z.infer<typeof createInstructionSchema>
 export type UpdateInstructionData = z.infer<typeof updateInstructionSchema>
 export type MoveInstructionData = z.infer<typeof moveInstructionSchema>
 export type Instruction = z.infer<typeof instructionRecordSchema>
 export type ReorderInstructionsData = z.infer<typeof reorderInstructionsSchema>
 export type InstructionAttachment = z.infer<typeof instructionAttachmentSchema>
+export type InstructionAttachmentPreview = z.infer<typeof instructionAttachmentPreviewSchema>
 
 export interface InstructionTreeNode extends Instruction {
   children: InstructionTreeNode[]

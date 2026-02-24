@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Download, ExternalLink, Loader2, Paperclip, Trash2, Upload } from 'lucide-react'
+import {
+  Download,
+  ExternalLink,
+  Loader2,
+  Paperclip,
+  Trash2,
+  Upload,
+  Image as ImageIcon,
+} from 'lucide-react'
 import { Button } from './ui/button'
 import {
   Dialog,
@@ -46,14 +54,25 @@ function getFileIcon(mimeType: string): string {
 
 interface FileItemProps {
   file: TemplateFile
+  thumbnailUrl?: string
   onDownload: (fileId: number) => void
   onOpen: (fileId: number) => void
+  onPreview: (file: TemplateFile) => void
   onDelete: (fileId: number) => void
   isDeleting: boolean
 }
 
-function FileItem({ file, onDownload, onOpen, onDelete, isDeleting }: FileItemProps) {
+function FileItem({
+  file,
+  thumbnailUrl,
+  onDownload,
+  onOpen,
+  onPreview,
+  onDelete,
+  isDeleting,
+}: FileItemProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const isImageFile = file.mime_type.startsWith('image/')
 
   return (
     <div
@@ -64,7 +83,28 @@ function FileItem({ file, onDownload, onOpen, onDelete, isDeleting }: FileItemPr
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <span className="text-xl">{getFileIcon(file.mime_type)}</span>
+      {isImageFile ? (
+        <button
+          type="button"
+          onClick={() => onPreview(file)}
+          className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted/40"
+          title="Предпросмотр"
+        >
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt={file.original_name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="h-full w-full flex items-center justify-center text-muted-foreground">
+              <ImageIcon className="h-4 w-4" />
+            </span>
+          )}
+        </button>
+      ) : (
+        <span className="text-xl">{getFileIcon(file.mime_type)}</span>
+      )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate" title={file.original_name}>
           {file.original_name}
@@ -72,6 +112,18 @@ function FileItem({ file, onDownload, onOpen, onDelete, isDeleting }: FileItemPr
         <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isImageFile && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onPreview(file)}
+            title="Предпросмотр"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
@@ -114,6 +166,8 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
   const [titleError, setTitleError] = useState(false)
   const [contentError, setContentError] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
+  const [selectedPreview, setSelectedPreview] = useState<{ name: string; url: string } | null>(null)
 
   const firstInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
@@ -126,6 +180,7 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
     isUploading,
     downloadFile,
     openFile,
+    getFilePreview,
     deleteFile,
     isDeleting,
   } = useTemplateFiles(template?.id || null)
@@ -139,6 +194,34 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
       }, 100)
     }
   }, [open, template])
+
+  useEffect(() => {
+    setPreviewUrls({})
+    setSelectedPreview(null)
+  }, [template?.id, open])
+
+  const getImagePreviewUrl = useCallback(
+    async (file: TemplateFile) => {
+      if (!file.mime_type.startsWith('image/')) return null
+      if (previewUrls[file.id]) return previewUrls[file.id]
+
+      try {
+        const preview = await getFilePreview.mutateAsync(file.id)
+        setPreviewUrls((prev) => ({ ...prev, [file.id]: preview.data_url }))
+        return preview.data_url
+      } catch {
+        return null
+      }
+    },
+    [getFilePreview, previewUrls]
+  )
+
+  useEffect(() => {
+    const imageFiles = files.filter((file) => file.mime_type.startsWith('image/'))
+    if (imageFiles.length === 0) return
+
+    void Promise.all(imageFiles.map((file) => getImagePreviewUrl(file)))
+  }, [files, getImagePreviewUrl])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -231,6 +314,14 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
 
   const handleOpenFile = (fileId: number) => {
     openFile.mutate(fileId)
+  }
+
+  const handlePreviewFile = async (file: TemplateFile) => {
+    const previewUrl = await getImagePreviewUrl(file)
+    if (!previewUrl) {
+      return
+    }
+    setSelectedPreview({ name: file.original_name, url: previewUrl })
   }
 
   const handleDeleteFile = (fileId: number) => {
@@ -354,12 +445,32 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
                     <FileItem
                       key={file.id}
                       file={file}
+                      thumbnailUrl={previewUrls[file.id]}
                       onDownload={handleDownloadFile}
                       onOpen={handleOpenFile}
+                      onPreview={handlePreviewFile}
                       onDelete={handleDeleteFile}
                       isDeleting={isDeleting}
                     />
                   ))}
+                </div>
+              )}
+
+              {selectedPreview && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Предпросмотр</span>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedPreview(null)}>
+                      Скрыть
+                    </Button>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3 flex justify-center max-h-[50vh] overflow-auto">
+                    <img
+                      src={selectedPreview.url}
+                      alt={selectedPreview.name}
+                      className="max-h-[44vh] max-w-full object-contain rounded"
+                    />
+                  </div>
                 </div>
               )}
             </div>

@@ -10,6 +10,7 @@ import type {
   EquipmentStatus,
   Instruction,
   InstructionAttachment,
+  InstructionAttachmentPreview,
   MoveInstructionData,
   PaginatedEmployeeExitsResponse,
   PaginatedRequestsResponse,
@@ -20,6 +21,7 @@ import type {
   ScheduleRequestReturnData,
   Template,
   TemplateFile,
+  TemplateFilePreview,
   UpdateInstructionData,
   UpdateRequestData,
   UpdateStatusPayload,
@@ -90,6 +92,7 @@ declare global {
       downloadTemplateFile: (fileId: number) => Promise<ApiResponse<{ path: string }>>
       openTemplateFile: (fileId: number) => Promise<ApiResponse>
       deleteTemplateFile: (fileId: number) => Promise<ApiResponse<TemplateFile>>
+      getTemplateFilePreview: (fileId: number) => Promise<ApiResponse<TemplateFilePreview>>
       getTemplateFileCounts: () => Promise<ApiResponse<Record<number, number>>>
 
       openExternal: (url: string) => Promise<ApiResponse>
@@ -118,6 +121,9 @@ declare global {
         filePath: string
       ) => Promise<ApiResponse<InstructionAttachment>>
       deleteInstructionAttachment: (attachmentId: number) => Promise<ApiResponse>
+      getInstructionAttachmentPreview: (
+        attachmentId: number
+      ) => Promise<ApiResponse<InstructionAttachmentPreview>>
       openInstructionAttachment: (attachmentId: number) => Promise<ApiResponse>
       selectInstructionAttachmentFile: () => Promise<ApiResponse<string | null>>
     }

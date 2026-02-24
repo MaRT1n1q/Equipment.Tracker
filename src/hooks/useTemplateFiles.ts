@@ -101,6 +101,19 @@ export function useTemplateFiles(templateId: number | null) {
     },
   })
 
+  const getFilePreview = useMutation({
+    mutationFn: async (fileId: number) => {
+      if (!window.electronAPI?.getTemplateFilePreview) {
+        throw new Error('API не доступен')
+      }
+      const response = await window.electronAPI.getTemplateFilePreview(fileId)
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Не удалось получить предпросмотр файла')
+      }
+      return response.data
+    },
+  })
+
   const deleteFile = useMutation({
     mutationFn: async (fileId: number) => {
       if (!window.electronAPI?.deleteTemplateFile) {
@@ -134,6 +147,8 @@ export function useTemplateFiles(templateId: number | null) {
     isDownloading: downloadFile.isPending,
     openFile,
     isOpening: openFile.isPending,
+    getFilePreview,
+    isPreviewLoading: getFilePreview.isPending,
     deleteFile,
     isDeleting: deleteFile.isPending,
   }
