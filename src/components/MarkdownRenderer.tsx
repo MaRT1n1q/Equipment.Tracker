@@ -41,7 +41,7 @@ function parseInline(text: string): string {
 
   // Жирный текст **text** или __text__
   result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  result = result.replace(/__(.+?)__/g, '<u>$1</u>')
+  result = result.replace(/__(.+?)__/g, '<strong>$1</strong>')
 
   // Курсив *text* или _text_
   result = result.replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -146,8 +146,8 @@ export function MarkdownRenderer({
         continue
       }
 
-      // Разделитель ---
-      if (/^---+$/.test(line.trim())) {
+      // Разделитель --- / *** / ___
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
         closeList()
         result.push('<hr class="my-4 border-border" />')
         continue

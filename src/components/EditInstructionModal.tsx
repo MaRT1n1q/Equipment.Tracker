@@ -60,7 +60,7 @@ export function EditInstructionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={isFolder ? 'sm:max-w-lg' : 'sm:max-w-2xl'}>
+      <DialogContent className={isFolder ? 'sm:max-w-lg' : 'sm:max-w-5xl'}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="w-5 h-5" />

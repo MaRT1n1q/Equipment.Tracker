@@ -1,8 +1,7 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import {
   Bold,
   Italic,
-  Underline,
   Strikethrough,
   List,
   ListOrdered,
@@ -18,6 +17,7 @@ import {
 import { Textarea } from './ui/textarea'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import { cn } from '../lib/utils'
 
 interface FormattedTextEditorProps {
@@ -27,6 +27,7 @@ interface FormattedTextEditorProps {
   rows?: number
   className?: string
   id?: string
+  showPreview?: boolean
 }
 
 interface FormatAction {
@@ -41,7 +42,6 @@ interface FormatAction {
 const formatActions: FormatAction[] = [
   { icon: Bold, label: 'Жирный (Ctrl+B)', prefix: '**', suffix: '**' },
   { icon: Italic, label: 'Курсив (Ctrl+I)', prefix: '*', suffix: '*' },
-  { icon: Underline, label: 'Подчёркнутый', prefix: '__', suffix: '__' },
   { icon: Strikethrough, label: 'Зачёркнутый', prefix: '~~', suffix: '~~' },
   { icon: Code, label: 'Код', prefix: '`', suffix: '`' },
 ]
@@ -64,8 +64,10 @@ export function FormattedTextEditor({
   rows = 12,
   className,
   id,
+  showPreview = true,
 }: FormattedTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [viewMode, setViewMode] = useState<'editor' | 'split' | 'preview'>('split')
 
   const insertFormat = useCallback(
     (action: FormatAction) => {
@@ -254,21 +256,65 @@ export function FormattedTextEditor({
         </div>
       </TooltipProvider>
 
-      {/* Textarea */}
-      <Textarea
-        ref={textareaRef}
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        rows={rows}
-        className={cn('resize-none font-mono text-sm', className)}
-      />
+      {showPreview && (
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === 'editor' ? 'secondary' : 'outline'}
+            onClick={() => setViewMode('editor')}
+          >
+            Редактор
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === 'split' ? 'secondary' : 'outline'}
+            onClick={() => setViewMode('split')}
+          >
+            Сплит
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === 'preview' ? 'secondary' : 'outline'}
+            onClick={() => setViewMode('preview')}
+          >
+            Предпросмотр
+          </Button>
+        </div>
+      )}
+
+      <div className={cn('grid gap-3', showPreview && viewMode === 'split' && 'md:grid-cols-2')}>
+        {(viewMode === 'editor' || viewMode === 'split' || !showPreview) && (
+          <div className="space-y-1">
+            {showPreview && <p className="text-xs font-medium text-muted-foreground">Markdown</p>}
+            <Textarea
+              ref={textareaRef}
+              id={id}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              rows={rows}
+              className={cn('resize-none font-mono text-sm', className)}
+            />
+          </div>
+        )}
+
+        {showPreview && (viewMode === 'preview' || viewMode === 'split') && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Предпросмотр</p>
+            <div className="rounded-md border border-input bg-background px-3 py-2 min-h-[220px] max-h-[360px] overflow-auto">
+              <MarkdownRenderer content={value} className="text-sm" />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Help text */}
       <p className="text-xs text-muted-foreground">
-        Поддерживается Markdown: **жирный**, *курсив*, `код`, [ссылка](url)
+        Поддерживается Markdown: **жирный**, *курсив*, ~~зачёркнутый~~, `код`, [ссылка](url)
       </p>
     </div>
   )

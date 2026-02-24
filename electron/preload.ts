@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, shell } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type {
   ApiResponse,
@@ -231,13 +231,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteInstructionAttachment: (attachmentId: number): Promise<ApiResponse> =>
     ipcRenderer.invoke('delete-instruction-attachment', attachmentId),
 
-  openInstructionAttachment: async (attachmentId: number): Promise<ApiResponse> => {
-    const result = await ipcRenderer.invoke('open-instruction-attachment', attachmentId)
-    if (result.success && result.data) {
-      await shell.openPath(result.data)
-    }
-    return result
-  },
+  openInstructionAttachment: (attachmentId: number): Promise<ApiResponse> =>
+    ipcRenderer.invoke('open-instruction-attachment', attachmentId),
 
   selectInstructionAttachmentFile: (): Promise<ApiResponse<string | null>> =>
     ipcRenderer.invoke('select-instruction-attachment-file'),

@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain } from 'electron'
+import { app, dialog, ipcMain, shell } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { z } from 'zod'
@@ -623,7 +623,7 @@ export function registerInstructionsHandlers(): void {
   // Открыть вложение
   ipcMain.handle(
     'open-instruction-attachment',
-    async (_event, attachmentId: number): Promise<ApiResponse<string>> => {
+    async (_event, attachmentId: number): Promise<ApiResponse> => {
       try {
         const db = getDatabase()
         const idParsed = z.number().int().positive().parse(attachmentId)
@@ -642,8 +642,12 @@ export function registerInstructionsHandlers(): void {
           return { success: false, error: 'Файл не найден на диске' }
         }
 
-        // Возвращаем путь к файлу для открытия через shell
-        return { success: true, data: filePath }
+        const openResult = await shell.openPath(filePath)
+        if (openResult) {
+          return { success: false, error: openResult }
+        }
+
+        return { success: true }
       } catch (error) {
         console.error('Ошибка открытия вложения:', error)
         return {
