@@ -68,6 +68,19 @@ export function FormattedTextEditor({
 }: FormattedTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [viewMode, setViewMode] = useState<'editor' | 'split' | 'preview'>('split')
+  const initialPaneHeight = Math.max(220, rows * 22)
+  const [editorHeight, setEditorHeight] = useState(initialPaneHeight)
+  const [previewHeight, setPreviewHeight] = useState(initialPaneHeight)
+
+  const clampHeight = (height: number) => Math.min(640, Math.max(180, height))
+
+  const resizeEditor = (delta: number) => {
+    setEditorHeight((current) => clampHeight(current + delta))
+  }
+
+  const resizePreview = (delta: number) => {
+    setPreviewHeight((current) => clampHeight(current + delta))
+  }
 
   const insertFormat = useCallback(
     (action: FormatAction) => {
@@ -257,7 +270,7 @@ export function FormattedTextEditor({
       </TooltipProvider>
 
       {showPreview && (
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <Button
             type="button"
             size="sm"
@@ -282,6 +295,30 @@ export function FormattedTextEditor({
           >
             Предпросмотр
           </Button>
+
+          {(viewMode === 'editor' || viewMode === 'split') && (
+            <>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Button type="button" size="sm" variant="outline" onClick={() => resizeEditor(-40)}>
+                Текст −
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => resizeEditor(40)}>
+                Текст +
+              </Button>
+            </>
+          )}
+
+          {(viewMode === 'preview' || viewMode === 'split') && (
+            <>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Button type="button" size="sm" variant="outline" onClick={() => resizePreview(-40)}>
+                Превью −
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => resizePreview(40)}>
+                Превью +
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -297,7 +334,8 @@ export function FormattedTextEditor({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               rows={rows}
-              className={cn('resize-none font-mono text-sm', className)}
+              style={{ height: `${editorHeight}px` }}
+              className={cn('min-h-[180px] resize-y font-mono text-sm', className)}
             />
           </div>
         )}
@@ -305,7 +343,10 @@ export function FormattedTextEditor({
         {showPreview && (viewMode === 'preview' || viewMode === 'split') && (
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Предпросмотр</p>
-            <div className="rounded-md border border-input bg-background px-3 py-2 min-h-[220px] max-h-[360px] overflow-auto">
+            <div
+              style={{ height: `${previewHeight}px` }}
+              className="rounded-md border border-input bg-background px-3 py-2 min-h-[180px] resize-y overflow-auto"
+            >
               <MarkdownRenderer content={value} className="text-sm" />
             </div>
           </div>

@@ -25,6 +25,21 @@ export function AddInstructionModal({
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [modalWidth, setModalWidth] = useState(1100)
+  const [modalHeight, setModalHeight] = useState(760)
+
+  const clampWidth = (value: number) => Math.min(1600, Math.max(720, value))
+  const clampHeight = (value: number) => Math.min(980, Math.max(520, value))
+
+  const resizeModal = (widthDelta: number, heightDelta: number) => {
+    setModalWidth((current) => clampWidth(current + widthDelta))
+    setModalHeight((current) => clampHeight(current + heightDelta))
+  }
+
+  const resetModalSize = () => {
+    setModalWidth(1100)
+    setModalHeight(760)
+  }
 
   // Сброс формы при открытии
   useEffect(() => {
@@ -59,12 +74,52 @@ export function AddInstructionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={isFolder ? 'sm:max-w-lg' : 'sm:max-w-5xl'}>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Icon className="w-5 h-5" />
-            {titleText}
-          </DialogTitle>
+      <DialogContent
+        className={
+          isFolder ? 'sm:max-w-lg' : 'sm:max-w-none resize overflow-auto min-h-[520px] max-h-[92vh]'
+        }
+        style={
+          isFolder
+            ? undefined
+            : {
+                width: `${modalWidth}px`,
+                height: `${modalHeight}px`,
+                maxWidth: '96vw',
+                maxHeight: '92vh',
+              }
+        }
+      >
+        <DialogHeader className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="flex items-center gap-2">
+              <Icon className="w-5 h-5" />
+              {titleText}
+            </DialogTitle>
+
+            {!isFolder && (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => resizeModal(-120, -80)}
+                >
+                  Меньше
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={resetModalSize}>
+                  Сброс
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => resizeModal(120, 80)}
+                >
+                  Больше
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

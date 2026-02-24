@@ -27,7 +27,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50 w-full max-w-lg mx-4">{children}</div>
+      <div className="relative z-50 w-full mx-4 flex justify-center">{children}</div>
     </div>
   )
 }
@@ -35,17 +35,19 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 interface DialogContentProps {
   children: React.ReactNode
   className?: string
+  style?: React.CSSProperties
 }
 
-export function DialogContent({ children, className }: DialogContentProps) {
+export function DialogContent({ children, className, style }: DialogContentProps) {
   return (
     <div
       className={cn(
-        'bg-card text-card-foreground rounded-lg shadow-lg border p-6',
+        'w-full max-w-lg bg-card text-card-foreground rounded-lg shadow-lg border p-6',
         'animate-in fade-in-0 zoom-in-95',
         'max-h-[calc(100vh-3rem)] overflow-y-auto',
         className
       )}
+      style={style}
     >
       {children}
     </div>
