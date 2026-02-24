@@ -6,6 +6,7 @@ import path from 'path'
 import pkg from './package.json'
 
 const __dirname = path.resolve()
+const isWebOnlyMode = process.env.WEB_ONLY === '1' || process.env.WEB_ONLY === 'true'
 
 export default defineConfig({
   define: {
@@ -13,55 +14,59 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    electron([
-      {
-        entry: 'electron/main.ts',
-        onstart(options: { startup: () => void }) {
-          options.startup()
-        },
-        vite: {
-          build: {
-            outDir: 'dist-electron',
-            sourcemap: true,
-            rollupOptions: {
-              external: [
-                'knex',
-                'sqlite3',
-                'tedious',
-                'pg',
-                'pg-query-stream',
-                'mysql',
-                'mysql2',
-                'oracledb',
-                'mssql',
-              ],
+    ...(!isWebOnlyMode
+      ? [
+          electron([
+            {
+              entry: 'electron/main.ts',
+              onstart(options: { startup: () => void }) {
+                options.startup()
+              },
+              vite: {
+                build: {
+                  outDir: 'dist-electron',
+                  sourcemap: true,
+                  rollupOptions: {
+                    external: [
+                      'knex',
+                      'sqlite3',
+                      'tedious',
+                      'pg',
+                      'pg-query-stream',
+                      'mysql',
+                      'mysql2',
+                      'oracledb',
+                      'mssql',
+                    ],
+                  },
+                },
+              },
             },
-          },
-        },
-      },
-      {
-        entry: 'electron/preload.ts',
-        onstart(options: { reload: () => void }) {
-          options.reload()
-        },
-        vite: {
-          build: {
-            outDir: 'dist-electron',
-            sourcemap: true,
-            target: 'node20',
-            lib: {
+            {
               entry: 'electron/preload.ts',
-              formats: ['cjs'],
-              fileName: () => 'preload.js',
+              onstart(options: { reload: () => void }) {
+                options.reload()
+              },
+              vite: {
+                build: {
+                  outDir: 'dist-electron',
+                  sourcemap: true,
+                  target: 'node20',
+                  lib: {
+                    entry: 'electron/preload.ts',
+                    formats: ['cjs'],
+                    fileName: () => 'preload.js',
+                  },
+                  rollupOptions: {
+                    external: ['electron'],
+                  },
+                },
+              },
             },
-            rollupOptions: {
-              external: ['electron'],
-            },
-          },
-        },
-      },
-    ]),
-    renderer(),
+          ]),
+          renderer(),
+        ]
+      : []),
   ],
   build: {
     // Убрали manualChunks — агрессивное разбиение создавало циклические зависимости
