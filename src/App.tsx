@@ -8,7 +8,7 @@ import { RequestsView } from './components/RequestsView'
 import { TemplatesView } from './components/TemplatesView'
 import { InstructionsView } from './components/InstructionsView'
 import { ChangelogModal } from './components/ChangelogModal'
-import { Toaster } from 'sonner'
+import { Toaster, toast } from 'sonner'
 import type { Request } from './types/ipc'
 import { usePersistentState } from './hooks/usePersistentState'
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
@@ -17,6 +17,8 @@ import { cn } from './lib/utils'
 import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
 import { WindowTitleBar } from './components/WindowTitleBar'
+import { LoginScreen } from './components/LoginScreen'
+import { clearAuthSession, getAuthSession, loginByUserLogin, type AuthSession } from './lib/auth'
 
 type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
 
@@ -31,6 +33,8 @@ const isAppView = (value: string): value is AppView =>
   value === 'instructions'
 
 function App() {
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() => getAuthSession())
+  const [isAuthLoading, setIsAuthLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingRequest, setEditingRequest] = useState<Request | null>(null)
@@ -107,6 +111,38 @@ function App() {
     [setIsModalOpen]
   )
 
+  const handleLogin = async (login: string, password: string) => {
+    try {
+      setIsAuthLoading(true)
+      const session = await loginByUserLogin(login, password)
+      setAuthSession(session)
+      toast.success(`Вход выполнен: ${session.login}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось выполнить вход'
+      toast.error(message)
+    } finally {
+      setIsAuthLoading(false)
+    }
+  }
+
+  const handleLogout = () => {
+    clearAuthSession()
+    setAuthSession(null)
+    toast.success('Вы вышли из аккаунта')
+  }
+
+  if (!authSession) {
+    return (
+      <div className="h-screen bg-background overflow-hidden">
+        <WindowTitleBar />
+        <Toaster position="top-right" richColors />
+        <div className="mt-10 h-[calc(100vh-2.5rem)] overflow-auto">
+          <LoginScreen isLoading={isAuthLoading} onLogin={handleLogin} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-screen bg-background overflow-hidden">
       <WindowTitleBar />
@@ -117,6 +153,8 @@ function App() {
         onViewChange={setCurrentView}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+        authSession={authSession}
+        onLogout={handleLogout}
       />
 
       <div

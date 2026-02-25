@@ -14,7 +14,14 @@ interface UseKeyboardShortcutOptions {
 }
 
 function matchesShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut) {
-  const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase()
+  const pressedKey = typeof event.key === 'string' ? event.key.toLowerCase() : ''
+  const targetKey = typeof shortcut.key === 'string' ? shortcut.key.toLowerCase() : ''
+
+  if (!pressedKey || !targetKey) {
+    return false
+  }
+
+  const keyMatches = pressedKey === targetKey
   if (!keyMatches) {
     return false
   }

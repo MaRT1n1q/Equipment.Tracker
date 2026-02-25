@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { SettingsModal } from './SettingsModal'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { ThemeToggle } from './ThemeToggle'
+import type { AuthSession } from '../lib/auth'
 
 interface SidebarProps {
   currentView: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
@@ -26,6 +27,8 @@ interface SidebarProps {
   ) => void
   isCollapsed: boolean
   onToggleCollapse: () => void
+  authSession: AuthSession
+  onLogout: () => void
 }
 
 type UpdateBannerStatus = 'available' | 'downloading' | 'downloaded' | 'error' | 'manual-required'
@@ -42,6 +45,8 @@ export function Sidebar({
   onViewChange,
   isCollapsed,
   onToggleCollapse,
+  authSession,
+  onLogout,
 }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [updateBanner, setUpdateBanner] = useState<UpdateBannerState | null>(null)
@@ -433,7 +438,12 @@ export function Sidebar({
       </TooltipProvider>
 
       {/* Settings Modal */}
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        authSession={authSession}
+        onLogout={onLogout}
+      />
     </div>
   )
 }

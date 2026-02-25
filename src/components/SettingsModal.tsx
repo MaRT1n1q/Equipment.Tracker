@@ -1,8 +1,18 @@
-import { Settings, Database, Download, Upload, Info, RefreshCw } from 'lucide-react'
+import {
+  Settings,
+  Database,
+  Download,
+  Upload,
+  Info,
+  RefreshCw,
+  LogOut,
+  UserRound,
+} from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
+import { getAuthApiUrl, type AuthSession } from '../lib/auth'
 
 type UpdateState =
   | 'idle'
@@ -17,9 +27,11 @@ type UpdateState =
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
+  authSession: AuthSession
+  onLogout: () => void
 }
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, authSession, onLogout }: SettingsModalProps) {
   const [appVersion, setAppVersion] = useState('loading...')
   const [updateState, setUpdateState] = useState<UpdateState>('idle')
   const [updateMessage, setUpdateMessage] = useState<string | null>(null)
@@ -425,6 +437,49 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="surface-section space-y-4">
+            <div className="flex items-center gap-2">
+              <UserRound className="w-5 h-5 text-[hsl(var(--primary))]" />
+              <h3 className="font-semibold text-base">Аккаунт</h3>
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-background/50 p-3 text-sm space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-muted-foreground">Логин</span>
+                <span className="font-medium text-right break-all">{authSession.login}</span>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-muted-foreground">ID пользователя</span>
+                <span className="font-medium text-right break-all">{authSession.userId}</span>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-muted-foreground">Auth API</span>
+                <span className="font-medium text-right break-all">{getAuthApiUrl()}</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => {
+                onClose()
+                onLogout()
+              }}
+              variant="outline"
+              className="w-full justify-start h-auto py-3 hover:bg-muted/40 transition-colors group"
+            >
+              <div className="flex items-start gap-3 w-full">
+                <div className={`${iconVariants.danger} w-10 h-10`}>
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-medium">Выйти из аккаунта</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Завершить текущую авторизацию и вернуться к экрану входа
+                  </div>
+                </div>
+              </div>
+            </Button>
           </div>
 
           {/* Version info */}
