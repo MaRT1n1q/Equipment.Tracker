@@ -1,37 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CreateTemplateData, UpdateTemplateData } from '../types/ipc'
+import type { CreateTemplateData, Template, UpdateTemplateData } from '../types/ipc'
 import { toast } from 'sonner'
+import {
+  fetchTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  reorderTemplates,
+} from '../lib/api/templates'
 
-// Проверка доступности API
-const isApiAvailable = () => typeof window !== 'undefined' && !!window.electronAPI
+// Стабильная ссылка — не создаёт новый [] при каждом рендере
+const EMPTY_TEMPLATES: Template[] = []
 
 export function useTemplates() {
   const queryClient = useQueryClient()
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['templates'],
-    queryFn: async () => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const response = await window.electronAPI.getTemplates()
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Не удалось загрузить шаблоны')
-      }
-      return response.data
-    },
+    queryFn: fetchTemplates,
   })
 
-  const createTemplate = useMutation({
+  const createMutation = useMutation({
     mutationFn: async (data: CreateTemplateData) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const response = await window.electronAPI.createTemplate(data)
-      if (!response.success) {
-        throw new Error(response.error || 'Не удалось создать шаблон')
-      }
-      return response
+      return createTemplate(data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
@@ -42,16 +33,9 @@ export function useTemplates() {
     },
   })
 
-  const updateTemplate = useMutation({
+  const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: UpdateTemplateData }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const response = await window.electronAPI.updateTemplate(id, data)
-      if (!response.success) {
-        throw new Error(response.error || 'Не удалось обновить шаблон')
-      }
-      return response
+      await updateTemplate(id, data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
@@ -62,16 +46,9 @@ export function useTemplates() {
     },
   })
 
-  const deleteTemplate = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const response = await window.electronAPI.deleteTemplate(id)
-      if (!response.success) {
-        throw new Error(response.error || 'Не удалось удалить шаблон')
-      }
-      return response
+      await deleteTemplate(id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
@@ -82,16 +59,9 @@ export function useTemplates() {
     },
   })
 
-  const reorderTemplates = useMutation({
+  const reorderMutation = useMutation({
     mutationFn: async (order: number[]) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const response = await window.electronAPI.reorderTemplates(order)
-      if (!response.success) {
-        throw new Error(response.error || 'Не удалось обновить порядок шаблонов')
-      }
-      return response
+      await reorderTemplates(order)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
@@ -111,19 +81,19 @@ export function useTemplates() {
   }
 
   return {
-    templates: data || [],
+    templates: data ?? EMPTY_TEMPLATES,
     isLoading,
     isError,
     error,
     refetch,
-    createTemplate: createTemplate.mutate,
-    updateTemplate: updateTemplate.mutate,
-    deleteTemplate: deleteTemplate.mutate,
-    reorderTemplates: reorderTemplates.mutateAsync,
+    createTemplate: createMutation.mutate,
+    updateTemplate: updateMutation.mutate,
+    deleteTemplate: deleteMutation.mutate,
+    reorderTemplates: reorderMutation.mutateAsync,
     copyToClipboard,
-    isCreating: createTemplate.isPending,
-    isUpdating: updateTemplate.isPending,
-    isDeleting: deleteTemplate.isPending,
-    isReordering: reorderTemplates.isPending,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isReordering: reorderMutation.isPending,
   }
 }

@@ -171,12 +171,12 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
 
   const firstInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { updateTemplate, isUpdating } = useTemplates()
   const {
     files,
     isLoading: isLoadingFiles,
     uploadFiles,
-    uploadFilesByPaths,
     isUploading,
     downloadFile,
     openFile,
@@ -196,24 +196,32 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
   }, [open, template])
 
   useEffect(() => {
+    previewUrlsRef.current = {}
     setPreviewUrls({})
     setSelectedPreview(null)
   }, [template?.id, open])
 
+  const previewUrlsRef = useRef<Record<number, string>>({})
+
   const getImagePreviewUrl = useCallback(
     async (file: TemplateFile) => {
       if (!file.mime_type.startsWith('image/')) return null
-      if (previewUrls[file.id]) return previewUrls[file.id]
+      if (previewUrlsRef.current[file.id]) return previewUrlsRef.current[file.id]
 
       try {
-        const preview = await getFilePreview.mutateAsync(file.id)
+        const preview = await getFilePreview.mutateAsync({
+          fileId: file.id,
+          originalName: file.original_name,
+          mimeType: file.mime_type,
+        })
+        previewUrlsRef.current[file.id] = preview.data_url
         setPreviewUrls((prev) => ({ ...prev, [file.id]: preview.data_url }))
         return preview.data_url
       } catch {
         return null
       }
     },
-    [getFilePreview, previewUrls]
+    [getFilePreview]
   )
 
   useEffect(() => {
@@ -249,16 +257,9 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
       const droppedFiles = Array.from(e.dataTransfer.files)
       if (droppedFiles.length === 0) return
 
-      // Получаем пути файлов (доступно в Electron)
-      const filePaths = droppedFiles
-        .map((file) => (file as File & { path?: string }).path)
-        .filter((path): path is string => !!path)
-
-      if (filePaths.length > 0) {
-        uploadFilesByPaths.mutate({ tid: template.id, paths: filePaths })
-      }
+      uploadFiles.mutate({ tid: template.id, files: droppedFiles })
     },
-    [template, uploadFilesByPaths]
+    [template, uploadFiles]
   )
 
   const resetForm = () => {
@@ -303,13 +304,18 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
   }
 
   const handleUploadFiles = () => {
-    if (template) {
-      uploadFiles.mutate(template.id)
-    }
+    fileInputRef.current?.click()
+  }
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!template || !e.target.files?.length) return
+    uploadFiles.mutate({ tid: template.id, files: Array.from(e.target.files) })
+    e.target.value = ''
   }
 
   const handleDownloadFile = (fileId: number) => {
-    downloadFile.mutate(fileId)
+    const file = files.find((f) => f.id === fileId)
+    if (file) downloadFile.mutate({ fileId, originalName: file.original_name })
   }
 
   const handleOpenFile = (fileId: number) => {
@@ -331,161 +337,172 @@ export function EditTemplateModal({ open, onOpenChange, template }: EditTemplate
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Редактировать шаблон</DialogTitle>
-          <DialogDescription>Измените название, содержимое или файлы шаблона</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-template-title">
-                Название шаблона <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="edit-template-title"
-                ref={firstInputRef}
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value)
-                  setTitleError(false)
-                }}
-                placeholder="Например: Стандартный ответ по заявке"
-                className={titleError ? 'border-red-500' : ''}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-template-content">
-                Содержимое <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="edit-template-content"
-                value={content}
-                onChange={(e) => {
-                  setContent(e.target.value)
-                  setContentError(false)
-                }}
-                placeholder="Введите текст шаблона..."
-                className={contentError ? 'border-red-500' : ''}
-                rows={8}
-              />
-            </div>
-
-            {/* Секция файлов с drag-and-drop */}
-            <div
-              ref={dropZoneRef}
-              className={cn(
-                'space-y-3 rounded-lg p-3 -mx-3 transition-all',
-                isDragOver && 'bg-primary/5 ring-2 ring-primary/30 ring-dashed'
-              )}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <Paperclip className="h-4 w-4" />
-                  Прикреплённые файлы
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Редактировать шаблон</DialogTitle>
+            <DialogDescription>Измените название, содержимое или файлы шаблона</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-template-title">
+                  Название шаблона <span className="text-red-500">*</span>
                 </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleUploadFiles}
-                  disabled={isUploading}
-                  className="gap-2"
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  Добавить файлы
-                </Button>
+                <Input
+                  id="edit-template-title"
+                  ref={firstInputRef}
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value)
+                    setTitleError(false)
+                  }}
+                  placeholder="Например: Стандартный ответ по заявке"
+                  className={titleError ? 'border-red-500' : ''}
+                />
               </div>
 
-              {isLoadingFiles ? (
-                <div className="flex items-center justify-center py-6 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Загрузка файлов...
-                </div>
-              ) : files.length === 0 ? (
-                <div
-                  className={cn(
-                    'flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed transition-colors',
-                    isDragOver ? 'border-primary bg-primary/10' : 'border-border/60 bg-muted/20'
-                  )}
-                >
-                  <Upload
-                    className={cn(
-                      'h-8 w-8 mb-2 transition-colors',
-                      isDragOver ? 'text-primary' : 'text-muted-foreground/50'
+              <div className="space-y-2">
+                <Label htmlFor="edit-template-content">
+                  Содержимое <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="edit-template-content"
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value)
+                    setContentError(false)
+                  }}
+                  placeholder="Введите текст шаблона..."
+                  className={contentError ? 'border-red-500' : ''}
+                  rows={8}
+                />
+              </div>
+
+              {/* Секция файлов с drag-and-drop */}
+              <div
+                ref={dropZoneRef}
+                className={cn(
+                  'space-y-3 rounded-lg p-3 -mx-3 transition-all',
+                  isDragOver && 'bg-primary/5 ring-2 ring-primary/30 ring-dashed'
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />
+                    Прикреплённые файлы
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUploadFiles}
+                    disabled={isUploading}
+                    className="gap-2"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
                     )}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    {isDragOver ? 'Отпустите файлы для загрузки' : 'Нет прикреплённых файлов'}
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    Перетащите файлы сюда или нажмите «Добавить файлы»
-                  </p>
+                    Добавить файлы
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {isDragOver && (
-                    <div className="flex items-center justify-center py-4 text-center rounded-lg border border-dashed border-primary bg-primary/10 mb-2">
-                      <Upload className="h-5 w-5 text-primary mr-2" />
-                      <span className="text-sm text-primary font-medium">
-                        Отпустите для добавления файлов
+
+                {isLoadingFiles ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Загрузка файлов...
+                  </div>
+                ) : files.length === 0 ? (
+                  <div
+                    className={cn(
+                      'flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed transition-colors',
+                      isDragOver ? 'border-primary bg-primary/10' : 'border-border/60 bg-muted/20'
+                    )}
+                  >
+                    <Upload
+                      className={cn(
+                        'h-8 w-8 mb-2 transition-colors',
+                        isDragOver ? 'text-primary' : 'text-muted-foreground/50'
+                      )}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {isDragOver ? 'Отпустите файлы для загрузки' : 'Нет прикреплённых файлов'}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      Перетащите файлы сюда или нажмите «Добавить файлы»
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {isDragOver && (
+                      <div className="flex items-center justify-center py-4 text-center rounded-lg border border-dashed border-primary bg-primary/10 mb-2">
+                        <Upload className="h-5 w-5 text-primary mr-2" />
+                        <span className="text-sm text-primary font-medium">
+                          Отпустите для добавления файлов
+                        </span>
+                      </div>
+                    )}
+                    {files.map((file) => (
+                      <FileItem
+                        key={file.id}
+                        file={file}
+                        thumbnailUrl={previewUrls[file.id]}
+                        onDownload={handleDownloadFile}
+                        onOpen={handleOpenFile}
+                        onPreview={handlePreviewFile}
+                        onDelete={handleDeleteFile}
+                        isDeleting={isDeleting}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {selectedPreview && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Предпросмотр
                       </span>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedPreview(null)}>
+                        Скрыть
+                      </Button>
                     </div>
-                  )}
-                  {files.map((file) => (
-                    <FileItem
-                      key={file.id}
-                      file={file}
-                      thumbnailUrl={previewUrls[file.id]}
-                      onDownload={handleDownloadFile}
-                      onOpen={handleOpenFile}
-                      onPreview={handlePreviewFile}
-                      onDelete={handleDeleteFile}
-                      isDeleting={isDeleting}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {selectedPreview && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Предпросмотр</span>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedPreview(null)}>
-                      Скрыть
-                    </Button>
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-3 flex justify-center max-h-[50vh] overflow-auto">
+                      <img
+                        src={selectedPreview.url}
+                        alt={selectedPreview.name}
+                        className="max-h-[44vh] max-w-full object-contain rounded"
+                      />
+                    </div>
                   </div>
-                  <div className="rounded-xl border border-border/60 bg-muted/20 p-3 flex justify-center max-h-[50vh] overflow-auto">
-                    <img
-                      src={selectedPreview.url}
-                      alt={selectedPreview.name}
-                      className="max-h-[44vh] max-w-full object-contain rounded"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={isUpdating}>
-              Отмена
-            </Button>
-            <Button type="submit" disabled={isUpdating}>
-              {isUpdating ? 'Сохранение...' : 'Сохранить'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={isUpdating}>
+                Отмена
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? 'Сохранение...' : 'Сохранить'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

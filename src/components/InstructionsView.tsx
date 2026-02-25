@@ -424,6 +424,7 @@ function InstructionPanel({
 }: InstructionPanelProps) {
   const { attachments, selectAndAddFile, deleteAttachment, openAttachment, getAttachmentPreview } =
     useInstructionAttachments(instruction?.id ?? null)
+  const attachmentPreviewUrlsRef = useRef<Record<number, string>>({})
   const [attachmentPreviewUrls, setAttachmentPreviewUrls] = useState<Record<number, string>>({})
   const [previewAttachment, setPreviewAttachment] = useState<InstructionAttachment | null>(null)
   const [previewImageUrl, setPreviewImageUrl] = useState('')
@@ -432,6 +433,7 @@ function InstructionPanel({
     attachment.mime_type.startsWith('image/')
 
   useEffect(() => {
+    attachmentPreviewUrlsRef.current = {}
     setAttachmentPreviewUrls({})
     setPreviewAttachment(null)
     setPreviewImageUrl('')
@@ -442,17 +444,28 @@ function InstructionPanel({
 
     const loadImagePreviews = async () => {
       const imageAttachments = attachments.filter(
-        (attachment) => isImageAttachment(attachment) && !attachmentPreviewUrls[attachment.id]
+        (attachment) =>
+          isImageAttachment(attachment) && !attachmentPreviewUrlsRef.current[attachment.id]
       )
 
       await Promise.all(
         imageAttachments.map(async (attachment) => {
-          const response = await getAttachmentPreview(attachment.id)
-          if (!isCancelled && response?.success && response.data) {
-            const dataUrl = response.data.data_url
-            setAttachmentPreviewUrls((prev) =>
-              prev[attachment.id] ? prev : { ...prev, [attachment.id]: dataUrl }
+          attachmentPreviewUrlsRef.current[attachment.id] = 'loading'
+          try {
+            const preview = await getAttachmentPreview(
+              attachment.id,
+              attachment.original_name,
+              attachment.mime_type
             )
+            if (!isCancelled) {
+              const dataUrl = preview.data_url
+              attachmentPreviewUrlsRef.current[attachment.id] = dataUrl
+              setAttachmentPreviewUrls((prev) => ({ ...prev, [attachment.id]: dataUrl }))
+            } else {
+              delete attachmentPreviewUrlsRef.current[attachment.id]
+            }
+          } catch {
+            delete attachmentPreviewUrlsRef.current[attachment.id]
           }
         })
       )
@@ -465,7 +478,7 @@ function InstructionPanel({
     return () => {
       isCancelled = true
     }
-  }, [attachments, attachmentPreviewUrls, getAttachmentPreview])
+  }, [attachments, getAttachmentPreview])
 
   const handleOpenImagePreview = async (attachment: InstructionAttachment) => {
     if (!isImageAttachment(attachment)) {
@@ -476,13 +489,18 @@ function InstructionPanel({
     let dataUrl = attachmentPreviewUrls[attachment.id]
 
     if (!dataUrl) {
-      const response = await getAttachmentPreview(attachment.id)
-      if (!response?.success || !response.data) {
-        toast.error(response?.error || 'Не удалось загрузить предпросмотр')
+      try {
+        const preview = await getAttachmentPreview(
+          attachment.id,
+          attachment.original_name,
+          attachment.mime_type
+        )
+        dataUrl = preview.data_url
+        setAttachmentPreviewUrls((prev) => ({ ...prev, [attachment.id]: dataUrl }))
+      } catch {
+        toast.error('Не удалось загрузить предпросмотр')
         return
       }
-      dataUrl = response.data.data_url
-      setAttachmentPreviewUrls((prev) => ({ ...prev, [attachment.id]: dataUrl }))
     }
 
     setPreviewAttachment(attachment)
@@ -876,7 +894,7 @@ export function InstructionsView() {
         : `Удалить инструкцию "${node.title}"?`
 
       if (window.confirm(message)) {
-        deleteInstruction.mutate(node.id)
+        deleteInstruction.mutate({ id: node.id, isFolder: node.is_folder === 1 })
         if (selectedId === node.id) {
           setSelectedId(null)
         }

@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateRequestData,
-  EquipmentStatus,
   PaginatedRequestsResponse,
   Request,
   RequestListParams,
@@ -9,40 +8,29 @@ import type {
   ScheduleRequestReturnData,
   UpdateRequestData,
 } from '../types/ipc'
+import {
+  fetchRequests,
+  fetchRequestSummary,
+  createRequest,
+  updateRequest,
+  deleteRequest,
+  restoreRequest,
+  setIssued,
+  scheduleReturn,
+  completeReturn,
+  cancelReturn,
+  updateEquipmentItemStatus,
+} from '../lib/api/requests'
 
 export const REQUESTS_QUERY_KEY = ['requests'] as const
 export const REQUEST_SUMMARY_QUERY_KEY = ['requestSummary'] as const
 
-// Проверка доступности API
-const isApiAvailable = () => typeof window !== 'undefined' && !!window.electronAPI
-
-async function fetchRequests(params: RequestListParams): Promise<PaginatedRequestsResponse> {
-  if (!isApiAvailable()) {
-    throw new Error('API не доступен')
-  }
-  const response = await window.electronAPI.getRequests(params)
-
-  if (!response.success || !response.data) {
-    throw new Error(
-      response.error ||
-        'Не удалось загрузить заявки. Попробуйте обновить данные. Если ошибка повторится, проверьте подключение или обратитесь к администратору.'
-    )
-  }
-
-  return response.data
+async function _fetchRequests(params: RequestListParams): Promise<PaginatedRequestsResponse> {
+  return fetchRequests(params)
 }
 
-async function fetchRequestSummary(): Promise<RequestSummary> {
-  if (!isApiAvailable()) {
-    throw new Error('API не доступен')
-  }
-  const response = await window.electronAPI.getRequestSummary()
-
-  if (!response.success || !response.data) {
-    throw new Error(response.error || 'Не удалось загрузить сводку заявок')
-  }
-
-  return response.data
+async function _fetchRequestSummary(): Promise<RequestSummary> {
+  return fetchRequestSummary()
 }
 
 type UpdatePayload = {
@@ -67,7 +55,7 @@ type UpdateReturnCompletionPayload = {
 
 type UpdateEquipmentStatusPayload = {
   itemId: number
-  status: EquipmentStatus
+  status: string
 }
 
 type RestorePayload = Request
@@ -75,7 +63,7 @@ type RestorePayload = Request
 export function useRequestsQuery(params: RequestListParams) {
   return useQuery({
     queryKey: [...REQUESTS_QUERY_KEY, params] as const,
-    queryFn: () => fetchRequests(params),
+    queryFn: () => _fetchRequests(params),
     placeholderData: (previousData) => previousData,
   })
 }
@@ -83,7 +71,7 @@ export function useRequestsQuery(params: RequestListParams) {
 export function useRequestSummaryQuery() {
   return useQuery({
     queryKey: REQUEST_SUMMARY_QUERY_KEY,
-    queryFn: fetchRequestSummary,
+    queryFn: _fetchRequestSummary,
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -98,128 +86,63 @@ export function useRequestActions() {
 
   const createMutation = useMutation<void, Error, CreateRequestData>({
     mutationFn: async (payload) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.createRequest(payload)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось создать заявку')
-      }
+      await createRequest(payload)
     },
     onSuccess: invalidate,
   })
 
   const updateMutation = useMutation<void, Error, UpdatePayload>({
     mutationFn: async ({ id, data }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.updateRequest(id, data)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось обновить заявку')
-      }
+      await updateRequest(id, data)
     },
     onSuccess: invalidate,
   })
 
   const toggleIssuedMutation = useMutation<void, Error, ToggleIssuedPayload>({
     mutationFn: async ({ id, value }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.updateIssued(id, value)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось изменить статус заявки')
-      }
+      await setIssued(id, value)
     },
     onSuccess: invalidate,
   })
 
   const deleteMutation = useMutation<Request, Error, number>({
     mutationFn: async (id) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.deleteRequest(id)
-
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Не удалось удалить заявку')
-      }
-
-      return result.data
+      return deleteRequest(id)
     },
     onSuccess: invalidate,
   })
 
   const restoreMutation = useMutation<void, Error, RestorePayload>({
     mutationFn: async (payload) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.restoreRequest(payload)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось восстановить заявку')
-      }
+      await restoreRequest(payload)
     },
     onSuccess: invalidate,
   })
 
   const scheduleReturnMutation = useMutation<void, Error, ScheduleReturnPayload>({
     mutationFn: async ({ id, data }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.scheduleRequestReturn(id, data)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось запланировать сдачу оборудования')
-      }
+      await scheduleReturn(id, data)
     },
     onSuccess: invalidate,
   })
 
   const completeReturnMutation = useMutation<void, Error, UpdateReturnCompletionPayload>({
-    mutationFn: async ({ id, value }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.completeRequestReturn(id, value)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось отметить сдачу оборудования')
-      }
+    mutationFn: async ({ id }) => {
+      await completeReturn(id)
     },
     onSuccess: invalidate,
   })
 
   const cancelReturnMutation = useMutation<void, Error, number>({
     mutationFn: async (id) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.cancelRequestReturn(id)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось отменить сдачу оборудования')
-      }
+      await cancelReturn(id)
     },
     onSuccess: invalidate,
   })
 
   const updateEquipmentStatusMutation = useMutation<void, Error, UpdateEquipmentStatusPayload>({
     mutationFn: async ({ itemId, status }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.updateEquipmentStatus(itemId, status)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось изменить статус оборудования')
-      }
+      await updateEquipmentItemStatus(itemId, status)
     },
     onSuccess: invalidate,
   })

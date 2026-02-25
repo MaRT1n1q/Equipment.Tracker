@@ -59,6 +59,16 @@ function App() {
     }
   )
 
+  // При 401 от API — выбрасываем на экран входа
+  useEffect(() => {
+    const onAuthLogout = () => {
+      setAuthSession(null)
+      toast.error('Сессия истекла — выполните вход заново')
+    }
+    window.addEventListener('auth:logout', onAuthLogout)
+    return () => window.removeEventListener('auth:logout', onAuthLogout)
+  }, [])
+
   // Устанавливаем CSS переменную для ширины сайдбара
   useEffect(() => {
     document.documentElement.style.setProperty(

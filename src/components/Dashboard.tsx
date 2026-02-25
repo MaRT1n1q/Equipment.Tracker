@@ -10,6 +10,8 @@ import { useRequestSummaryQuery } from '../hooks/useRequests'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
 import { LoadingState } from './LoadingState'
+import { fetchRequests } from '../lib/api/requests'
+import { fetchEmployeeExits } from '../lib/api/employeeExits'
 
 export type DashboardSelection = {
   id: number
@@ -68,17 +70,8 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   } = useQuery({
     queryKey: ['dashboard', 'requestSearch', trimmedQuery],
     queryFn: async () => {
-      const response = await window.electronAPI.getRequests({
-        search: trimmedQuery,
-        page: 1,
-        pageSize: 50,
-      })
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Не удалось выполнить поиск по заявкам')
-      }
-
-      return response.data.items
+      const response = await fetchRequests({ search: trimmedQuery, page: 1, pageSize: 50 })
+      return response.items
     },
     enabled: isSearchEnabled,
   })
@@ -92,17 +85,8 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   } = useQuery({
     queryKey: ['dashboard', 'exitSearch', trimmedQuery],
     queryFn: async () => {
-      const response = await window.electronAPI.getEmployeeExits({
-        search: trimmedQuery,
-        page: 1,
-        pageSize: 50,
-      })
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Не удалось выполнить поиск по выходам')
-      }
-
-      return response.data.items
+      const response = await fetchEmployeeExits({ search: trimmedQuery, page: 1, pageSize: 50 })
+      return response.items
     },
     enabled: isSearchEnabled,
   })

@@ -4,43 +4,21 @@ import type {
   EmployeeExit,
   EmployeeExitListParams,
   EmployeeExitSummary,
-  EquipmentStatus,
   PaginatedEmployeeExitsResponse,
 } from '../types/ipc'
+import {
+  fetchEmployeeExits,
+  fetchEmployeeExitSummary,
+  createEmployeeExit,
+  updateEmployeeExit,
+  deleteEmployeeExit,
+  restoreEmployeeExit,
+  setExitCompleted,
+  updateExitEquipmentStatus,
+} from '../lib/api/employeeExits'
 
 export const EMPLOYEE_EXITS_QUERY_KEY = ['employeeExits'] as const
 export const EMPLOYEE_EXIT_SUMMARY_QUERY_KEY = ['employeeExitSummary'] as const
-
-// Проверка доступности API
-const isApiAvailable = () => typeof window !== 'undefined' && !!window.electronAPI
-
-async function fetchEmployeeExits(
-  params: EmployeeExitListParams
-): Promise<PaginatedEmployeeExitsResponse> {
-  if (!isApiAvailable()) {
-    throw new Error('API не доступен')
-  }
-  const response = await window.electronAPI.getEmployeeExits(params)
-
-  if (!response.success || !response.data) {
-    throw new Error(response.error || 'Не удалось загрузить записи выходов')
-  }
-
-  return response.data
-}
-
-async function fetchEmployeeExitSummary(): Promise<EmployeeExitSummary> {
-  if (!isApiAvailable()) {
-    throw new Error('API не доступен')
-  }
-  const response = await window.electronAPI.getEmployeeExitSummary()
-
-  if (!response.success || !response.data) {
-    throw new Error(response.error || 'Не удалось загрузить сводку выходов')
-  }
-
-  return response.data
-}
 
 type UpdatePayload = {
   id: number
@@ -55,13 +33,13 @@ type UpdateCompletedPayload = {
 type UpdateEquipmentStatusPayload = {
   exitId: number
   equipmentIndex: number
-  status: EquipmentStatus
+  status: string
 }
 
 export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
   return useQuery({
     queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params] as const,
-    queryFn: () => fetchEmployeeExits(params),
+    queryFn: (): Promise<PaginatedEmployeeExitsResponse> => fetchEmployeeExits(params),
     placeholderData: (previousData) => previousData,
   })
 }
@@ -69,7 +47,7 @@ export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
 export function useEmployeeExitSummaryQuery() {
   return useQuery({
     queryKey: EMPLOYEE_EXIT_SUMMARY_QUERY_KEY,
-    queryFn: fetchEmployeeExitSummary,
+    queryFn: (): Promise<EmployeeExitSummary> => fetchEmployeeExitSummary(),
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -84,94 +62,42 @@ export function useEmployeeExitActions() {
 
   const createMutation = useMutation<void, Error, CreateEmployeeExitData>({
     mutationFn: async (payload) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.createEmployeeExit(payload)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось создать запись выхода')
-      }
+      await createEmployeeExit(payload)
     },
     onSuccess: invalidate,
   })
 
   const updateMutation = useMutation<void, Error, UpdatePayload>({
     mutationFn: async ({ id, data }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.updateEmployeeExit(id, data)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось обновить запись выхода')
-      }
+      await updateEmployeeExit(id, data)
     },
     onSuccess: invalidate,
   })
 
   const deleteMutation = useMutation<EmployeeExit, Error, number>({
     mutationFn: async (id) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.deleteEmployeeExit(id)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось удалить запись выхода')
-      }
-
-      if (!result.data) {
-        throw new Error('Не удалось получить данные удалённой записи')
-      }
-
-      return result.data
+      return deleteEmployeeExit(id)
     },
     onSuccess: invalidate,
   })
 
   const restoreMutation = useMutation<void, Error, EmployeeExit>({
     mutationFn: async (payload) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.restoreEmployeeExit(payload)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось восстановить запись выхода')
-      }
+      await restoreEmployeeExit(payload)
     },
     onSuccess: invalidate,
   })
 
   const updateCompletedMutation = useMutation<void, Error, UpdateCompletedPayload>({
     mutationFn: async ({ id, value }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.updateExitCompleted(id, value)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось изменить статус выдачи')
-      }
+      await setExitCompleted(id, value)
     },
     onSuccess: invalidate,
   })
 
   const updateEquipmentStatusMutation = useMutation<void, Error, UpdateEquipmentStatusPayload>({
     mutationFn: async ({ exitId, equipmentIndex, status }) => {
-      if (!isApiAvailable()) {
-        throw new Error('API не доступен')
-      }
-      const result = await window.electronAPI.updateExitEquipmentStatus(
-        exitId,
-        equipmentIndex,
-        status
-      )
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось изменить статус оборудования')
-      }
+      await updateExitEquipmentStatus(exitId, equipmentIndex, status)
     },
     onSuccess: invalidate,
   })

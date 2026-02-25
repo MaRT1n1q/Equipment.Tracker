@@ -15,6 +15,7 @@ import { ListPagination } from './ListPagination'
 import { PageHeader } from './PageHeader'
 import { LoadingState } from './LoadingState'
 import { ErrorState } from './ErrorState'
+import { fetchEmployeeExits } from '../lib/api/employeeExits'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
 const EXIT_SEARCH_STORAGE_KEY = 'equipment-tracker:exit-search'
@@ -174,31 +175,49 @@ export function EmployeeExitView({
     let nextPage = 1
 
     while (true) {
-      const response = await window.electronAPI.getEmployeeExits({
+      const response = await fetchEmployeeExits({
         page: nextPage,
         pageSize: pageSizeForExport,
         search: searchQuery.trim() ? searchQuery.trim() : undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
       })
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Не удалось подготовить данные для экспорта')
-      }
+      collected.push(...response.items)
 
-      collected.push(...response.data.items)
-
-      if (!response.data.meta.hasMore) {
+      if (!response.meta.hasMore) {
         break
       }
 
       nextPage += 1
 
-      if (nextPage > response.data.meta.pageCount) {
+      if (nextPage > response.meta.pageCount) {
         break
       }
     }
 
     return collected
+  }
+
+  const exportToCsv = (data: EmployeeExit[]) => {
+    const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`
+    const headers = ['ФИО', 'Логин', 'Дата выхода', 'Оборудование', 'Статус']
+    const rows = data.map((exit) => [
+      escapeCell(exit.employee_name),
+      escapeCell(exit.login),
+      escapeCell(exit.exit_date ?? ''),
+      escapeCell(exit.equipment_list),
+      escapeCell(exit.is_completed === 1 ? 'Завершён' : 'Ожидает'),
+    ])
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `employee-exits-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const handleExport = async () => {
@@ -212,13 +231,8 @@ export function EmployeeExitView({
         return
       }
 
-      const result = await window.electronAPI.exportEmployeeExits(exportData)
-
-      if (result.success) {
-        toast.success('CSV-файл сохранён')
-      } else if (result.error !== 'Отменено пользователем') {
-        toast.error(result.error || 'Не удалось экспортировать данные')
-      }
+      exportToCsv(exportData)
+      toast.success('CSV-файл сохранён')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Не удалось экспортировать данные')
     } finally {

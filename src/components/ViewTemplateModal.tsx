@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Check,
   Copy,
@@ -133,6 +133,7 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
   const [isCopied, setIsCopied] = useState(false)
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
   const [selectedPreview, setSelectedPreview] = useState<{ name: string; url: string } | null>(null)
+  const previewUrlsRef = useRef<Record<number, string>>({})
 
   const {
     files,
@@ -143,6 +144,7 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
   } = useTemplateFiles(template?.id || null)
 
   useEffect(() => {
+    previewUrlsRef.current = {}
     setPreviewUrls({})
     setSelectedPreview(null)
   }, [template?.id, open])
@@ -150,17 +152,22 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
   const getImagePreviewUrl = useCallback(
     async (file: TemplateFile) => {
       if (!file.mime_type.startsWith('image/')) return null
-      if (previewUrls[file.id]) return previewUrls[file.id]
+      if (previewUrlsRef.current[file.id]) return previewUrlsRef.current[file.id]
 
       try {
-        const preview = await getFilePreview.mutateAsync(file.id)
+        const preview = await getFilePreview.mutateAsync({
+          fileId: file.id,
+          originalName: file.original_name,
+          mimeType: file.mime_type,
+        })
+        previewUrlsRef.current[file.id] = preview.data_url
         setPreviewUrls((prev) => ({ ...prev, [file.id]: preview.data_url }))
         return preview.data_url
       } catch {
         return null
       }
     },
-    [getFilePreview, previewUrls]
+    [getFilePreview]
   )
 
   useEffect(() => {
@@ -184,7 +191,8 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
   }, [template])
 
   const handleDownloadFile = (fileId: number) => {
-    downloadFile.mutate(fileId)
+    const file = files.find((f) => f.id === fileId)
+    if (file) downloadFile.mutate({ fileId, originalName: file.original_name })
   }
 
   const handleOpenFile = (fileId: number) => {
@@ -202,7 +210,7 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
 
   const handleDownloadAll = async () => {
     for (const file of files) {
-      downloadFile.mutate(file.id)
+      downloadFile.mutate({ fileId: file.id, originalName: file.original_name })
     }
   }
 

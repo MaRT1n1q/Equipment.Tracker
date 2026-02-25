@@ -6,7 +6,10 @@ export interface AuthSession {
 }
 
 const AUTH_SESSION_STORAGE_KEY = 'equipment-tracker:auth-session'
-const DEFAULT_AUTH_API_URL = 'http://localhost:9090/api/auth/login'
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
+  'http://localhost:9090'
+const DEFAULT_AUTH_API_URL = `${API_BASE}/api/v1/auth/login`
 
 function readStorage(): Storage | null {
   if (typeof window === 'undefined') {
@@ -95,12 +98,19 @@ export async function loginByUserLogin(login: string, password: string): Promise
         login?: string
         access_token?: string
         refresh_token?: string
-        error?: string
+        error?: string | { message?: string; code?: string }
       }
     | undefined
 
   if (!response.ok) {
-    throw new Error(payload?.error || 'Не удалось выполнить вход')
+    const errField = payload?.error
+    const errMsg =
+      typeof errField === 'string'
+        ? errField
+        : typeof errField === 'object' && errField?.message
+          ? errField.message
+          : 'Не удалось выполнить вход'
+    throw new Error(errMsg)
   }
 
   if (!payload?.user_id || !payload.login || !payload.access_token || !payload.refresh_token) {

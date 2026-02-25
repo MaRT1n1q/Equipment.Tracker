@@ -1,26 +1,11 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { createMainWindow } from './window'
-import { closeDatabase, getDatabase, initDatabase } from './database'
-import { registerRequestHandlers } from './ipc/requests'
-import { registerEmployeeExitHandlers } from './ipc/employeeExits'
-import { registerTemplateHandlers } from './ipc/templates'
-import { registerTemplateFileHandlers } from './ipc/templateFiles'
-import { registerInstructionsHandlers } from './ipc/instructions'
-import { createAutomaticBackup, registerBackupHandlers } from './ipc/backup'
-import { startExitReminderScheduler } from './notifications'
-import { createTray, destroyTray } from './tray'
-import { initAutoUpdater, registerUpdaterHandlers } from './updater'
 import { registerWindowControlHandlers } from './ipc/windowControls'
 import { registerExternalHandlers } from './ipc/external'
+import { createTray, destroyTray } from './tray'
+import { initAutoUpdater, registerUpdaterHandlers } from './updater'
 
 let mainWindow: BrowserWindow | null = null
-let exitReminderScheduler: ReturnType<typeof startExitReminderScheduler> = null
-
-const triggerExitReminderCheck = () => {
-  if (exitReminderScheduler) {
-    exitReminderScheduler.triggerCheck()
-  }
-}
 
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.equipment.tracker')
@@ -35,13 +20,9 @@ ipcMain.on('get-app-version', (event) => {
 const gotTheLock = app.requestSingleInstanceLock()
 
 if (!gotTheLock) {
-  // Если приложение уже запущено, завершаем этот экземпляр
   app.quit()
 } else {
-  // Обработчик для второго экземпляра
   app.on('second-instance', () => {
-    // Если пользователь попытался запустить второй экземпляр,
-    // показываем существующее окно
     if (mainWindow) {
       if (mainWindow.isMinimized()) {
         mainWindow.restore()
@@ -55,64 +36,30 @@ if (!gotTheLock) {
 
   function createWindow() {
     mainWindow = createMainWindow()
-    // Не устанавливаем mainWindow = null при закрытии
-    // так как окно только скрывается, а не закрывается
   }
 
-  // Функция для получения текущего окна
   function getMainWindow() {
     return mainWindow
   }
 
-  // Регистрируем IPC-хендлеры управления окном заранее,
-  // чтобы renderer мог вызывать их сразу после загрузки.
   registerWindowControlHandlers(getMainWindow)
   registerExternalHandlers()
 
-  app.whenReady().then(async () => {
-    try {
-      await initDatabase()
-    } catch (error) {
-      console.error('Критическая ошибка инициализации БД:', error)
-      const { dialog } = await import('electron')
-      const message =
-        error instanceof Error ? error.message : 'Неизвестная ошибка инициализации базы данных'
-      dialog.showErrorBox(
-        'Ошибка инициализации',
-        `Не удалось инициализировать базу данных.\n\n${message}\n\nПопробуйте перезапустить приложение или удалить папку данных.`
-      )
-      app.quit()
-      return
-    }
-
-    // Включаем автозапуск приложения
+  app.whenReady().then(() => {
     app.setLoginItemSettings({
       openAtLogin: true,
       openAsHidden: false,
     })
 
-    registerRequestHandlers(getDatabase)
-    registerEmployeeExitHandlers(getDatabase, {
-      onDataChanged: triggerExitReminderCheck,
-    })
-    registerTemplateHandlers()
-    registerTemplateFileHandlers()
-    registerInstructionsHandlers()
-    registerBackupHandlers()
     registerUpdaterHandlers()
-
-    exitReminderScheduler = startExitReminderScheduler(getDatabase)
 
     createWindow()
 
-    // Создаем иконку в трее с функцией для получения окна
     createTray(getMainWindow)
 
-    // Инициализируем автообновление
     initAutoUpdater(mainWindow)
 
     app.on('activate', () => {
-      // На macOS при клике на иконку в Dock показываем окно, если оно скрыто
       if (mainWindow) {
         if (mainWindow.isMinimized()) {
           mainWindow.restore()
@@ -127,24 +74,11 @@ if (!gotTheLock) {
     })
   })
 
-  app.on('window-all-closed', async () => {
-    // Не закрываем приложение на Windows - оно работает в трее
-    // На macOS тоже оставляем в трее для единообразия поведения
-    // Приложение будет закрыто только через меню трея
+  app.on('window-all-closed', () => {
+    // Приложение работает в трее — не закрываем при закрытии окна
   })
 
-  app.on('before-quit', async () => {
-    const backupResult = await createAutomaticBackup()
-    if (!backupResult.success) {
-      console.error('Auto backup failed:', backupResult.error)
-    }
-
-    if (exitReminderScheduler) {
-      exitReminderScheduler.stop()
-      exitReminderScheduler = null
-    }
-
-    await closeDatabase()
+  app.on('before-quit', () => {
     destroyTray()
   })
 }
