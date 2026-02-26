@@ -30,6 +30,7 @@ interface EmployeeExitViewProps {
   highlightExitId?: number | null
   highlightSearchQuery?: string | null
   onHighlightConsumed?: () => void
+  cityOverride?: string
 }
 
 export type EmployeeExitSelection = {
@@ -43,6 +44,7 @@ export function EmployeeExitView({
   highlightExitId,
   highlightSearchQuery,
   onHighlightConsumed,
+  cityOverride,
 }: EmployeeExitViewProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [selectedExit, setSelectedExit] = useState<EmployeeExit | null>(null)
@@ -105,8 +107,8 @@ export function EmployeeExitView({
     isError,
     isFetching,
     refetch: refetchExits,
-  } = useEmployeeExitsQuery(listParams)
-  const { data: exitSummary } = useEmployeeExitSummaryQuery()
+  } = useEmployeeExitsQuery(listParams, cityOverride)
+  const { data: exitSummary } = useEmployeeExitSummaryQuery(cityOverride)
   const exits = data?.items ?? []
   const meta = data?.meta ?? {
     page,

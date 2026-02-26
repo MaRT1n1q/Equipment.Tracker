@@ -29,6 +29,7 @@ interface RequestsViewProps {
   highlightRequestId?: number | null
   highlightSearchQuery?: string | null
   onHighlightConsumed?: () => void
+  cityOverride?: string
 }
 
 export function RequestsView({
@@ -38,6 +39,7 @@ export function RequestsView({
   highlightRequestId,
   highlightSearchQuery,
   onHighlightConsumed,
+  cityOverride,
 }: RequestsViewProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [page, setPage] = useState(1)
@@ -100,8 +102,11 @@ export function RequestsView({
     [page, pageSize, debouncedSearchQuery, statusFilter]
   )
 
-  const { data, isLoading, isError, isFetching, refetch } = useRequestsQuery(requestParams)
-  const { data: requestSummary } = useRequestSummaryQuery()
+  const { data, isLoading, isError, isFetching, refetch } = useRequestsQuery(
+    requestParams,
+    cityOverride
+  )
+  const { data: requestSummary } = useRequestSummaryQuery(cityOverride)
 
   const requests = data?.items ?? []
   const meta = data?.meta ?? {

@@ -152,12 +152,16 @@ function toRestoreBody(payload: Request) {
 
 // ─── API-функции ──────────────────────────────────────────────────────────────
 
-export async function fetchRequests(params: RequestListParams): Promise<PaginatedRequestsResponse> {
+export async function fetchRequests(
+  params: RequestListParams,
+  cityOverride?: string
+): Promise<PaginatedRequestsResponse> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.pageSize) qs.set('page_size', String(params.pageSize))
   if (params.search) qs.set('search', params.search)
   if (params.status) qs.set('status', params.status)
+  if (cityOverride) qs.set('city', cityOverride)
 
   const raw = await apiGet<BackendListResponse>(`/api/v1/requests?${qs}`)
   return {
@@ -166,8 +170,9 @@ export async function fetchRequests(params: RequestListParams): Promise<Paginate
   }
 }
 
-export async function fetchRequestSummary(): Promise<RequestSummary> {
-  const raw = await apiGet<BackendSummary>('/api/v1/requests/summary')
+export async function fetchRequestSummary(cityOverride?: string): Promise<RequestSummary> {
+  const qs = cityOverride ? `?city=${encodeURIComponent(cityOverride)}` : ''
+  const raw = await apiGet<BackendSummary>(`/api/v1/requests/summary${qs}`)
   return mapSummary(raw)
 }
 

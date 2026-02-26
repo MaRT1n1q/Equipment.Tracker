@@ -11,7 +11,15 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { toast } from 'sonner'
-import { Plus, Trash2, UserMinus, ShoppingCart, Truck, Warehouse, CheckCircle } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  BriefcaseBusiness,
+  ShoppingCart,
+  Truck,
+  Warehouse,
+  CheckCircle,
+} from 'lucide-react'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 import type { EmployeeExit, EquipmentStatus } from '../types/ipc'
 import { equipmentStatusLabels } from '../types/ipc'
@@ -268,7 +276,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
           <div className="surface-section space-y-4">
             <div className="flex items-center gap-3">
               <div className="icon-bubble icon-bubble--soft w-9 h-9">
-                <UserMinus className="w-4 h-4" />
+                <BriefcaseBusiness className="w-4 h-4" />
               </div>
               <h3 className="text-sm font-semibold text-foreground">Информация о сотруднике</h3>
             </div>

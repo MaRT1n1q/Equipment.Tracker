@@ -21,16 +21,20 @@ import {
   cancelReturn,
   updateEquipmentItemStatus,
 } from '../lib/api/requests'
+import { broadcastInvalidation } from '../lib/querySync'
 
 export const REQUESTS_QUERY_KEY = ['requests'] as const
 export const REQUEST_SUMMARY_QUERY_KEY = ['requestSummary'] as const
 
-async function _fetchRequests(params: RequestListParams): Promise<PaginatedRequestsResponse> {
-  return fetchRequests(params)
+async function _fetchRequests(
+  params: RequestListParams,
+  cityOverride?: string
+): Promise<PaginatedRequestsResponse> {
+  return fetchRequests(params, cityOverride)
 }
 
-async function _fetchRequestSummary(): Promise<RequestSummary> {
-  return fetchRequestSummary()
+async function _fetchRequestSummary(cityOverride?: string): Promise<RequestSummary> {
+  return fetchRequestSummary(cityOverride)
 }
 
 type UpdatePayload = {
@@ -60,19 +64,21 @@ type UpdateEquipmentStatusPayload = {
 
 type RestorePayload = Request
 
-export function useRequestsQuery(params: RequestListParams) {
+export function useRequestsQuery(params: RequestListParams, cityOverride?: string) {
   return useQuery({
-    queryKey: [...REQUESTS_QUERY_KEY, params] as const,
-    queryFn: () => _fetchRequests(params),
+    queryKey: [...REQUESTS_QUERY_KEY, params, cityOverride] as const,
+    queryFn: () => _fetchRequests(params, cityOverride),
     placeholderData: (previousData) => previousData,
+    refetchInterval: 60_000,
   })
 }
 
-export function useRequestSummaryQuery() {
+export function useRequestSummaryQuery(cityOverride?: string) {
   return useQuery({
-    queryKey: REQUEST_SUMMARY_QUERY_KEY,
-    queryFn: _fetchRequestSummary,
-    staleTime: 5 * 60 * 1000,
+    queryKey: [...REQUEST_SUMMARY_QUERY_KEY, cityOverride] as const,
+    queryFn: () => _fetchRequestSummary(cityOverride),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   })
 }
 
@@ -82,6 +88,7 @@ export function useRequestActions() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: REQUESTS_QUERY_KEY })
     queryClient.invalidateQueries({ queryKey: REQUEST_SUMMARY_QUERY_KEY })
+    broadcastInvalidation(['requests', 'requestSummary'])
   }
 
   const createMutation = useMutation<void, Error, CreateRequestData>({

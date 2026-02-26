@@ -5,7 +5,7 @@ import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
 import {
   Trash2,
-  UserMinus,
+  BriefcaseBusiness,
   Calendar,
   Package,
   CheckCircle2,
@@ -239,7 +239,7 @@ export function EmployeeExitTable({
 
     return (
       <EmptyState
-        icon={UserMinus}
+        icon={BriefcaseBusiness}
         title="Записей пока нет"
         description="Создайте первую запись о выдаче оборудования сотруднику — нажмите «Добавить запись» вверху."
       />

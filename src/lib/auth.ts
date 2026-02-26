@@ -1,11 +1,14 @@
 export interface AuthSession {
   userId: string
   login: string
+  city: string
+  role: string
   accessToken: string
   refreshToken: string
 }
 
 const AUTH_SESSION_STORAGE_KEY = 'equipment-tracker:auth-session'
+const SAVED_CITY_KEY = 'equipment-tracker:saved-city'
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:9090'
 const DEFAULT_AUTH_API_URL = `${API_BASE}/api/v1/auth/login`
 
@@ -43,9 +46,16 @@ export function getAuthSession(): AuthSession | null {
       return null
     }
 
+    // Если город не задан — сессия устарела (до внедрения city), сбрасываем
+    if (!parsed.city) {
+      return null
+    }
+
     return {
       userId: parsed.userId,
       login: parsed.login,
+      city: parsed.city,
+      role: parsed.role ?? 'user',
       accessToken: parsed.accessToken,
       refreshToken: parsed.refreshToken,
     }
@@ -61,6 +71,7 @@ export function saveAuthSession(session: AuthSession): void {
   }
 
   storage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session))
+  storage.setItem(SAVED_CITY_KEY, session.city)
 }
 
 export function clearAuthSession(): void {
@@ -70,9 +81,37 @@ export function clearAuthSession(): void {
   }
 
   storage.removeItem(AUTH_SESSION_STORAGE_KEY)
+  // SAVED_CITY_KEY намеренно не удаляем — город запоминается для следующего входа
 }
 
-export async function loginByUserLogin(login: string, password: string): Promise<AuthSession> {
+export function getSavedCity(): string | null {
+  const storage = readStorage()
+  if (!storage) return null
+  return storage.getItem(SAVED_CITY_KEY) || null
+}
+
+export function setSavedCity(city: string): void {
+  const storage = readStorage()
+  if (!storage) return
+  storage.setItem(SAVED_CITY_KEY, city)
+}
+
+export async function getCities(): Promise<string[]> {
+  const url = `${API_BASE}/api/v1/cities`
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return []
+    return (await response.json()) as string[]
+  } catch {
+    return []
+  }
+}
+
+export async function loginByUserLogin(
+  login: string,
+  password: string,
+  city: string
+): Promise<AuthSession> {
   const normalizedLogin = login.trim()
   if (!normalizedLogin) {
     throw new Error('Логин обязателен')
@@ -87,13 +126,15 @@ export async function loginByUserLogin(login: string, password: string): Promise
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ login: normalizedLogin, password }),
+    body: JSON.stringify({ login: normalizedLogin, password, city }),
   })
 
   const payload = (await response.json()) as
     | {
         user_id?: string
         login?: string
+        city?: string
+        role?: string
         access_token?: string
         refresh_token?: string
         error?: string | { message?: string; code?: string }
@@ -118,6 +159,8 @@ export async function loginByUserLogin(login: string, password: string): Promise
   const session: AuthSession = {
     userId: payload.user_id,
     login: payload.login,
+    city: payload.city ?? city,
+    role: payload.role ?? 'user',
     accessToken: payload.access_token,
     refreshToken: payload.refresh_token,
   }

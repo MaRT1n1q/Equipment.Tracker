@@ -1,21 +1,34 @@
-import { FormEvent, useState } from 'react'
-import { LoaderCircle, LogIn, ShieldCheck } from 'lucide-react'
+import { FormEvent, useEffect, useState } from 'react'
+import { LoaderCircle, LogIn, MapPin, Pencil, ShieldCheck } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { getCities, getSavedCity } from '../lib/auth'
 
 type LoginScreenProps = {
   isLoading: boolean
-  onLogin: (login: string, password: string) => Promise<void>
+  onLogin: (login: string, password: string, city: string) => Promise<void>
 }
 
 export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
+  const [cities, setCities] = useState<string[]>([])
+  const [selectedCity, setSelectedCity] = useState<string>('')
+  const [showCitySelect, setShowCitySelect] = useState<boolean>(!getSavedCity())
+
+  useEffect(() => {
+    const savedCity = getSavedCity() ?? ''
+    getCities().then((list) => {
+      setCities(list)
+      setSelectedCity(savedCity && list.includes(savedCity) ? savedCity : (list[0] ?? ''))
+    })
+  }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    await onLogin(login, password)
+    await onLogin(login, password, selectedCity)
   }
 
   return (
@@ -30,6 +43,53 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
+          {cities.length > 0 && (
+            <div className="space-y-2">
+              {showCitySelect ? (
+                <>
+                  <Label htmlFor="city" className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Город
+                  </Label>
+                  <Select
+                    value={selectedCity}
+                    onValueChange={(v) => {
+                      setSelectedCity(v)
+                      setShowCitySelect(false)
+                    }}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="city">
+                      <SelectValue placeholder="Выберите город" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{selectedCity}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowCitySelect(true)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Изменить
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="login">Логин</Label>
             <Input
@@ -61,7 +121,7 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || !login.trim() || password.trim().length < 8}
+            disabled={isLoading || !login.trim() || password.trim().length < 8 || !selectedCity}
           >
             {isLoading ? (
               <>

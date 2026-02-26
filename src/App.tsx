@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { onQuerySync } from './lib/querySync'
 import { AddRequestModal } from './components/AddRequestModal'
 import { EditRequestModal } from './components/EditRequestModal'
 import { Dashboard } from './components/Dashboard'
@@ -45,6 +47,7 @@ function App() {
   const [highlightExitId, setHighlightExitId] = useState<number | null>(null)
   const [highlightRequestSearch, setHighlightRequestSearch] = useState<string | null>(null)
   const [highlightExitSearch, setHighlightExitSearch] = useState<string | null>(null)
+  const [activeCityOverride, setActiveCityOverride] = useState<string | null>(null)
   const { newChanges, isOpen: isChangelogOpen, dismissChangelog } = useChangelog()
   const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
@@ -58,6 +61,17 @@ function App() {
       deserializer: (value) => value === 'true',
     }
   )
+
+  const queryClient = useQueryClient()
+
+  // Синхронизация кэша между вкладками
+  useEffect(() => {
+    return onQuerySync((keys) => {
+      keys.forEach((key) => {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      })
+    })
+  }, [queryClient])
 
   // При 401 от API — выбрасываем на экран входа
   useEffect(() => {
@@ -121,10 +135,12 @@ function App() {
     [setIsModalOpen]
   )
 
-  const handleLogin = async (login: string, password: string) => {
+  const handleLogin = async (login: string, password: string, city: string) => {
     try {
       setIsAuthLoading(true)
-      const session = await loginByUserLogin(login, password)
+      const session = await loginByUserLogin(login, password, city)
+      queryClient.clear()
+      setActiveCityOverride(null)
       setAuthSession(session)
       toast.success(`Вход выполнен: ${session.login}`)
     } catch (error) {
@@ -137,6 +153,8 @@ function App() {
 
   const handleLogout = () => {
     clearAuthSession()
+    queryClient.clear()
+    setActiveCityOverride(null)
     setAuthSession(null)
     toast.success('Вы вышли из аккаунта')
   }
@@ -165,6 +183,8 @@ function App() {
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         authSession={authSession}
         onLogout={handleLogout}
+        activeCityOverride={activeCityOverride}
+        onCityOverrideChange={setActiveCityOverride}
       />
 
       <div
@@ -180,6 +200,7 @@ function App() {
                 <Dashboard
                   onSelectRequest={handleNavigateToRequest}
                   onSelectEmployeeExit={handleNavigateToEmployeeExit}
+                  cityOverride={activeCityOverride ?? undefined}
                 />
               </div>
             ) : currentView === 'requests' ? (
@@ -194,6 +215,7 @@ function App() {
                     setHighlightRequestId(null)
                     setHighlightRequestSearch(null)
                   }}
+                  cityOverride={activeCityOverride ?? undefined}
                 />
               </div>
             ) : currentView === 'templates' ? (
@@ -215,6 +237,7 @@ function App() {
                     setHighlightExitId(null)
                     setHighlightExitSearch(null)
                   }}
+                  cityOverride={activeCityOverride ?? undefined}
                 />
               </div>
             )}

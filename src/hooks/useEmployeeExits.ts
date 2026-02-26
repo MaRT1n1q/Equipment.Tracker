@@ -16,6 +16,7 @@ import {
   setExitCompleted,
   updateExitEquipmentStatus,
 } from '../lib/api/employeeExits'
+import { broadcastInvalidation } from '../lib/querySync'
 
 export const EMPLOYEE_EXITS_QUERY_KEY = ['employeeExits'] as const
 export const EMPLOYEE_EXIT_SUMMARY_QUERY_KEY = ['employeeExitSummary'] as const
@@ -36,19 +37,22 @@ type UpdateEquipmentStatusPayload = {
   status: string
 }
 
-export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
+export function useEmployeeExitsQuery(params: EmployeeExitListParams, cityOverride?: string) {
   return useQuery({
-    queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params] as const,
-    queryFn: (): Promise<PaginatedEmployeeExitsResponse> => fetchEmployeeExits(params),
+    queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params, cityOverride] as const,
+    queryFn: (): Promise<PaginatedEmployeeExitsResponse> =>
+      fetchEmployeeExits(params, cityOverride),
     placeholderData: (previousData) => previousData,
+    refetchInterval: 60_000,
   })
 }
 
-export function useEmployeeExitSummaryQuery() {
+export function useEmployeeExitSummaryQuery(cityOverride?: string) {
   return useQuery({
-    queryKey: EMPLOYEE_EXIT_SUMMARY_QUERY_KEY,
-    queryFn: (): Promise<EmployeeExitSummary> => fetchEmployeeExitSummary(),
-    staleTime: 5 * 60 * 1000,
+    queryKey: [...EMPLOYEE_EXIT_SUMMARY_QUERY_KEY, cityOverride] as const,
+    queryFn: (): Promise<EmployeeExitSummary> => fetchEmployeeExitSummary(cityOverride),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   })
 }
 
@@ -58,6 +62,7 @@ export function useEmployeeExitActions() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: EMPLOYEE_EXITS_QUERY_KEY })
     queryClient.invalidateQueries({ queryKey: EMPLOYEE_EXIT_SUMMARY_QUERY_KEY })
+    broadcastInvalidation(['employeeExits', 'employeeExitSummary'])
   }
 
   const createMutation = useMutation<void, Error, CreateEmployeeExitData>({

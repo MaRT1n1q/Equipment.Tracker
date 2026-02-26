@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Package, PackageCheck, Clock, TrendingUp, UserMinus, Users, Search } from 'lucide-react'
+import {
+  Package,
+  PackageCheck,
+  Clock,
+  TrendingUp,
+  BriefcaseBusiness,
+  Users,
+  Search,
+} from 'lucide-react'
 import { EmployeeExitCalendar } from './EmployeeExitCalendar'
 import { Input } from './ui/input'
 import { cn } from '../lib/utils'
@@ -21,6 +29,7 @@ export type DashboardSelection = {
 interface DashboardProps {
   onSelectRequest?: (target: DashboardSelection) => void
   onSelectEmployeeExit?: (target: DashboardSelection) => void
+  cityOverride?: string
 }
 
 type SearchResult =
@@ -41,19 +50,19 @@ type SearchResult =
       searchHint?: string
     }
 
-export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardProps) {
+export function Dashboard({ onSelectRequest, onSelectEmployeeExit, cityOverride }: DashboardProps) {
   const {
     data: requestSummary,
     isLoading: isRequestSummaryLoading,
     isError: isRequestSummaryError,
     refetch: refetchRequestSummary,
-  } = useRequestSummaryQuery()
+  } = useRequestSummaryQuery(cityOverride)
   const {
     data: employeeExitSummary,
     isLoading: isEmployeeSummaryLoading,
     isError: isEmployeeSummaryError,
     refetch: refetchEmployeeSummary,
-  } = useEmployeeExitSummaryQuery()
+  } = useEmployeeExitSummaryQuery(cityOverride)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const searchContainerRef = useRef<HTMLDivElement>(null)
@@ -68,9 +77,12 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
     error: requestSearchError,
     refetch: refetchRequestSearch,
   } = useQuery({
-    queryKey: ['dashboard', 'requestSearch', trimmedQuery],
+    queryKey: ['dashboard', 'requestSearch', trimmedQuery, cityOverride],
     queryFn: async () => {
-      const response = await fetchRequests({ search: trimmedQuery, page: 1, pageSize: 50 })
+      const response = await fetchRequests(
+        { search: trimmedQuery, page: 1, pageSize: 50 },
+        cityOverride
+      )
       return response.items
     },
     enabled: isSearchEnabled,
@@ -83,9 +95,12 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
     error: employeeExitSearchError,
     refetch: refetchEmployeeExitSearch,
   } = useQuery({
-    queryKey: ['dashboard', 'exitSearch', trimmedQuery],
+    queryKey: ['dashboard', 'exitSearch', trimmedQuery, cityOverride],
     queryFn: async () => {
-      const response = await fetchEmployeeExits({ search: trimmedQuery, page: 1, pageSize: 50 })
+      const response = await fetchEmployeeExits(
+        { search: trimmedQuery, page: 1, pageSize: 50 },
+        cityOverride
+      )
       return response.items
     },
     enabled: isSearchEnabled,
@@ -192,7 +207,7 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
     {
       title: 'В ожидании',
       value: exitTotals.pending,
-      icon: UserMinus,
+      icon: BriefcaseBusiness,
       accent: 'warning' as const,
     },
   ]
@@ -363,7 +378,7 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
                             {result.type === 'request' ? (
                               <Package className="h-4 w-4" />
                             ) : (
-                              <UserMinus className="h-4 w-4" />
+                              <BriefcaseBusiness className="h-4 w-4" />
                             )}
                           </span>
                           <div className="min-w-0 space-y-1">
@@ -443,7 +458,7 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
           <div>
             <p className="surface-section__title">Статистика</p>
             <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
-              <UserMinus className="h-5 w-5 text-[hsl(var(--primary))]" />
+              <BriefcaseBusiness className="h-5 w-5 text-[hsl(var(--primary))]" />
               Выход сотрудников
             </h2>
           </div>

@@ -1,5 +1,5 @@
 /**
- * API-модуль для работы с увольнениями сотрудников.
+ * API-модуль для работы с выходами сотрудников.
  */
 
 import { apiDelete, apiGet, apiPost, apiPut } from '../apiClient'
@@ -101,13 +101,15 @@ function toRestoreBody(payload: EmployeeExit) {
 // ─── API-функции ──────────────────────────────────────────────────────────────
 
 export async function fetchEmployeeExits(
-  params: EmployeeExitListParams
+  params: EmployeeExitListParams,
+  cityOverride?: string
 ): Promise<PaginatedEmployeeExitsResponse> {
   const qs = new URLSearchParams()
   if (params.page) qs.set('page', String(params.page))
   if (params.pageSize) qs.set('page_size', String(params.pageSize))
   if (params.search) qs.set('search', params.search)
   if (params.status) qs.set('status', params.status)
+  if (cityOverride) qs.set('city', cityOverride)
 
   const raw = await apiGet<BackendExitListResponse>(`/api/v1/employee-exits?${qs}`)
   return {
@@ -116,8 +118,11 @@ export async function fetchEmployeeExits(
   }
 }
 
-export async function fetchEmployeeExitSummary(): Promise<EmployeeExitSummary> {
-  const raw = await apiGet<BackendSummary>('/api/v1/employee-exits/summary')
+export async function fetchEmployeeExitSummary(
+  cityOverride?: string
+): Promise<EmployeeExitSummary> {
+  const qs = cityOverride ? `?city=${encodeURIComponent(cityOverride)}` : ''
+  const raw = await apiGet<BackendSummary>(`/api/v1/employee-exits/summary${qs}`)
   return mapSummary(raw)
 }
 

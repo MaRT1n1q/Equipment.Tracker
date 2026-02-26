@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCcw, UserMinus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCcw, BriefcaseBusiness } from 'lucide-react'
 import type { EmployeeExitSummary } from '../types/ipc'
 import { cn } from '../lib/utils'
 import { parseExitEquipmentList, stringifyExitEquipmentItems } from '../lib/employeeExitEquipment'
@@ -281,7 +281,7 @@ export function EmployeeExitCalendar({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
-              <UserMinus className="w-5 h-5 text-[hsl(var(--primary))]" />
+              <BriefcaseBusiness className="w-5 h-5 text-[hsl(var(--primary))]" />
               <h2 className="text-xl font-semibold">Календарь выходов сотрудников</h2>
             </div>
             <div className="flex items-center gap-2">
@@ -513,7 +513,7 @@ export function EmployeeExitCalendar({
         ) : (
           <div className="surface-section rounded-lg border border-border/40">
             <EmptyState
-              icon={UserMinus}
+              icon={BriefcaseBusiness}
               title="Нет событий"
               description="На выбранную дату событий не запланировано."
             />
