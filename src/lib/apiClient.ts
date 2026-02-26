@@ -8,9 +8,7 @@
 
 import { clearAuthSession, getAuthSession } from './auth'
 
-const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
-  'http://localhost:9090'
+const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:9090'
 
 // ─── Типы ошибок ─────────────────────────────────────────────────────────────
 
