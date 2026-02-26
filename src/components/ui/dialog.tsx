@@ -27,7 +27,12 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50 w-full mx-4 flex justify-center">{children}</div>
+      <div
+        className="relative z-50 w-full mx-4 flex justify-center"
+        onClick={() => onOpenChange(false)}
+      >
+        {children}
+      </div>
     </div>
   )
 }
@@ -41,6 +46,7 @@ interface DialogContentProps {
 export function DialogContent({ children, className, style }: DialogContentProps) {
   return (
     <div
+      onClick={(e) => e.stopPropagation()}
       className={cn(
         'w-full max-w-lg bg-card text-card-foreground rounded-lg shadow-lg border p-6',
         'animate-in fade-in-0 zoom-in-95',

@@ -187,6 +187,7 @@ function TreeNode({
         style={{ paddingLeft: `${level * 16 + 8}px` }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        data-tree-node
         draggable
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -795,6 +796,7 @@ export function InstructionsView() {
   // Drag & Drop state
   const [draggedId, setDraggedId] = useState<number | null>(null)
   const [dropTargetId, setDropTargetId] = useState<number | null>(null)
+  const [isRootDropTarget, setIsRootDropTarget] = useState(false)
 
   // Resizing state
   const [isResizing, setIsResizing] = useState(false)
@@ -950,6 +952,7 @@ export function InstructionsView() {
   const handleDragEnd = useCallback(() => {
     setDraggedId(null)
     setDropTargetId(null)
+    setIsRootDropTarget(false)
   }, [])
 
   const handleDrop = useCallback(
@@ -970,9 +973,64 @@ export function InstructionsView() {
 
       setDraggedId(null)
       setDropTargetId(null)
+      setIsRootDropTarget(false)
     },
     [draggedId, tree, moveInstruction, setExpandedIds]
   )
+
+  const handleDropToRoot = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsRootDropTarget(false)
+      if (draggedId === null) return
+
+      const draggedNode = findNodeById(tree, draggedId)
+      if (!draggedNode) return
+
+      // Если элемент уже в корне — ничего не делать
+      if (draggedNode.parent_id === null || draggedNode.parent_id === undefined) {
+        setDraggedId(null)
+        setDropTargetId(null)
+        return
+      }
+
+      moveInstruction.mutate({
+        id: draggedId,
+        data: { parent_id: null, sort_order: 999 },
+      })
+
+      setDraggedId(null)
+      setDropTargetId(null)
+    },
+    [draggedId, tree, moveInstruction]
+  )
+
+  const handleDragOverRoot = useCallback(
+    (e: React.DragEvent) => {
+      // Разрешаем drop только если тащим что-то и цель не является другим узлом
+      if (draggedId === null) return
+      // Если курсор над конкретным TreeNode — тот сам обработает
+      const target = e.target as HTMLElement
+      const isOverNode = target.closest('[data-tree-node]')
+      if (isOverNode) {
+        setIsRootDropTarget(false)
+        return
+      }
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      setIsRootDropTarget(true)
+      setDropTargetId(null)
+    },
+    [draggedId]
+  )
+
+  const handleDragLeaveRoot = useCallback((e: React.DragEvent) => {
+    // Сбрасываем только если выходим за пределы контейнера
+    const relatedTarget = e.relatedTarget as HTMLElement | null
+    if (!e.currentTarget.contains(relatedTarget)) {
+      setIsRootDropTarget(false)
+    }
+  }, [])
 
   // Toggle favorite handler
   const handleToggleFavorite = useCallback(
@@ -1108,7 +1166,15 @@ export function InstructionsView() {
           </div>
 
           {/* Tree */}
-          <div className="flex-1 min-h-0 overflow-auto custom-scrollbar p-2">
+          <div
+            className={cn(
+              'flex-1 min-h-0 overflow-auto custom-scrollbar p-2',
+              isRootDropTarget && 'ring-2 ring-primary ring-inset rounded-lg bg-primary/5'
+            )}
+            onDragOver={handleDragOverRoot}
+            onDragLeave={handleDragLeaveRoot}
+            onDrop={handleDropToRoot}
+          >
             {filteredTree.length === 0 ? (
               <EmptyState
                 icon={FileText}
