@@ -374,6 +374,37 @@ export interface UpdateStatusPayload {
   data?: Record<string, unknown>
 }
 
+// ─── Migration (legacy local SQLite → server) ────────────────────────────
+
+export interface MigrationCounts {
+  requests: number
+  employee_exits: number
+  templates: number
+  instructions: number
+}
+
+export interface MigrationStatus {
+  needed: boolean
+  done: boolean
+  dbExists: boolean
+  counts?: MigrationCounts
+}
+
+export interface MigrationImported {
+  requests: number
+  employee_exits: number
+  templates: number
+  template_files: number
+  instructions: number
+  instruction_attachments: number
+}
+
+export interface MigrationResult {
+  success: boolean
+  imported?: MigrationImported
+  error?: string
+}
+
 export const windowStateSchema = z.object({
   isMaximized: z.boolean(),
 })

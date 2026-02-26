@@ -1,4 +1,10 @@
-import type { ApiResponse, UpdateStatusPayload, WindowState } from './ipc'
+import type {
+  ApiResponse,
+  UpdateStatusPayload,
+  WindowState,
+  MigrationStatus,
+  MigrationResult,
+} from './ipc'
 
 declare global {
   interface Window {
@@ -21,6 +27,11 @@ declare global {
 
       // External links
       openExternal: (url: string) => Promise<ApiResponse>
+
+      // Migration from legacy local SQLite
+      getMigrationStatus: () => Promise<MigrationStatus>
+      runMigration: (apiBaseUrl: string, accessToken: string) => Promise<MigrationResult>
+      skipMigration: () => Promise<void>
     }
   }
 }

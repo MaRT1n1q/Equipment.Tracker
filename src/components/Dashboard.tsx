@@ -18,6 +18,7 @@ import { useRequestSummaryQuery } from '../hooks/useRequests'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
 import { LoadingState } from './LoadingState'
+import { DashboardSkeleton } from './DashboardSkeleton'
 import { fetchRequests } from '../lib/api/requests'
 import { fetchEmployeeExits } from '../lib/api/employeeExits'
 
@@ -286,7 +287,7 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit, cityOverride 
   const isError = isRequestSummaryError || isEmployeeSummaryError
 
   if (isLoading) {
-    return <LoadingState label="Загружаем сводку…" />
+    return <DashboardSkeleton />
   }
 
   if (isError) {

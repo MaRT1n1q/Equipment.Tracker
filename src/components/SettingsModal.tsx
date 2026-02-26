@@ -23,6 +23,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose, authSession, onLogout }: SettingsModalProps) {
+  const isElectron = typeof window !== 'undefined' && !!window.electronAPI
   const [appVersion, setAppVersion] = useState('loading...')
   const [updateState, setUpdateState] = useState<UpdateState>('idle')
   const [updateMessage, setUpdateMessage] = useState<string | null>(null)
@@ -288,49 +289,53 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
             <div>
               <DialogTitle className="text-2xl">Настройки</DialogTitle>
               <DialogDescription>
-                Управление обновлениями и настройками приложения
+                {isElectron
+                  ? 'Управление обновлениями и настройками приложения'
+                  : 'Настройки приложения'}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Update Section */}
-          <div className="surface-section space-y-4">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="w-5 h-5 text-[hsl(var(--primary))]" />
-              <h3 className="font-semibold text-base">Обновление приложения</h3>
-            </div>
+          {/* Update Section — только в Electron-приложении */}
+          {isElectron && (
+            <div className="surface-section space-y-4">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-[hsl(var(--primary))]" />
+                <h3 className="font-semibold text-base">Обновление приложения</h3>
+              </div>
 
-            <div className="grid gap-3">
-              <Button
-                onClick={handleUpdateAction}
-                variant="outline"
-                className="w-full justify-start h-auto py-3 hover:bg-muted/40 transition-colors group"
-                disabled={
-                  updateState === 'checking' ||
-                  updateState === 'downloading' ||
-                  updateState === 'installing'
-                }
-              >
-                <div className="flex items-start gap-3 w-full">
-                  <div className={`${iconVariants.info} w-10 h-10`}>
-                    <RefreshCw
-                      className={`w-5 h-5 ${shouldAnimateUpdateIcon ? 'animate-spin' : ''}`}
-                    />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium">{updateButtonLabel}</div>
-                    <div
-                      className={`text-xs mt-1 ${updateDescriptionClass} whitespace-normal break-words text-pretty`}
-                    >
-                      {updateDescription}
+              <div className="grid gap-3">
+                <Button
+                  onClick={handleUpdateAction}
+                  variant="outline"
+                  className="w-full justify-start h-auto py-3 hover:bg-muted/40 transition-colors group"
+                  disabled={
+                    updateState === 'checking' ||
+                    updateState === 'downloading' ||
+                    updateState === 'installing'
+                  }
+                >
+                  <div className="flex items-start gap-3 w-full">
+                    <div className={`${iconVariants.info} w-10 h-10`}>
+                      <RefreshCw
+                        className={`w-5 h-5 ${shouldAnimateUpdateIcon ? 'animate-spin' : ''}`}
+                      />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-medium">{updateButtonLabel}</div>
+                      <div
+                        className={`text-xs mt-1 ${updateDescriptionClass} whitespace-normal break-words text-pretty`}
+                      >
+                        {updateDescription}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Button>
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="surface-section space-y-4">
             <div className="flex items-center gap-2">

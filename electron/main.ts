@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { createMainWindow } from './window'
 import { registerWindowControlHandlers } from './ipc/windowControls'
 import { registerExternalHandlers } from './ipc/external'
+import { registerMigrationHandlers } from './ipc/migration'
 import { createTray, destroyTray } from './tray'
 import { initAutoUpdater, registerUpdaterHandlers } from './updater'
 
@@ -44,6 +45,7 @@ if (!gotTheLock) {
 
   registerWindowControlHandlers(getMainWindow)
   registerExternalHandlers()
+  registerMigrationHandlers()
 
   app.whenReady().then(() => {
     app.setLoginItemSettings({

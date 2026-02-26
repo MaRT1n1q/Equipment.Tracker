@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import type { ApiResponse, UpdateStatusPayload, WindowState } from '../src/types/ipc'
+import type {
+  ApiResponse,
+  UpdateStatusPayload,
+  WindowState,
+  MigrationStatus,
+  MigrationResult,
+} from '../src/types/ipc'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // App info
@@ -45,4 +51,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // External links
   openExternal: (url: string): Promise<ApiResponse> => ipcRenderer.invoke('open-external', url),
+
+  // Migration from legacy local SQLite
+  getMigrationStatus: (): Promise<MigrationStatus> => ipcRenderer.invoke('migration:status'),
+
+  runMigration: (apiBaseUrl: string, accessToken: string): Promise<MigrationResult> =>
+    ipcRenderer.invoke('migration:run', { apiBaseUrl, accessToken }),
+
+  skipMigration: (): Promise<void> => ipcRenderer.invoke('migration:skip'),
 })

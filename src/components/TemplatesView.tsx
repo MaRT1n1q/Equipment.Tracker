@@ -33,6 +33,7 @@ import { cn } from '../lib/utils'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
 import { EmptyState } from './EmptyState'
+import { TemplatesSkeleton } from './TemplatesSkeleton'
 
 interface SortableTemplateCardProps {
   template: Template
@@ -317,32 +318,6 @@ export function TemplatesView() {
     setActiveTemplate(null)
   }
 
-  const renderSkeletonCards = () => (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div
-          key={`template-skeleton-${index}`}
-          className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm"
-        >
-          <div className="animate-pulse space-y-4">
-            <div className="h-3 w-20 rounded-full bg-muted" />
-            <div className="h-6 w-3/4 rounded-full bg-muted" />
-            <div className="space-y-2">
-              <div className="h-4 w-full rounded bg-muted" />
-              <div className="h-4 w-full rounded bg-muted" />
-              <div className="h-4 w-3/4 rounded bg-muted" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-9 flex-1 rounded bg-muted" />
-              <div className="h-9 w-10 rounded bg-muted" />
-              <div className="h-9 w-10 rounded bg-muted" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-
   const hasTemplates = orderedTemplates.length > 0
   const disableActions = isDeleting || isReordering
 
@@ -408,7 +383,7 @@ export function TemplatesView() {
 
         <div>
           {isLoading ? (
-            renderSkeletonCards()
+            <TemplatesSkeleton />
           ) : isError ? (
             <ErrorState
               title="Не удалось загрузить шаблоны"

@@ -10,8 +10,9 @@ import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
 import { useRequestSummaryQuery, useRequestsQuery } from '../hooks/useRequests'
 import { ListPagination } from './ListPagination'
 import { PageHeader } from './PageHeader'
-import { LoadingState } from './LoadingState'
+
 import { ErrorState } from './ErrorState'
+import { RequestsSkeleton } from './RequestsSkeleton'
 
 const REQUESTS_SEARCH_STORAGE_KEY = 'equipment-tracker:requests-search'
 const REQUESTS_FILTER_STORAGE_KEY = 'equipment-tracker:requests-filter'
@@ -188,7 +189,7 @@ export function RequestsView({
       />
 
       {isLoading ? (
-        <LoadingState label="Загружаем заявки…" />
+        <RequestsSkeleton />
       ) : isError ? (
         <ErrorState
           title="Не удалось загрузить заявки"

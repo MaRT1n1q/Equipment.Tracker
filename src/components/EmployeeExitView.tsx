@@ -13,8 +13,9 @@ import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut'
 import type { EmployeeExit } from '../types/ipc'
 import { ListPagination } from './ListPagination'
 import { PageHeader } from './PageHeader'
-import { LoadingState } from './LoadingState'
+
 import { ErrorState } from './ErrorState'
+import { EmployeeExitSkeleton } from './EmployeeExitSkeleton'
 import { fetchEmployeeExits } from '../lib/api/employeeExits'
 
 const EXIT_TIPS_STORAGE_KEY = 'equipment-tracker:exit-tips-dismissed'
@@ -276,7 +277,7 @@ export function EmployeeExitView({
         />
 
         {isLoading ? (
-          <LoadingState label="Загружаем выходы…" />
+          <EmployeeExitSkeleton />
         ) : isError ? (
           <ErrorState
             title="Не удалось загрузить выходы сотрудников"

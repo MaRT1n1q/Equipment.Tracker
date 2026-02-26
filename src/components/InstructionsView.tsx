@@ -49,6 +49,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
 import { EmptyState } from './EmptyState'
+import { InstructionsSkeleton } from './InstructionsSkeleton'
 import { AddInstructionModal } from './AddInstructionModal'
 import { EditInstructionModal } from './EditInstructionModal'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -1064,14 +1065,7 @@ export function InstructionsView() {
   }, [tree, setExpandedIds])
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col h-full">
-        <PageHeader title="Инструкции" description="База знаний и документация" />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Загрузка...</div>
-        </div>
-      </div>
-    )
+    return <InstructionsSkeleton />
   }
 
   if (isError) {

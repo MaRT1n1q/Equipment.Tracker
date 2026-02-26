@@ -20,6 +20,7 @@ import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
 import { WindowTitleBar } from './components/WindowTitleBar'
 import { LoginScreen } from './components/LoginScreen'
+import { MigrationBanner } from './components/MigrationBanner'
 import { clearAuthSession, getAuthSession, loginByUserLogin, type AuthSession } from './lib/auth'
 
 type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
@@ -194,6 +195,7 @@ function App() {
         )}
       >
         <main className="custom-scrollbar flex-1 overflow-auto">
+          <MigrationBanner accessToken={authSession.accessToken} />
           <div className="px-8 py-8">
             {currentView === 'dashboard' ? (
               <div className="animate-fade-in space-y-6">
