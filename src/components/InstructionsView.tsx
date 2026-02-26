@@ -430,7 +430,7 @@ function InstructionPanel({
   const [previewImageUrl, setPreviewImageUrl] = useState('')
 
   const isImageAttachment = (attachment: InstructionAttachment) =>
-    attachment.mime_type.startsWith('image/')
+    (attachment.mime_type ?? '').startsWith('image/')
 
   useEffect(() => {
     attachmentPreviewUrlsRef.current = {}
@@ -517,7 +517,8 @@ function InstructionPanel({
     }
   }
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number | undefined | null) => {
+    if (bytes == null || isNaN(bytes) || bytes < 0) return '—'
     if (bytes < 1024) return `${bytes} Б`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`
     return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`
