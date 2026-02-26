@@ -33,6 +33,13 @@ interface BackendCountsResponse {
   [templateId: string]: number
 }
 
+function ensurePositiveId(value: unknown, name: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    throw new Error(`Некорректный ${name}`)
+  }
+  return value
+}
+
 // ─── Маппинг ──────────────────────────────────────────────────────────────────
 
 function mapTemplateFile(f: BackendTemplateFile): TemplateFile {
@@ -50,7 +57,8 @@ function mapTemplateFile(f: BackendTemplateFile): TemplateFile {
 // ─── API-функции ──────────────────────────────────────────────────────────────
 
 export async function fetchTemplateFiles(templateId: number): Promise<TemplateFile[]> {
-  const raw = await apiGet<BackendFileListResponse>(`/api/v1/templates/${templateId}/files`)
+  const safeTemplateId = ensurePositiveId(templateId, 'ID шаблона')
+  const raw = await apiGet<BackendFileListResponse>(`/api/v1/templates/${safeTemplateId}/files`)
   return raw.items.map(mapTemplateFile)
 }
 
@@ -58,15 +66,17 @@ export async function uploadTemplateFiles(
   templateId: number,
   files: File[]
 ): Promise<TemplateFile[]> {
+  const safeTemplateId = ensurePositiveId(templateId, 'ID шаблона')
   const raw = await apiUpload<BackendFileListResponse>(
-    `/api/v1/templates/${templateId}/files`,
+    `/api/v1/templates/${safeTemplateId}/files`,
     files
   )
   return raw.items.map(mapTemplateFile)
 }
 
 export async function getTemplateFileMeta(fileId: number): Promise<TemplateFile> {
-  const raw = await apiGet<BackendTemplateFile>(`/api/v1/template-files/${fileId}`)
+  const safeFileId = ensurePositiveId(fileId, 'ID файла')
+  const raw = await apiGet<BackendTemplateFile>(`/api/v1/template-files/${safeFileId}`)
   return mapTemplateFile(raw)
 }
 
@@ -74,7 +84,8 @@ export async function getTemplateFileMeta(fileId: number): Promise<TemplateFile>
  * Скачивает файл через браузерный диалог сохранения.
  */
 export async function downloadTemplateFile(fileId: number, originalName: string): Promise<void> {
-  const blobUrl = await apiFetchBlobUrl(`/api/v1/template-files/${fileId}/download`)
+  const safeFileId = ensurePositiveId(fileId, 'ID файла')
+  const blobUrl = await apiFetchBlobUrl(`/api/v1/template-files/${safeFileId}/download`)
   downloadBlobUrl(blobUrl, originalName)
 }
 
@@ -82,7 +93,8 @@ export async function downloadTemplateFile(fileId: number, originalName: string)
  * Открывает файл в новой вкладке (аналог "открыть с помощью системы").
  */
 export async function openTemplateFile(fileId: number): Promise<void> {
-  const blobUrl = await apiFetchBlobUrl(`/api/v1/template-files/${fileId}/download`)
+  const safeFileId = ensurePositiveId(fileId, 'ID файла')
+  const blobUrl = await apiFetchBlobUrl(`/api/v1/template-files/${safeFileId}/download`)
   window.open(blobUrl, '_blank')
   // blob URL остаётся в памяти — приемлемо для короткоживущей вкладки
 }
@@ -95,9 +107,10 @@ export async function getTemplateFilePreview(
   originalName: string,
   mimeType: string
 ): Promise<TemplateFilePreview> {
-  const dataUrl = await apiFetchDataUrl(`/api/v1/template-files/${fileId}/preview`)
+  const safeFileId = ensurePositiveId(fileId, 'ID файла')
+  const dataUrl = await apiFetchDataUrl(`/api/v1/template-files/${safeFileId}/preview`)
   return {
-    file_id: fileId,
+    file_id: safeFileId,
     original_name: originalName,
     mime_type: mimeType,
     data_url: dataUrl,
@@ -105,14 +118,19 @@ export async function getTemplateFilePreview(
 }
 
 export async function deleteTemplateFile(fileId: number): Promise<void> {
-  await apiDelete(`/api/v1/template-files/${fileId}`)
+  const safeFileId = ensurePositiveId(fileId, 'ID файла')
+  await apiDelete(`/api/v1/template-files/${safeFileId}`)
 }
 
 export async function fetchTemplateFileCounts(): Promise<Record<number, number>> {
   const raw = await apiGet<BackendCountsResponse>('/api/v1/template-files/counts')
   const result: Record<number, number> = {}
   for (const [key, value] of Object.entries(raw)) {
-    result[Number(key)] = value
+    const parsedId = Number(key)
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      continue
+    }
+    result[parsedId] = value
   }
   return result
 }

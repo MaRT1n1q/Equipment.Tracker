@@ -55,6 +55,13 @@ interface BackendAttachmentListResponse {
   items: BackendAttachment[]
 }
 
+function ensurePositiveId(value: unknown, name: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    throw new Error(`Некорректный ${name}`)
+  }
+  return value
+}
+
 // ─── Маппинг ──────────────────────────────────────────────────────────────────
 
 function mapInstruction(i: BackendInstruction): Instruction {
@@ -92,7 +99,8 @@ export async function fetchInstructions(): Promise<Instruction[]> {
 }
 
 export async function fetchInstruction(id: number): Promise<Instruction> {
-  const raw = await apiGet<BackendInstruction>(`/api/v1/instructions/${id}`)
+  const safeId = ensurePositiveId(id, 'ID инструкции')
+  const raw = await apiGet<BackendInstruction>(`/api/v1/instructions/${safeId}`)
   return mapInstruction(raw)
 }
 
@@ -112,17 +120,19 @@ export async function updateInstruction(
   id: number,
   data: UpdateInstructionData
 ): Promise<Instruction> {
+  const safeId = ensurePositiveId(id, 'ID инструкции')
   const body = {
     title: data.title ?? '',
     content: data.content ?? '',
     tags: data.tags ?? [],
   }
-  const raw = await apiPut<BackendInstruction>(`/api/v1/instructions/${id}`, body)
+  const raw = await apiPut<BackendInstruction>(`/api/v1/instructions/${safeId}`, body)
   return mapInstruction(raw)
 }
 
 export async function moveInstruction(id: number, data: MoveInstructionData): Promise<void> {
-  await apiPost(`/api/v1/instructions/${id}/move`, {
+  const safeId = ensurePositiveId(id, 'ID инструкции')
+  await apiPost(`/api/v1/instructions/${safeId}/move`, {
     parent_id: data.parent_id,
     sort_order: data.sort_order,
   })
@@ -136,23 +146,27 @@ export async function reorderInstructions(data: ReorderInstructionsData): Promis
 }
 
 export async function deleteInstruction(id: number): Promise<Instruction | null> {
+  const safeId = ensurePositiveId(id, 'ID инструкции')
   // Бэкенд возвращает { deleted: id } — инструкции больше нет
-  await apiDelete(`/api/v1/instructions/${id}`)
+  await apiDelete(`/api/v1/instructions/${safeId}`)
   return null
 }
 
 export async function duplicateInstruction(id: number): Promise<Instruction> {
-  const raw = await apiPost<BackendInstruction>(`/api/v1/instructions/${id}/duplicate`)
+  const safeId = ensurePositiveId(id, 'ID инструкции')
+  const raw = await apiPost<BackendInstruction>(`/api/v1/instructions/${safeId}/duplicate`)
   return mapInstruction(raw)
 }
 
 export async function toggleFavoriteInstruction(id: number): Promise<Instruction> {
-  const raw = await apiPost<BackendInstruction>(`/api/v1/instructions/${id}/favorite-toggle`)
+  const safeId = ensurePositiveId(id, 'ID инструкции')
+  const raw = await apiPost<BackendInstruction>(`/api/v1/instructions/${safeId}/favorite-toggle`)
   return mapInstruction(raw)
 }
 
 export async function setInstructionTags(id: number, tags: string[]): Promise<void> {
-  await apiPut(`/api/v1/instructions/${id}/tags`, { tags })
+  const safeId = ensurePositiveId(id, 'ID инструкции')
+  await apiPut(`/api/v1/instructions/${safeId}/tags`, { tags })
 }
 
 export async function fetchAllInstructionTags(): Promise<string[]> {
@@ -165,8 +179,9 @@ export async function fetchAllInstructionTags(): Promise<string[]> {
 export async function fetchInstructionAttachments(
   instructionId: number
 ): Promise<InstructionAttachment[]> {
+  const safeInstructionId = ensurePositiveId(instructionId, 'ID инструкции')
   const raw = await apiGet<BackendAttachmentListResponse>(
-    `/api/v1/instructions/${instructionId}/attachments`
+    `/api/v1/instructions/${safeInstructionId}/attachments`
   )
   return raw.items.map(mapAttachment)
 }
@@ -175,8 +190,9 @@ export async function addInstructionAttachment(
   instructionId: number,
   file: File
 ): Promise<InstructionAttachment> {
+  const safeInstructionId = ensurePositiveId(instructionId, 'ID инструкции')
   const raw = await apiUpload<BackendAttachmentListResponse>(
-    `/api/v1/instructions/${instructionId}/attachments`,
+    `/api/v1/instructions/${safeInstructionId}/attachments`,
     file
   )
   const first = raw.items[0]
@@ -185,7 +201,8 @@ export async function addInstructionAttachment(
 }
 
 export async function deleteInstructionAttachment(attachmentId: number): Promise<void> {
-  await apiDelete(`/api/v1/instruction-attachments/${attachmentId}`)
+  const safeAttachmentId = ensurePositiveId(attachmentId, 'ID вложения')
+  await apiDelete(`/api/v1/instruction-attachments/${safeAttachmentId}`)
 }
 
 /**
@@ -196,9 +213,12 @@ export async function getInstructionAttachmentPreview(
   originalName: string,
   mimeType: string
 ): Promise<InstructionAttachmentPreview> {
-  const dataUrl = await apiFetchDataUrl(`/api/v1/instruction-attachments/${attachmentId}/preview`)
+  const safeAttachmentId = ensurePositiveId(attachmentId, 'ID вложения')
+  const dataUrl = await apiFetchDataUrl(
+    `/api/v1/instruction-attachments/${safeAttachmentId}/preview`
+  )
   return {
-    attachment_id: attachmentId,
+    attachment_id: safeAttachmentId,
     original_name: originalName,
     mime_type: mimeType,
     data_url: dataUrl,
@@ -212,7 +232,10 @@ export async function downloadInstructionAttachment(
   attachmentId: number,
   originalName: string
 ): Promise<void> {
-  const blobUrl = await apiFetchBlobUrl(`/api/v1/instruction-attachments/${attachmentId}/download`)
+  const safeAttachmentId = ensurePositiveId(attachmentId, 'ID вложения')
+  const blobUrl = await apiFetchBlobUrl(
+    `/api/v1/instruction-attachments/${safeAttachmentId}/download`
+  )
   downloadBlobUrl(blobUrl, originalName)
 }
 
@@ -220,6 +243,9 @@ export async function downloadInstructionAttachment(
  * Открывает вложение в новой вкладке.
  */
 export async function openInstructionAttachment(attachmentId: number): Promise<void> {
-  const blobUrl = await apiFetchBlobUrl(`/api/v1/instruction-attachments/${attachmentId}/download`)
+  const safeAttachmentId = ensurePositiveId(attachmentId, 'ID вложения')
+  const blobUrl = await apiFetchBlobUrl(
+    `/api/v1/instruction-attachments/${safeAttachmentId}/download`
+  )
   window.open(blobUrl, '_blank')
 }

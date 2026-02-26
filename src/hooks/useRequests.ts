@@ -127,8 +127,8 @@ export function useRequestActions() {
   })
 
   const completeReturnMutation = useMutation<void, Error, UpdateReturnCompletionPayload>({
-    mutationFn: async ({ id }) => {
-      await completeReturn(id)
+    mutationFn: async ({ id, value }) => {
+      await completeReturn(id, value)
     },
     onSuccess: invalidate,
   })

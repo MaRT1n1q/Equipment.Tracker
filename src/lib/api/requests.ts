@@ -221,8 +221,8 @@ export async function scheduleReturn(id: number, data: ScheduleRequestReturnData
   await apiPost(`/api/v1/requests/${id}/return/schedule`, data)
 }
 
-export async function completeReturn(id: number): Promise<void> {
-  await apiPost(`/api/v1/requests/${id}/return/complete`)
+export async function completeReturn(id: number, completed: boolean): Promise<void> {
+  await apiPost(`/api/v1/requests/${id}/return/complete`, { return_completed: completed })
 }
 
 export async function cancelReturn(id: number): Promise<void> {

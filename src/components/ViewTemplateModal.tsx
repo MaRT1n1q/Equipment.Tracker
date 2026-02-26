@@ -37,16 +37,24 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
-function getFileIcon(mimeType: string): string {
-  if (mimeType.startsWith('image/')) return '🖼️'
-  if (mimeType.startsWith('video/')) return '🎬'
-  if (mimeType.startsWith('audio/')) return '🎵'
-  if (mimeType.includes('pdf')) return '📕'
-  if (mimeType.includes('word') || mimeType.includes('document')) return '📄'
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊'
-  if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📽️'
-  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('7z')) return '📦'
-  if (mimeType.includes('text')) return '📝'
+function getFileIcon(mimeType?: string): string {
+  const normalizedMimeType = mimeType ?? ''
+  if (normalizedMimeType.startsWith('image/')) return '🖼️'
+  if (normalizedMimeType.startsWith('video/')) return '🎬'
+  if (normalizedMimeType.startsWith('audio/')) return '🎵'
+  if (normalizedMimeType.includes('pdf')) return '📕'
+  if (normalizedMimeType.includes('word') || normalizedMimeType.includes('document')) return '📄'
+  if (normalizedMimeType.includes('excel') || normalizedMimeType.includes('spreadsheet'))
+    return '📊'
+  if (normalizedMimeType.includes('powerpoint') || normalizedMimeType.includes('presentation'))
+    return '📽️'
+  if (
+    normalizedMimeType.includes('zip') ||
+    normalizedMimeType.includes('rar') ||
+    normalizedMimeType.includes('7z')
+  )
+    return '📦'
+  if (normalizedMimeType.includes('text')) return '📝'
   return '📎'
 }
 
@@ -59,7 +67,8 @@ interface ViewFileItemProps {
 }
 
 function ViewFileItem({ file, thumbnailUrl, onDownload, onOpen, onPreview }: ViewFileItemProps) {
-  const isImageFile = file.mime_type.startsWith('image/')
+  const mimeType = file.mime_type ?? ''
+  const isImageFile = mimeType.startsWith('image/')
 
   return (
     <div className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 transition-colors hover:bg-muted/50">
@@ -83,7 +92,7 @@ function ViewFileItem({ file, thumbnailUrl, onDownload, onOpen, onPreview }: Vie
           )}
         </button>
       ) : (
-        <span className="text-xl">{getFileIcon(file.mime_type)}</span>
+        <span className="text-xl">{getFileIcon(mimeType)}</span>
       )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground truncate" title={file.original_name}>
@@ -151,14 +160,15 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
 
   const getImagePreviewUrl = useCallback(
     async (file: TemplateFile) => {
-      if (!file.mime_type.startsWith('image/')) return null
+      const mimeType = file.mime_type ?? ''
+      if (!mimeType.startsWith('image/')) return null
       if (previewUrlsRef.current[file.id]) return previewUrlsRef.current[file.id]
 
       try {
         const preview = await getFilePreview.mutateAsync({
           fileId: file.id,
           originalName: file.original_name,
-          mimeType: file.mime_type,
+          mimeType,
         })
         previewUrlsRef.current[file.id] = preview.data_url
         setPreviewUrls((prev) => ({ ...prev, [file.id]: preview.data_url }))
@@ -171,7 +181,7 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
   )
 
   useEffect(() => {
-    const imageFiles = files.filter((file) => file.mime_type.startsWith('image/'))
+    const imageFiles = files.filter((file) => (file.mime_type ?? '').startsWith('image/'))
     if (imageFiles.length === 0) return
 
     void Promise.all(imageFiles.map((file) => getImagePreviewUrl(file)))
@@ -263,9 +273,9 @@ export function ViewTemplateModal({ open, onOpenChange, template }: ViewTemplate
                 </div>
               ) : (
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {files.map((file) => (
+                  {files.map((file, index) => (
                     <ViewFileItem
-                      key={file.id}
+                      key={`${file.id ?? 'file'}-${file.filename ?? 'unknown'}-${index}`}
                       file={file}
                       thumbnailUrl={previewUrls[file.id]}
                       onDownload={handleDownloadFile}
