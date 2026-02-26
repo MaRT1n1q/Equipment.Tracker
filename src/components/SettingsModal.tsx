@@ -3,7 +3,7 @@ import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
-import { getAuthApiUrl, type AuthSession } from '../lib/auth'
+import { type AuthSession } from '../lib/auth'
 
 type UpdateState =
   | 'idle'
@@ -34,7 +34,7 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
       const version = window.electronAPI.getAppVersion()
       setAppVersion(version)
     } else {
-      setAppVersion('unknown')
+      setAppVersion(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown')
     }
   }, [])
 
@@ -343,14 +343,6 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
                 <span className="text-muted-foreground">Логин</span>
                 <span className="font-medium text-right break-all">{authSession.login}</span>
               </div>
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-muted-foreground">ID пользователя</span>
-                <span className="font-medium text-right break-all">{authSession.userId}</span>
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-muted-foreground">Auth API</span>
-                <span className="font-medium text-right break-all">{getAuthApiUrl()}</span>
-              </div>
             </div>
 
             <Button
@@ -368,7 +360,7 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
                 <div className="flex-1 text-left">
                   <div className="font-medium">Выйти из аккаунта</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Завершить текущую авторизацию и вернуться к экрану входа
+                    Завершить текущую авторизацию
                   </div>
                 </div>
               </div>

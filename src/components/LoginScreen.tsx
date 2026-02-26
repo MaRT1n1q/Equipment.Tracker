@@ -1,9 +1,8 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useState } from 'react'
 import { LoaderCircle, LogIn, ShieldCheck } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { getAuthApiUrl } from '../lib/auth'
 
 type LoginScreenProps = {
   isLoading: boolean
@@ -13,7 +12,6 @@ type LoginScreenProps = {
 export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
-  const authApiUrl = useMemo(() => getAuthApiUrl(), [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -28,9 +26,7 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Вход в Equipment Tracker</h1>
-          <p className="text-sm text-muted-foreground">
-            Введите логин. Если пользователя нет, он будет создан автоматически.
-          </p>
+          <p className="text-sm text-muted-foreground">Введите логин и пароль</p>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -42,7 +38,7 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
               autoComplete="username"
               autoFocus
               disabled={isLoading}
-              placeholder="например, vlad"
+              placeholder="i.ivanov"
               value={login}
               onChange={(event) => setLogin(event.target.value)}
             />
@@ -56,7 +52,7 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
               type="password"
               autoComplete="current-password"
               disabled={isLoading}
-              placeholder="минимум 8 символов"
+              placeholder="Пароль"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -80,10 +76,6 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
             )}
           </Button>
         </form>
-
-        <p className="text-xs text-muted-foreground text-center break-all">
-          Auth API: {authApiUrl}
-        </p>
       </div>
     </div>
   )
