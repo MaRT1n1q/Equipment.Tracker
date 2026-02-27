@@ -9,10 +9,13 @@ import {
   DialogTitle,
 } from './ui/dialog'
 import { toast } from 'sonner'
+import { ClipboardList, Pencil } from 'lucide-react'
 import type { Request } from '../types/ipc'
 import { useRequestActions } from '../hooks/useRequests'
 import { RequestFormFields } from './RequestFormFields'
 import { useRequestFormState } from '../hooks/useRequestFormState'
+import { AuditHistoryPanel } from './AuditHistoryPanel'
+import { cn } from '../lib/utils'
 
 interface EditRequestModalProps {
   open: boolean
@@ -20,8 +23,11 @@ interface EditRequestModalProps {
   request: Request | null
 }
 
+type Tab = 'form' | 'history'
+
 export function EditRequestModal({ open, onOpenChange, request }: EditRequestModalProps) {
   const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<Tab>('form')
   const persistKey = request ? `equipment-tracker:edit-request-${request.id}` : undefined
 
   const firstInputRef = useRef<HTMLInputElement>(null)
@@ -50,6 +56,11 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
     payload,
   } = useRequestFormState({ persistKey })
   const previousRequestIdRef = useRef<number | null>(null)
+
+  // Reset tab when switching requests
+  useEffect(() => {
+    if (open) setActiveTab('form')
+  }, [open, request?.id])
 
   // Load request data when modal opens and when switching between requests
   useEffect(() => {
@@ -161,53 +172,92 @@ export function EditRequestModal({ open, onOpenChange, request }: EditRequestMod
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Редактирование заявки #{request.id}</DialogTitle>
           <DialogDescription>Внесите изменения в информацию о заявке</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <RequestFormFields
-            ref={firstInputRef}
-            employeeName={employeeName}
-            onEmployeeNameChange={(value) => {
-              setEmployeeName(value)
-              if (employeeNameError) {
-                setEmployeeNameError(false)
-              }
-            }}
-            employeeNameError={employeeNameError}
-            login={login}
-            onLoginChange={(value) => {
-              setLogin(value)
-              if (loginError) {
-                setLoginError(false)
-              }
-            }}
-            loginError={loginError}
-            sdNumber={sdNumber}
-            onSdNumberChange={(value) => setSdNumber(value)}
-            deliveryUrl={deliveryUrl}
-            onDeliveryUrlChange={(value) => setDeliveryUrl(value)}
-            notes={notes}
-            onNotesChange={(value) => setNotes(value)}
-            equipmentItems={equipmentItems}
-            onAddItem={addEquipmentItem}
-            onRemoveItem={removeEquipmentItem}
-            onUpdateItem={updateEquipmentItem}
-            disabled={loading}
-          />
+        {/* Таб-переключатель */}
+        <div className="flex gap-1 p-1 bg-muted/40 rounded-lg border border-border/50">
+          <button
+            type="button"
+            onClick={() => setActiveTab('form')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+              activeTab === 'form'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Основное
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+              activeTab === 'history'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            История
+          </button>
+        </div>
 
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
-              Отмена
-            </Button>
-            <Button type="submit" disabled={loading} className="shadow-brand">
-              {loading ? 'Сохранение...' : 'Сохранить изменения'}
-            </Button>
-          </DialogFooter>
-        </form>
+        {/* Контент таба */}
+        <div className="mt-4">
+          {activeTab === 'form' ? (
+            <form onSubmit={handleSubmit}>
+              <RequestFormFields
+                ref={firstInputRef}
+                employeeName={employeeName}
+                onEmployeeNameChange={(value) => {
+                  setEmployeeName(value)
+                  if (employeeNameError) {
+                    setEmployeeNameError(false)
+                  }
+                }}
+                employeeNameError={employeeNameError}
+                login={login}
+                onLoginChange={(value) => {
+                  setLogin(value)
+                  if (loginError) {
+                    setLoginError(false)
+                  }
+                }}
+                loginError={loginError}
+                sdNumber={sdNumber}
+                onSdNumberChange={(value) => setSdNumber(value)}
+                deliveryUrl={deliveryUrl}
+                onDeliveryUrlChange={(value) => setDeliveryUrl(value)}
+                notes={notes}
+                onNotesChange={(value) => setNotes(value)}
+                equipmentItems={equipmentItems}
+                onAddItem={addEquipmentItem}
+                onRemoveItem={removeEquipmentItem}
+                onUpdateItem={updateEquipmentItem}
+                disabled={loading}
+              />
+
+              <DialogFooter className="mt-6">
+                <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+                  Отмена
+                </Button>
+                <Button type="submit" disabled={loading} className="shadow-brand">
+                  {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : (
+            <div className="py-4 px-1">
+              <AuditHistoryPanel entityType="request" entityId={request.id} />
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

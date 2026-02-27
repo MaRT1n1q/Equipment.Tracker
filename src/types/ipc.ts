@@ -410,3 +410,44 @@ export const windowStateSchema = z.object({
 })
 
 export type WindowState = z.infer<typeof windowStateSchema>
+
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+export type AuditEntityType = 'request' | 'employee_exit'
+
+export type AuditAction =
+  | 'created'
+  | 'updated'
+  | 'deleted'
+  | 'restored'
+  | 'issued'
+  | 'not_issued'
+  | 'return_scheduled'
+  | 'return_completed'
+  | 'return_uncompleted'
+  | 'return_cancelled'
+  | 'item_status_changed'
+  | 'completed'
+  | 'uncompleted'
+  | 'equipment_status_changed'
+
+export interface AuditLogEntry {
+  id: number
+  entity_type: AuditEntityType
+  entity_id: number
+  action: AuditAction
+  actor_id: string
+  actor_login: string
+  city: string
+  changes: string // raw JSON string
+  created_at: string
+}
+
+export interface AuditLogListParams {
+  entity_type?: AuditEntityType | ''
+  entity_id?: number
+  page?: number
+  pageSize?: number
+}
+
+export type PaginatedAuditLogResponse = PaginatedData<AuditLogEntry>

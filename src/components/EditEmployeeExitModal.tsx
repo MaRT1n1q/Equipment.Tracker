@@ -19,6 +19,8 @@ import {
   Truck,
   Warehouse,
   CheckCircle,
+  ClipboardList,
+  Pencil,
 } from 'lucide-react'
 import { useEmployeeExitActions } from '../hooks/useEmployeeExits'
 import type { EmployeeExit, EquipmentStatus } from '../types/ipc'
@@ -31,6 +33,8 @@ import {
   type ExitEquipmentItem,
 } from '../lib/employeeExitEquipment'
 import { usePersistentState } from '../hooks/usePersistentState'
+import { AuditHistoryPanel } from './AuditHistoryPanel'
+import { cn } from '../lib/utils'
 
 const statusIcons: Record<EquipmentStatus, React.ReactNode> = {
   ordered: <ShoppingCart className="w-4 h-4" />,
@@ -93,6 +97,7 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
     ? `equipment-tracker:edit-exit-${exit.id}`
     : 'equipment-tracker:edit-exit:transient'
   const initialDraft = useMemo(() => createDraftFromExit(exit), [exit])
+  const [activeTab, setActiveTab] = useState<'form' | 'history'>('form')
   const [formDraft, setFormDraft] = usePersistentState<ExitFormDraft>(persistKey, initialDraft, {
     enabled: Boolean(exit),
     deserializer: (value) => {
@@ -169,8 +174,14 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
     if (previousExitIdRef.current !== exit.id) {
       setFormDraft(createDraftFromExit(exit))
       previousExitIdRef.current = exit.id
+      setActiveTab('form')
     }
   }, [exit, setFormDraft])
+
+  // Reset tab to form when modal opens
+  useEffect(() => {
+    if (isOpen) setActiveTab('form')
+  }, [isOpen, exit?.id])
 
   if (!exit) {
     return null
@@ -272,174 +283,222 @@ export function EditEmployeeExitModal({ exit, isOpen, onClose }: EditEmployeeExi
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="surface-section space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="icon-bubble icon-bubble--soft w-9 h-9">
-                <BriefcaseBusiness className="w-4 h-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Информация о сотруднике</h3>
-            </div>
+        {/* Таб-переключатель */}
+        <div className="flex gap-1 p-1 bg-muted/40 rounded-lg border border-border/50">
+          <button
+            type="button"
+            onClick={() => setActiveTab('form')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+              activeTab === 'form'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Основное
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+              activeTab === 'history'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            История
+          </button>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="employee-name-edit">
-                ФИО сотрудника <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="employee-name-edit"
-                placeholder="Иванов Иван Иванович"
-                value={employeeName}
-                onChange={(e) => setEmployeeName(e.target.value)}
-                disabled={isSubmitting}
-              />
+        {/* Контент таба */}
+        <div className="mt-4">
+          {activeTab === 'history' ? (
+            <div className="py-4 px-1">
+              <AuditHistoryPanel entityType="employee_exit" entityId={exit.id} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="login-edit">
-                Логин <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="login-edit"
-                placeholder="i.ivanov"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sd-number-edit">Номер SD</Label>
-              <Input
-                id="sd-number-edit"
-                placeholder="12345678"
-                value={sdNumber}
-                onChange={(e) => setSdNumber(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="delivery-url-edit">Доставка</Label>
-              <Input
-                id="delivery-url-edit"
-                placeholder="https://..."
-                value={formDraft.deliveryUrl}
-                onChange={(e) => setDeliveryUrl(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="exit-date-edit">
-                Дата выхода <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="exit-date-edit"
-                type="date"
-                value={exitDate}
-                onChange={(e) => setExitDate(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Позиции оборудования</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addEquipmentItem}
-                disabled={isSubmitting}
-                className="h-8"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Добавить позицию
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {equipmentItems.map((item, index) => (
-                <div key={index} className="surface-section space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Позиция #{index + 1}
-                    </span>
-                    {equipmentItems.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeEquipmentItem(index)}
-                        disabled={isSubmitting}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        aria-label={`Удалить позицию ${index + 1}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6 p-0.5">
+              <div className="surface-section space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="icon-bubble icon-bubble--soft w-9 h-9">
+                    <BriefcaseBusiness className="w-4 h-4" />
                   </div>
-
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Наименование *</Label>
-                      <Input
-                        placeholder="Ноутбук Dell Latitude"
-                        value={item.name}
-                        onChange={(e) => updateEquipmentItem(index, 'name', e.target.value)}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Серийный номер *</Label>
-                      <Input
-                        placeholder="SN123456789"
-                        value={item.serial}
-                        onChange={(e) => updateEquipmentItem(index, 'serial', e.target.value)}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Статус</Label>
-                    <Select
-                      value={item.status || 'in_stock'}
-                      onValueChange={(value) =>
-                        updateEquipmentItem(index, 'status', value as EquipmentStatus)
-                      }
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger className="w-full max-w-[200px]">
-                        <SelectValue placeholder="Выберите статус" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(equipmentStatusLabels) as EquipmentStatus[]).map((status) => (
-                          <SelectItem key={status} value={status}>
-                            <span className="flex items-center gap-2">
-                              <span className={statusColors[status]}>{statusIcons[status]}</span>
-                              {equipmentStatusLabels[status]}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Информация о сотруднике</h3>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
-              Отмена
-            </Button>
-            <Button type="submit" disabled={isSubmitting} className="shadow-brand">
-              {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
-            </Button>
-          </DialogFooter>
-        </form>
+                <div className="space-y-2">
+                  <Label htmlFor="employee-name-edit">
+                    ФИО сотрудника <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="employee-name-edit"
+                    placeholder="Иванов Иван Иванович"
+                    value={employeeName}
+                    onChange={(e) => setEmployeeName(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="login-edit">
+                    Логин <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="login-edit"
+                    placeholder="i.ivanov"
+                    value={login}
+                    onChange={(e) => setLogin(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sd-number-edit">Номер SD</Label>
+                  <Input
+                    id="sd-number-edit"
+                    placeholder="12345678"
+                    value={sdNumber}
+                    onChange={(e) => setSdNumber(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="delivery-url-edit">Доставка</Label>
+                  <Input
+                    id="delivery-url-edit"
+                    placeholder="https://..."
+                    value={formDraft.deliveryUrl}
+                    onChange={(e) => setDeliveryUrl(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="exit-date-edit">
+                    Дата выхода <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="exit-date-edit"
+                    type="date"
+                    value={exitDate}
+                    onChange={(e) => setExitDate(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Позиции оборудования</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEquipmentItem}
+                    disabled={isSubmitting}
+                    className="h-8"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Добавить позицию
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {equipmentItems.map((item, index) => (
+                    <div key={index} className="surface-section space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Позиция #{index + 1}
+                        </span>
+                        {equipmentItems.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeEquipmentItem(index)}
+                            disabled={isSubmitting}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            aria-label={`Удалить позицию ${index + 1}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Наименование *</Label>
+                          <Input
+                            placeholder="Ноутбук Dell Latitude"
+                            value={item.name}
+                            onChange={(e) => updateEquipmentItem(index, 'name', e.target.value)}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Серийный номер *</Label>
+                          <Input
+                            placeholder="SN123456789"
+                            value={item.serial}
+                            onChange={(e) => updateEquipmentItem(index, 'serial', e.target.value)}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Статус</Label>
+                        <Select
+                          value={item.status || 'in_stock'}
+                          onValueChange={(value) =>
+                            updateEquipmentItem(index, 'status', value as EquipmentStatus)
+                          }
+                          disabled={isSubmitting}
+                        >
+                          <SelectTrigger className="w-full max-w-[200px]">
+                            <SelectValue placeholder="Выберите статус" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(equipmentStatusLabels) as EquipmentStatus[]).map(
+                              (status) => (
+                                <SelectItem key={status} value={status}>
+                                  <span className="flex items-center gap-2">
+                                    <span className={statusColors[status]}>
+                                      {statusIcons[status]}
+                                    </span>
+                                    {equipmentStatusLabels[status]}
+                                  </span>
+                                </SelectItem>
+                              )
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={isSubmitting}
+                >
+                  Отмена
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="shadow-brand">
+                  {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )
