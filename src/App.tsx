@@ -48,7 +48,6 @@ function App() {
   const [highlightExitId, setHighlightExitId] = useState<number | null>(null)
   const [highlightRequestSearch, setHighlightRequestSearch] = useState<string | null>(null)
   const [highlightExitSearch, setHighlightExitSearch] = useState<string | null>(null)
-  const [activeCityOverride, setActiveCityOverride] = useState<string | null>(null)
   const { newChanges, isOpen: isChangelogOpen, dismissChangelog } = useChangelog()
   const [currentView, setCurrentView] = usePersistentState<AppView>(VIEW_STORAGE_KEY, 'dashboard', {
     serializer: (value) => value,
@@ -141,7 +140,6 @@ function App() {
       setIsAuthLoading(true)
       const session = await loginByUserLogin(login, password, city)
       queryClient.clear()
-      setActiveCityOverride(null)
       setAuthSession(session)
       toast.success(`Вход выполнен: ${session.login}`)
     } catch (error) {
@@ -155,7 +153,6 @@ function App() {
   const handleLogout = () => {
     clearAuthSession()
     queryClient.clear()
-    setActiveCityOverride(null)
     setAuthSession(null)
     toast.success('Вы вышли из аккаунта')
   }
@@ -184,8 +181,6 @@ function App() {
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         authSession={authSession}
         onLogout={handleLogout}
-        activeCityOverride={activeCityOverride}
-        onCityOverrideChange={setActiveCityOverride}
       />
 
       <div
@@ -202,7 +197,6 @@ function App() {
                 <Dashboard
                   onSelectRequest={handleNavigateToRequest}
                   onSelectEmployeeExit={handleNavigateToEmployeeExit}
-                  cityOverride={activeCityOverride ?? undefined}
                 />
               </div>
             ) : currentView === 'requests' ? (
@@ -217,7 +211,6 @@ function App() {
                     setHighlightRequestId(null)
                     setHighlightRequestSearch(null)
                   }}
-                  cityOverride={activeCityOverride ?? undefined}
                 />
               </div>
             ) : currentView === 'templates' ? (
@@ -239,7 +232,6 @@ function App() {
                     setHighlightExitId(null)
                     setHighlightExitSearch(null)
                   }}
-                  cityOverride={activeCityOverride ?? undefined}
                 />
               </div>
             )}

@@ -30,7 +30,6 @@ export type DashboardSelection = {
 interface DashboardProps {
   onSelectRequest?: (target: DashboardSelection) => void
   onSelectEmployeeExit?: (target: DashboardSelection) => void
-  cityOverride?: string
 }
 
 type SearchResult =
@@ -51,19 +50,19 @@ type SearchResult =
       searchHint?: string
     }
 
-export function Dashboard({ onSelectRequest, onSelectEmployeeExit, cityOverride }: DashboardProps) {
+export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardProps) {
   const {
     data: requestSummary,
     isLoading: isRequestSummaryLoading,
     isError: isRequestSummaryError,
     refetch: refetchRequestSummary,
-  } = useRequestSummaryQuery(cityOverride)
+  } = useRequestSummaryQuery()
   const {
     data: employeeExitSummary,
     isLoading: isEmployeeSummaryLoading,
     isError: isEmployeeSummaryError,
     refetch: refetchEmployeeSummary,
-  } = useEmployeeExitSummaryQuery(cityOverride)
+  } = useEmployeeExitSummaryQuery()
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const searchContainerRef = useRef<HTMLDivElement>(null)
@@ -78,12 +77,9 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit, cityOverride 
     error: requestSearchError,
     refetch: refetchRequestSearch,
   } = useQuery({
-    queryKey: ['dashboard', 'requestSearch', trimmedQuery, cityOverride],
+    queryKey: ['dashboard', 'requestSearch', trimmedQuery],
     queryFn: async () => {
-      const response = await fetchRequests(
-        { search: trimmedQuery, page: 1, pageSize: 50 },
-        cityOverride
-      )
+      const response = await fetchRequests({ search: trimmedQuery, page: 1, pageSize: 50 })
       return response.items
     },
     enabled: isSearchEnabled,
@@ -96,12 +92,9 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit, cityOverride 
     error: employeeExitSearchError,
     refetch: refetchEmployeeExitSearch,
   } = useQuery({
-    queryKey: ['dashboard', 'exitSearch', trimmedQuery, cityOverride],
+    queryKey: ['dashboard', 'exitSearch', trimmedQuery],
     queryFn: async () => {
-      const response = await fetchEmployeeExits(
-        { search: trimmedQuery, page: 1, pageSize: 50 },
-        cityOverride
-      )
+      const response = await fetchEmployeeExits({ search: trimmedQuery, page: 1, pageSize: 50 })
       return response.items
     },
     enabled: isSearchEnabled,

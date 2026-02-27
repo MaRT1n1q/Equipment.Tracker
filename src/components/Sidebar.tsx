@@ -19,7 +19,6 @@ import { SettingsModal } from './SettingsModal'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { ThemeToggle } from './ThemeToggle'
 import type { AuthSession } from '../lib/auth'
-import { CitySwitcher } from './CitySwitcher'
 
 interface SidebarProps {
   currentView: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
@@ -30,8 +29,6 @@ interface SidebarProps {
   onToggleCollapse: () => void
   authSession: AuthSession
   onLogout: () => void
-  activeCityOverride: string | null
-  onCityOverrideChange: (city: string | null) => void
 }
 
 type UpdateBannerStatus = 'available' | 'downloading' | 'downloaded' | 'error' | 'manual-required'
@@ -50,8 +47,6 @@ export function Sidebar({
   onToggleCollapse,
   authSession,
   onLogout,
-  activeCityOverride,
-  onCityOverrideChange,
 }: SidebarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [updateBanner, setUpdateBanner] = useState<UpdateBannerState | null>(null)
@@ -352,12 +347,6 @@ export function Sidebar({
         </nav>
 
         <div className="p-4 border-t border-border space-y-3">
-          <CitySwitcher
-            userCity={authSession.city}
-            activeCity={activeCityOverride}
-            onChange={onCityOverrideChange}
-            isCollapsed={isCollapsed}
-          />
           {showUpdateBanner && bannerTone && (
             <Tooltip disableHoverableContent={!isCollapsed}>
               <TooltipTrigger asChild>

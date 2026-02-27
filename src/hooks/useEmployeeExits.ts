@@ -37,20 +37,19 @@ type UpdateEquipmentStatusPayload = {
   status: string
 }
 
-export function useEmployeeExitsQuery(params: EmployeeExitListParams, cityOverride?: string) {
+export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
   return useQuery({
-    queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params, cityOverride] as const,
-    queryFn: (): Promise<PaginatedEmployeeExitsResponse> =>
-      fetchEmployeeExits(params, cityOverride),
+    queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params] as const,
+    queryFn: (): Promise<PaginatedEmployeeExitsResponse> => fetchEmployeeExits(params),
     placeholderData: (previousData) => previousData,
     refetchInterval: 60_000,
   })
 }
 
-export function useEmployeeExitSummaryQuery(cityOverride?: string) {
+export function useEmployeeExitSummaryQuery() {
   return useQuery({
-    queryKey: [...EMPLOYEE_EXIT_SUMMARY_QUERY_KEY, cityOverride] as const,
-    queryFn: (): Promise<EmployeeExitSummary> => fetchEmployeeExitSummary(cityOverride),
+    queryKey: [...EMPLOYEE_EXIT_SUMMARY_QUERY_KEY] as const,
+    queryFn: (): Promise<EmployeeExitSummary> => fetchEmployeeExitSummary(),
     staleTime: 30_000,
     refetchInterval: 30_000,
   })

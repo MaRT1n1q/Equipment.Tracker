@@ -1,5 +1,13 @@
-import { FormEvent, useEffect, useState } from 'react'
-import { LoaderCircle, LogIn, MapPin, Pencil, ShieldCheck } from 'lucide-react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
+import {
+  AlertCircle,
+  LoaderCircle,
+  LogIn,
+  MapPin,
+  Pencil,
+  RefreshCw,
+  ShieldCheck,
+} from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
@@ -17,14 +25,29 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
   const [cities, setCities] = useState<string[]>([])
   const [selectedCity, setSelectedCity] = useState<string>('')
   const [showCitySelect, setShowCitySelect] = useState<boolean>(!getSavedCity())
+  const [citiesLoading, setCitiesLoading] = useState(true)
+  const [citiesError, setCitiesError] = useState(false)
+
+  const loadCities = useCallback(() => {
+    const savedCity = getSavedCity() ?? ''
+    setCitiesLoading(true)
+    setCitiesError(false)
+    getCities()
+      .then((list) => {
+        if (list.length === 0) {
+          setCitiesError(true)
+          return
+        }
+        setCities(list)
+        setSelectedCity(savedCity && list.includes(savedCity) ? savedCity : (list[0] ?? ''))
+      })
+      .catch(() => setCitiesError(true))
+      .finally(() => setCitiesLoading(false))
+  }, [])
 
   useEffect(() => {
-    const savedCity = getSavedCity() ?? ''
-    getCities().then((list) => {
-      setCities(list)
-      setSelectedCity(savedCity && list.includes(savedCity) ? savedCity : (list[0] ?? ''))
-    })
-  }, [])
+    loadCities()
+  }, [loadCities])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -43,52 +66,71 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {cities.length > 0 && (
-            <div className="space-y-2">
-              {showCitySelect ? (
-                <>
-                  <Label htmlFor="city" className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5" />
-                    Город
-                  </Label>
-                  <Select
-                    value={selectedCity}
-                    onValueChange={(v) => {
-                      setSelectedCity(v)
-                      setShowCitySelect(false)
-                    }}
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger id="city">
-                      <SelectValue placeholder="Выберите город" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              ) : (
-                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2">
-                  <span className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="font-medium">{selectedCity}</span>
+          <div className="space-y-2">
+            <Label htmlFor="city" className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5" />
+              Город
+            </Label>
+
+            {citiesLoading ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                Загрузка городов…
+              </div>
+            ) : citiesError ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    Не удалось загрузить список городов
                   </span>
                   <button
                     type="button"
-                    onClick={() => setShowCitySelect(true)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={loadCities}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
                   >
-                    <Pencil className="h-3 w-3" />
-                    Изменить
+                    <RefreshCw className="h-3 w-3" />
+                    Повторить
                   </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            ) : showCitySelect ? (
+              <Select
+                value={selectedCity}
+                onValueChange={(v) => {
+                  setSelectedCity(v)
+                  setShowCitySelect(false)
+                }}
+                disabled={isLoading}
+              >
+                <SelectTrigger id="city">
+                  <SelectValue placeholder="Выберите город" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <span className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-medium">{selectedCity}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCitySelect(true)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Изменить
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="login">Логин</Label>
@@ -121,7 +163,14 @@ export function LoginScreen({ isLoading, onLogin }: LoginScreenProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || !login.trim() || password.trim().length < 8 || !selectedCity}
+            disabled={
+              isLoading ||
+              citiesLoading ||
+              citiesError ||
+              !login.trim() ||
+              password.trim().length < 8 ||
+              !selectedCity
+            }
           >
             {isLoading ? (
               <>
