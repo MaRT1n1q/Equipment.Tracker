@@ -66,7 +66,9 @@ export function useRequestsQuery(params: RequestListParams) {
     queryKey: [...REQUESTS_QUERY_KEY, params] as const,
     queryFn: () => _fetchRequests(params),
     placeholderData: (previousData) => previousData,
-    refetchInterval: 60_000,
+    staleTime: 0,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -74,8 +76,9 @@ export function useRequestSummaryQuery() {
   return useQuery({
     queryKey: [...REQUEST_SUMMARY_QUERY_KEY] as const,
     queryFn: () => _fetchRequestSummary(),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: 0,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   })
 }
 

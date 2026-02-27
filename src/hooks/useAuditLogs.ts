@@ -9,6 +9,8 @@ export function useAuditLogsQuery(params: AuditLogListParams) {
     queryKey: [...AUDIT_LOGS_QUERY_KEY, params] as const,
     queryFn: () => fetchAuditLogs(params),
     placeholderData: (previousData) => previousData,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   })
 }
