@@ -42,9 +42,6 @@ export function useEmployeeExitsQuery(params: EmployeeExitListParams) {
     queryKey: [...EMPLOYEE_EXITS_QUERY_KEY, params] as const,
     queryFn: (): Promise<PaginatedEmployeeExitsResponse> => fetchEmployeeExits(params),
     placeholderData: (previousData) => previousData,
-    staleTime: 0,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
   })
 }
 
@@ -52,9 +49,6 @@ export function useEmployeeExitSummaryQuery() {
   return useQuery({
     queryKey: [...EMPLOYEE_EXIT_SUMMARY_QUERY_KEY] as const,
     queryFn: (): Promise<EmployeeExitSummary> => fetchEmployeeExitSummary(),
-    staleTime: 0,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
   })
 }
 

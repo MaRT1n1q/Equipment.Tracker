@@ -99,7 +99,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 
 const ENTITY_LABELS: Record<AuditEntityType, string> = {
   request: 'Заявки',
-  employee_exit: 'Увольнения',
+  employee_exit: 'Выходы сотрудников',
 }
 
 // ─── Русские названия полей ──────────────────────────────────────────────────
@@ -120,7 +120,7 @@ const FIELD_LABELS: Record<string, string> = {
   issued: 'Выдано',
   return_date: 'Дата возврата',
   return_comment: 'Комментарий к возврату',
-  // Увольнения (employee_exits)
+  // Выходы сотрудников (employee_exits)
   exit_date: 'Дата выхода',
   completed: 'Завершено',
   equipment_list: 'Список оборудования',
@@ -172,7 +172,7 @@ function EntityBadge({ type }: { type: AuditEntityType }) {
   return (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
       <BriefcaseBusiness className="h-3.5 w-3.5" />
-      Увольнение
+      Выход сотрудника
     </span>
   )
 }
@@ -595,7 +595,7 @@ export function AuditLogView() {
       <PageHeader
         eyebrow="Мониторинг"
         title="Аудит-лог"
-        description="История действий с заявками и увольнениями сотрудников. Данные изолированы по городу."
+        description="История действий с заявками и выходами сотрудников. Данные изолированы по городу."
       />
 
       {/* Фильтры */}
@@ -608,7 +608,7 @@ export function AuditLogView() {
           [
             { value: '', label: 'Все' },
             { value: 'request', label: 'Заявки' },
-            { value: 'employee_exit', label: 'Увольнения' },
+            { value: 'employee_exit', label: 'Выходы сотрудников' },
           ] as { value: EntityFilter; label: string }[]
         ).map((opt) => (
           <button
@@ -655,7 +655,7 @@ export function AuditLogView() {
           description={
             entityFilter
               ? `Для выбранного типа «${ENTITY_LABELS[entityFilter as AuditEntityType]}» записей пока нет.`
-              : 'История действий пуста. Записи появятся после создания или изменения заявок и увольнений.'
+              : 'История действий пуста. Записи появятся после создания или изменения заявок и выходов сотрудников.'
           }
         />
       ) : (

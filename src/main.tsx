@@ -7,7 +7,13 @@ import './index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      // Данные считаются свежими 30 сек — в это время refetch не выполняется
+      // при монтировании/переключении вкладок. Снижает нагрузку на backend.
+      staleTime: 30_000,
+      // Кешировать на 5 минут — данные остаются в памяти для мгновенного возврата
+      gcTime: 5 * 60_000,
       refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
   },

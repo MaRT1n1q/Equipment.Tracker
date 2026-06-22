@@ -10,17 +10,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { Database, Upload, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { toast } from 'sonner'
+import { legacyMigration } from '../lib/platform'
 import type { MigrationStatus, MigrationCounts } from '../types/ipc'
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:9090'
-
-interface MigrationBannerProps {
-  accessToken: string
-}
 
 type BannerState = 'checking' | 'idle' | 'running' | 'done' | 'skipped' | 'error'
 
-export function MigrationBanner({ accessToken }: MigrationBannerProps) {
+export function MigrationBanner() {
   const [bannerState, setBannerState] = useState<BannerState>('checking')
   const [counts, setCounts] = useState<MigrationCounts | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -28,15 +23,15 @@ export function MigrationBanner({ accessToken }: MigrationBannerProps) {
 
   // Проверяем статус миграции при монтировании
   useEffect(() => {
-    if (!window.electronAPI?.getMigrationStatus) {
+    if (!legacyMigration.isAvailable) {
       setBannerState('skipped')
       return
     }
 
-    window.electronAPI
-      .getMigrationStatus()
-      .then((status: MigrationStatus) => {
-        if (!status.needed || status.done) {
+    legacyMigration
+      .getStatus()
+      .then((status: MigrationStatus | null) => {
+        if (!status || !status.needed || status.done) {
           setBannerState('skipped')
           return
         }
@@ -49,14 +44,14 @@ export function MigrationBanner({ accessToken }: MigrationBannerProps) {
   }, [])
 
   const handleRun = useCallback(async () => {
-    if (!window.electronAPI?.runMigration) return
+    if (!legacyMigration.isAvailable) return
     setBannerState('running')
     setErrorMsg(null)
 
     try {
-      const result = await window.electronAPI.runMigration(API_BASE, accessToken)
-      if (!result.success) {
-        setErrorMsg(result.error ?? 'Неизвестная ошибка')
+      const result = await legacyMigration.run()
+      if (!result || !result.success) {
+        setErrorMsg(result?.error ?? 'Неизвестная ошибка')
         setBannerState('error')
         return
       }
@@ -65,7 +60,7 @@ export function MigrationBanner({ accessToken }: MigrationBannerProps) {
       if (imp) {
         const parts: string[] = []
         if (imp.requests > 0) parts.push(`${imp.requests} заявок`)
-        if (imp.employee_exits > 0) parts.push(`${imp.employee_exits} увольнений`)
+        if (imp.employee_exits > 0) parts.push(`${imp.employee_exits} выходов сотрудников`)
         if (imp.templates > 0) parts.push(`${imp.templates} шаблонов`)
         if (imp.instructions > 0) parts.push(`${imp.instructions} инструкций`)
         setImportedSummary(parts.length > 0 ? parts.join(', ') : 'данные перенесены')
@@ -78,12 +73,10 @@ export function MigrationBanner({ accessToken }: MigrationBannerProps) {
       setErrorMsg(msg)
       setBannerState('error')
     }
-  }, [accessToken])
+  }, [])
 
   const handleSkip = useCallback(async () => {
-    if (window.electronAPI?.skipMigration) {
-      await window.electronAPI.skipMigration().catch(() => {})
-    }
+    await legacyMigration.skip().catch(() => {})
     setBannerState('skipped')
   }, [])
 
@@ -114,7 +107,7 @@ export function MigrationBanner({ accessToken }: MigrationBannerProps) {
                 Обнаружена база данных старой версии приложения.
                 {counts && (
                   <span className="ml-1">
-                    Найдено: {counts.requests} заявок, {counts.employee_exits} увольнений,{' '}
+                    Найдено: {counts.requests} заявок, {counts.employee_exits} выходов сотрудников,{' '}
                     {counts.templates} шаблонов, {counts.instructions} инструкций.
                   </span>
                 )}{' '}

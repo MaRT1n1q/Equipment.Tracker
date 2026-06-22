@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Copy, Minus, Package, Square, X } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { isElectron, windowControls } from '../lib/platform'
 
 const TITLEBAR_HEIGHT_CLASS = 'h-10'
 
@@ -9,45 +10,43 @@ export function WindowTitleBar() {
   const isMac = useMemo(() => /Mac/i.test(navigator.platform), [])
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined
-
-    const api = window.electronAPI
-    if (!api?.getWindowState) {
+    if (!windowControls.isAvailable) {
       return
     }
 
-    void api.getWindowState().then((response) => {
-      if (response?.success && response.data) {
-        setIsMaximized(Boolean(response.data.isMaximized))
+    void windowControls.getState().then((state) => {
+      if (state) {
+        setIsMaximized(Boolean(state.isMaximized))
       }
     })
 
-    if (api.onWindowStateChanged) {
-      unsubscribe = api.onWindowStateChanged((payload) => {
-        setIsMaximized(Boolean(payload.isMaximized))
-      })
-    }
+    const unsubscribe = windowControls.onStateChanged((payload) => {
+      setIsMaximized(Boolean(payload.isMaximized))
+    })
 
     return () => {
-      unsubscribe?.()
+      unsubscribe()
     }
   }, [])
 
   const MaximizeIcon = useMemo(() => (isMaximized ? Copy : Square), [isMaximized])
 
   const handleMinimize = async () => {
-    await window.electronAPI?.minimizeWindow?.()
+    await windowControls.minimize()
   }
 
   const handleToggleMaximize = async () => {
-    const response = await window.electronAPI?.toggleMaximizeWindow?.()
-    if (response?.success && response.data) {
-      setIsMaximized(Boolean(response.data.isMaximized))
-    }
+    const next = await windowControls.toggleMaximize()
+    setIsMaximized(next)
   }
 
   const handleClose = async () => {
-    await window.electronAPI?.closeWindow?.()
+    await windowControls.close()
+  }
+
+  // В web-режиме titlebar не нужен — у браузера есть свой
+  if (!isElectron) {
+    return null
   }
 
   return (

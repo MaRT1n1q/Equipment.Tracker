@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { changelog, getChangelogSinceVersion, type ChangelogEntry } from '../changelog'
+import { getAppVersion } from '../lib/platform'
 
 const LAST_SEEN_VERSION_KEY = 'equipment-tracker:last-seen-version'
 
@@ -18,14 +19,9 @@ export function useChangelog() {
     //   return
     // }
 
-    // Проверяем, доступен ли electronAPI
-    if (!window.electronAPI?.getAppVersion) {
-      return
-    }
-
     try {
-      // Получаем текущую версию приложения
-      const currentVersion = window.electronAPI.getAppVersion() || '0.0.0'
+      // Получаем текущую версию приложения (Electron или web)
+      const currentVersion = getAppVersion()
 
       // Получаем последнюю просмотренную версию из localStorage
       const lastSeenVersion = localStorage.getItem(LAST_SEEN_VERSION_KEY)
@@ -73,9 +69,9 @@ export function useChangelog() {
 
   const dismissChangelog = useCallback(() => {
     // В режиме разработки не сохраняем версию, чтобы окно показывалось каждый раз
-    if (!import.meta.env.DEV && window.electronAPI?.getAppVersion) {
+    if (!import.meta.env.DEV) {
       try {
-        const currentVersion = window.electronAPI.getAppVersion() || '0.0.0'
+        const currentVersion = getAppVersion()
         localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion)
       } catch (error) {
         console.error('Error saving version:', error)

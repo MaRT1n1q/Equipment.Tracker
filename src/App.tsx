@@ -1,22 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { onQuerySync } from './lib/querySync'
-import { AddRequestModal } from './components/AddRequestModal'
-import { EditRequestModal } from './components/EditRequestModal'
 import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
-import { EmployeeExitView } from './components/EmployeeExitView'
-import { RequestsView } from './components/RequestsView'
-import { TemplatesView } from './components/TemplatesView'
-import { InstructionsView } from './components/InstructionsView'
 import { ChangelogModal } from './components/ChangelogModal'
 import { Toaster, toast } from 'sonner'
 import type { Request } from './types/ipc'
 import { usePersistentState } from './hooks/usePersistentState'
+import { useRealtimeEvents } from './lib/useRealtimeEvents'
+
+// Lazy-loading тяжёлых view — каждый загружается отдельным чанком при первом открытии.
+// Dashboard импортируется статически (дефолтный экран).
+const RequestsView = lazy(() =>
+  import('./components/RequestsView').then((m) => ({ default: m.RequestsView }))
+)
+const EmployeeExitView = lazy(() =>
+  import('./components/EmployeeExitView').then((m) => ({ default: m.EmployeeExitView }))
+)
+const TemplatesView = lazy(() =>
+  import('./components/TemplatesView').then((m) => ({ default: m.TemplatesView }))
+)
+const InstructionsView = lazy(() =>
+  import('./components/InstructionsView').then((m) => ({ default: m.InstructionsView }))
+)
+
+// Lazy-loading модалок — загружаются только при открытии.
+const AddRequestModal = lazy(() =>
+  import('./components/AddRequestModal').then((m) => ({ default: m.AddRequestModal }))
+)
+const EditRequestModal = lazy(() =>
+  import('./components/EditRequestModal').then((m) => ({ default: m.EditRequestModal }))
+)
+const ScheduleReturnModal = lazy(() =>
+  import('./components/ScheduleReturnModal').then((m) => ({ default: m.ScheduleReturnModal }))
+)
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
 import { useChangelog } from './hooks/useChangelog'
 import { cn } from './lib/utils'
-import { ScheduleReturnModal } from './components/ScheduleReturnModal'
 import type { DashboardSelection } from './components/Dashboard'
 import { WindowTitleBar } from './components/WindowTitleBar'
 import { LoginScreen } from './components/LoginScreen'
@@ -63,6 +83,9 @@ function App() {
   )
 
   const queryClient = useQueryClient()
+
+  // Real-time обновления через SSE (только после авторизации)
+  useRealtimeEvents()
 
   // Синхронизация кэша между вкладками
   useEffect(() => {
@@ -190,68 +213,78 @@ function App() {
         )}
       >
         <main className="custom-scrollbar flex-1 overflow-auto">
-          <MigrationBanner accessToken={authSession.accessToken} />
+          <MigrationBanner />
           <div className="px-8 py-8">
-            {currentView === 'dashboard' ? (
-              <div className="animate-fade-in space-y-6">
-                <Dashboard
-                  onSelectRequest={handleNavigateToRequest}
-                  onSelectEmployeeExit={handleNavigateToEmployeeExit}
-                />
-              </div>
-            ) : currentView === 'requests' ? (
-              <div className="animate-fade-in">
-                <RequestsView
-                  onEdit={handleEdit}
-                  onAddRequest={() => setIsModalOpen(true)}
-                  onScheduleReturn={handleScheduleReturn}
-                  highlightRequestId={highlightRequestId}
-                  highlightSearchQuery={highlightRequestSearch}
-                  onHighlightConsumed={() => {
-                    setHighlightRequestId(null)
-                    setHighlightRequestSearch(null)
-                  }}
-                />
-              </div>
-            ) : currentView === 'templates' ? (
-              <div className="animate-fade-in">
-                <TemplatesView />
-              </div>
-            ) : currentView === 'instructions' ? (
-              <div className="animate-fade-in">
-                <InstructionsView />
-              </div>
-            ) : (
-              <div className="animate-fade-in">
-                <EmployeeExitView
-                  isModalOpen={isEmployeeExitModalOpen}
-                  onModalOpenChange={setIsEmployeeExitModalOpen}
-                  highlightExitId={highlightExitId}
-                  highlightSearchQuery={highlightExitSearch}
-                  onHighlightConsumed={() => {
-                    setHighlightExitId(null)
-                    setHighlightExitSearch(null)
-                  }}
-                />
-              </div>
-            )}
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-20">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              }
+            >
+              {currentView === 'dashboard' ? (
+                <div className="animate-fade-in space-y-6">
+                  <Dashboard
+                    onSelectRequest={handleNavigateToRequest}
+                    onSelectEmployeeExit={handleNavigateToEmployeeExit}
+                  />
+                </div>
+              ) : currentView === 'requests' ? (
+                <div className="animate-fade-in">
+                  <RequestsView
+                    onEdit={handleEdit}
+                    onAddRequest={() => setIsModalOpen(true)}
+                    onScheduleReturn={handleScheduleReturn}
+                    highlightRequestId={highlightRequestId}
+                    highlightSearchQuery={highlightRequestSearch}
+                    onHighlightConsumed={() => {
+                      setHighlightRequestId(null)
+                      setHighlightRequestSearch(null)
+                    }}
+                  />
+                </div>
+              ) : currentView === 'templates' ? (
+                <div className="animate-fade-in">
+                  <TemplatesView />
+                </div>
+              ) : currentView === 'instructions' ? (
+                <div className="animate-fade-in">
+                  <InstructionsView />
+                </div>
+              ) : (
+                <div className="animate-fade-in">
+                  <EmployeeExitView
+                    isModalOpen={isEmployeeExitModalOpen}
+                    onModalOpenChange={setIsEmployeeExitModalOpen}
+                    highlightExitId={highlightExitId}
+                    highlightSearchQuery={highlightExitSearch}
+                    onHighlightConsumed={() => {
+                      setHighlightExitId(null)
+                      setHighlightExitSearch(null)
+                    }}
+                  />
+                </div>
+              )}
+            </Suspense>
           </div>
         </main>
       </div>
 
-      <AddRequestModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      <Suspense fallback={null}>
+        <AddRequestModal open={isModalOpen} onOpenChange={setIsModalOpen} />
 
-      <EditRequestModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        request={editingRequest}
-      />
+        <EditRequestModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          request={editingRequest}
+        />
 
-      <ScheduleReturnModal
-        open={isReturnModalOpen && Boolean(returnTargetRequest)}
-        onOpenChange={handleReturnModalOpenChange}
-        request={returnTargetRequest}
-      />
+        <ScheduleReturnModal
+          open={isReturnModalOpen && Boolean(returnTargetRequest)}
+          onOpenChange={handleReturnModalOpenChange}
+          request={returnTargetRequest}
+        />
+      </Suspense>
 
       <ChangelogModal open={isChangelogOpen} onClose={dismissChangelog} changes={newChanges} />
     </div>

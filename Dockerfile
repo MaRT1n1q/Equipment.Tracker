@@ -18,13 +18,17 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN WEB_ONLY=1 npx tsc --noEmit && WEB_ONLY=1 npx vite build
 
 # ── Стадия 2: продакшн образ ──────────────────────────────────────────────────
-FROM nginx:1.27-alpine
+FROM nginx:1.28-alpine
 
 # Копируем собранный SPA
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Nginx конфиг для SPA (fallback → index.html)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Nginx конфиг для SPA (fallback → index.html) + reverse proxy на backend
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+# envsubst подставит $BACKEND_UPSTREAM при старте контейнера.
+# По умолчанию проксируем на backend:9090 (имя сервиса в docker-compose).
+ENV BACKEND_UPSTREAM=http://backend:9090
 
 EXPOSE 80
 

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { cn } from '../lib/utils'
+import { openExternalUrl } from '../lib/platform'
 
 interface MarkdownRendererProps {
   content: string
@@ -16,6 +17,17 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
+}
+
+// Проверка безопасного протокола ссылки (защита от javascript:, data: и т.п.)
+function isSafeUrl(url: string): boolean {
+  const trimmed = url.trim().toLowerCase()
+  return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('#')
+}
+
+// Нормализация URL: если безопасен — возвращает как есть, иначе — пустая строка
+function safeHref(url: string): string {
+  return isSafeUrl(url) ? url : ''
 }
 
 // Подсветка поискового термина в финальном HTML
@@ -57,10 +69,11 @@ function parseInline(text: string): string {
   )
 
   // Ссылки [text](url)
-  result = result.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" class="text-primary hover:underline inline-flex items-center gap-1 markdown-link" data-href="$2">$1<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>'
-  )
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
+    const href = safeHref(url)
+    if (!href) return text
+    return `<a href="${href}" class="text-primary hover:underline inline-flex items-center gap-1 markdown-link" data-href="${href}">${text}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>`
+  })
 
   // Внутренние ссылки [[id:название]] или [[id]]
   result = result.replace(
@@ -71,10 +84,11 @@ function parseInline(text: string): string {
   result = result.replace(/data-instruction-id="(\d+)">([^<]+)\1</g, 'data-instruction-id="$1">$2<')
 
   // Автоматические ссылки для URL
-  result = result.replace(
-    /(?<!href="|">)(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" class="text-primary hover:underline inline-flex items-center gap-1 markdown-link" data-href="$1">$1<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>'
-  )
+  result = result.replace(/(?<!href="|">)(https?:\/\/[^\s<]+)/g, (url) => {
+    const href = safeHref(url)
+    if (!href) return url
+    return `<a href="${href}" class="text-primary hover:underline inline-flex items-center gap-1 markdown-link" data-href="${href}">${url}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>`
+  })
 
   return result
 }
@@ -239,7 +253,7 @@ export function MarkdownRenderer({
       e.preventDefault()
       const href = link.dataset.href || link.getAttribute('href')
       if (href) {
-        window.electronAPI?.openExternal(href)
+        void openExternalUrl(href)
       }
     }
   }

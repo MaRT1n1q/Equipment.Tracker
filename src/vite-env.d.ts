@@ -17,3 +17,9 @@ interface ImportMeta {
 }
 
 declare const __APP_VERSION__: string
+
+/**
+ * Compile-time флаг: true в desktop-сборке, false в web-сборке (WEB_ONLY=1).
+ * В web-сборке весь Electron-код tree-shake'ится.
+ */
+declare const __IS_ELECTRON__: boolean

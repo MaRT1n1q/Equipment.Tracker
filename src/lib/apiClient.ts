@@ -3,12 +3,19 @@
  *
  * Base URL определяется из VITE_API_BASE_URL (env) или 'http://localhost:9090'.
  * Автоматически добавляет Authorization header из session storage.
- * При 401 — очищает сессию и генерирует событие 'auth:logout'.
+ * При 401 — пытается обновить access-токен через refresh; если refresh невалиден —
+ * очищает сессию и генерирует событие 'auth:logout'.
  */
 
-import { clearAuthSession, getAuthSession } from './auth'
+import { clearAuthSession, getAuthSession, saveAuthSession, type AuthSession } from './auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:9090'
+// Base URL для API.
+// - VITE_API_BASE_URL задан → используем его (абсолютный URL, напр. https://api.koltakin.pro)
+// - VITE_API_BASE_URL = "" (пустая строка) → same-origin, относительные пути (web-деплой за nginx proxy)
+// - VITE_API_BASE_URL не задан (undefined) → fallback на localhost для dev
+const VITE_API_BASE = import.meta.env.VITE_API_BASE_URL
+const API_BASE =
+  VITE_API_BASE !== undefined ? VITE_API_BASE.replace(/\/$/, '') : 'http://localhost:9090'
 
 // ─── Типы ошибок ─────────────────────────────────────────────────────────────
 
@@ -32,11 +39,68 @@ function authHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${session.accessToken}` }
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
+// ─── Refresh token rotation ──────────────────────────────────────────────────
+// Защита от гонок: если несколько запросов одновременно получили 401, refresh
+// выполняется один раз, остальные ждут того же промиса.
+
+let refreshPromise: Promise<AuthSession | null> | null = null
+
+async function refreshSession(): Promise<AuthSession | null> {
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    const session = getAuthSession()
+    if (!session?.refreshToken) return null
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refreshToken }),
+      })
+
+      if (!response.ok) return null
+
+      const payload = (await response.json()) as {
+        access_token?: string
+        refresh_token?: string
+      }
+      if (!payload.access_token || !payload.refresh_token) return null
+
+      const next: AuthSession = {
+        ...session,
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+      }
+      saveAuthSession(next)
+      return next
+    } catch {
+      return null
+    }
+  })()
+
+  try {
+    return await refreshPromise
+  } finally {
+    refreshPromise = null
+  }
+}
+
+function forceLogout(): never {
+  clearAuthSession()
+  window.dispatchEvent(new Event('auth:logout'))
+  throw new ApiError(401, 'UNAUTHORIZED', 'Сессия истекла, выполните вход заново')
+}
+
+async function handleResponse<T>(response: Response, retry?: () => Promise<T>): Promise<T> {
+  // 401 — пытаемся обновить токен и повторить запрос один раз
   if (response.status === 401) {
-    clearAuthSession()
-    window.dispatchEvent(new Event('auth:logout'))
-    throw new ApiError(401, 'UNAUTHORIZED', 'Сессия истекла, выполните вход заново')
+    if (retry) {
+      const refreshed = await refreshSession()
+      if (!refreshed) return forceLogout()
+      return retry()
+    }
+    return forceLogout()
   }
   if (!response.ok) {
     let code = 'UNKNOWN_ERROR'
@@ -66,49 +130,53 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // ─── Основные методы ─────────────────────────────────────────────────────────
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-    },
-  })
-  return handleResponse<T>(response)
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+    })
+  return handleResponse<T>(await doFetch(), () => doFetch().then((r) => handleResponse<T>(r)))
 }
 
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  })
-  return handleResponse<T>(response)
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+  return handleResponse<T>(await doFetch(), () => doFetch().then((r) => handleResponse<T>(r)))
 }
 
 export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  })
-  return handleResponse<T>(response)
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+  return handleResponse<T>(await doFetch(), () => doFetch().then((r) => handleResponse<T>(r)))
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-    },
-  })
-  return handleResponse<T>(response)
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+    })
+  return handleResponse<T>(await doFetch(), () => doFetch().then((r) => handleResponse<T>(r)))
 }
 
 /**
@@ -120,17 +188,21 @@ export async function apiUpload<T>(
   files: File | File[],
   fieldName = 'file'
 ): Promise<T> {
-  const form = new FormData()
-  const arr = Array.isArray(files) ? files : [files]
-  for (const f of arr) {
-    form.append(fieldName, f)
+  const buildForm = () => {
+    const form = new FormData()
+    const arr = Array.isArray(files) ? files : [files]
+    for (const f of arr) {
+      form.append(fieldName, f)
+    }
+    return form
   }
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: form,
-  })
-  return handleResponse<T>(response)
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: buildForm(),
+    })
+  return handleResponse<T>(await doFetch(), () => doFetch().then((r) => handleResponse<T>(r)))
 }
 
 /**

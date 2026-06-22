@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { type AuthSession } from '../lib/auth'
+import { isElectron, getAppVersion, appUpdater } from '../lib/platform'
 
 type UpdateState =
   | 'idle'
@@ -23,7 +24,6 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose, authSession, onLogout }: SettingsModalProps) {
-  const isElectron = typeof window !== 'undefined' && !!window.electronAPI
   const [appVersion, setAppVersion] = useState('loading...')
   const [updateState, setUpdateState] = useState<UpdateState>('idle')
   const [updateMessage, setUpdateMessage] = useState<string | null>(null)
@@ -31,20 +31,15 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
 
   useEffect(() => {
-    if (window.electronAPI?.getAppVersion) {
-      const version = window.electronAPI.getAppVersion()
-      setAppVersion(version)
-    } else {
-      setAppVersion(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown')
-    }
+    setAppVersion(getAppVersion())
   }, [])
 
   useEffect(() => {
-    if (!window.electronAPI?.onUpdateStatus) {
+    if (!appUpdater.isAvailable) {
       return
     }
 
-    const unsubscribe = window.electronAPI.onUpdateStatus((payload) => {
+    const unsubscribe = appUpdater.onStatus((payload) => {
       const data = payload.data as
         | {
             version?: unknown
@@ -190,7 +185,7 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
     updateState === 'error' ? 'text-destructive' : 'text-muted-foreground'
 
   const handleUpdateAction = async () => {
-    if (!window.electronAPI?.checkForUpdates || !window.electronAPI?.downloadUpdate) {
+    if (!appUpdater.isAvailable) {
       toast.error('Функция обновления недоступна')
       return
     }
@@ -200,15 +195,8 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
         setUpdateState('downloading')
         setUpdateMessage('Загрузка обновления...')
         setDownloadProgress(0)
-        const result = await window.electronAPI.downloadUpdate()
-        if (!result.success) {
-          const message = result.error || 'Не удалось скачать обновление'
-          setUpdateState('error')
-          setUpdateMessage(message)
-          toast.error(message)
-        } else {
-          toast.success('Обновление загружено. Можно установить обновление.')
-        }
+        await appUpdater.downloadUpdate()
+        toast.success('Обновление загружено. Можно установить обновление.')
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Не удалось скачать обновление'
         setUpdateState('error')
@@ -227,15 +215,8 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
       try {
         setUpdateState('installing')
         setUpdateMessage('Установка обновления...')
-        const result = await window.electronAPI.installUpdate()
-        if (!result.success) {
-          const message = result.error || 'Не удалось установить обновление'
-          setUpdateState('error')
-          setUpdateMessage(message)
-          toast.error(message)
-        } else {
-          toast.success('Приложение перезапустится для установки обновления')
-        }
+        await appUpdater.installUpdate()
+        toast.success('Приложение перезапустится для установки обновления')
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Не удалось установить обновление'
         setUpdateState('error')
@@ -261,14 +242,7 @@ export function SettingsModal({ isOpen, onClose, authSession, onLogout }: Settin
       setUpdateMessage('Проверка обновлений...')
       setAvailableVersion(null)
       setDownloadProgress(null)
-      const result = await window.electronAPI.checkForUpdates()
-      if (!result.success) {
-        const message =
-          result.error || 'Не удалось выполнить проверку обновлений. Повторите попытку позже.'
-        setUpdateState('error')
-        setUpdateMessage(message)
-        toast.error(message)
-      }
+      await appUpdater.checkForUpdates()
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Не удалось выполнить проверку обновлений'

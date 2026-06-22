@@ -9,7 +9,9 @@ export interface AuthSession {
 
 const AUTH_SESSION_STORAGE_KEY = 'equipment-tracker:auth-session'
 const SAVED_CITY_KEY = 'equipment-tracker:saved-city'
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:9090'
+const VITE_API_BASE = import.meta.env.VITE_API_BASE_URL
+const API_BASE =
+  VITE_API_BASE !== undefined ? VITE_API_BASE.replace(/\/$/, '') : 'http://localhost:9090'
 const DEFAULT_AUTH_API_URL = `${API_BASE}/api/v1/auth/login`
 
 function readStorage(): Storage | null {
