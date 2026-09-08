@@ -285,6 +285,46 @@ export type PaginatedEmployeeExitsResponse = z.infer<typeof paginatedEmployeeExi
 export type RequestSummary = z.infer<typeof requestSummarySchema>
 export type EmployeeExitSummary = z.infer<typeof employeeExitSummarySchema>
 export type RequestReturnEvent = RequestSummary['returnEvents'][number]
+
+// === Analytics ===
+export const analyticsQuerySchema = z.object({
+  from: z
+    .string()
+    .regex(/\d{4}-\d{2}-\d{2}/, 'Дата должна быть в формате ГГГГ-ММ-ДД')
+    .optional(),
+  to: z
+    .string()
+    .regex(/\d{4}-\d{2}-\d{2}/, 'Дата должна быть в формате ГГГГ-ММ-ДД')
+    .optional(),
+})
+
+export const analyticsDailyPointSchema = z.object({
+  day: z.string(),
+  count: z.number().int().min(0),
+})
+
+export const analyticsResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  requests: z.object({
+    total: z.number().int().min(0),
+    issued: z.number().int().min(0),
+    not_issued: z.number().int().min(0),
+    return_pending: z.number().int().min(0),
+    return_completed: z.number().int().min(0),
+  }),
+  exits: z.object({
+    total: z.number().int().min(0),
+    completed: z.number().int().min(0),
+    pending: z.number().int().min(0),
+  }),
+  request_trend: z.array(analyticsDailyPointSchema),
+  exit_trend: z.array(analyticsDailyPointSchema),
+})
+
+export type AnalyticsQueryParams = z.infer<typeof analyticsQuerySchema>
+export type AnalyticsResponse = z.infer<typeof analyticsResponseSchema>
+export type AnalyticsDailyPoint = z.infer<typeof analyticsDailyPointSchema>
 export type CreateTemplateData = z.infer<typeof createTemplateSchema>
 export type UpdateTemplateData = z.infer<typeof updateTemplateSchema>
 export type Template = z.infer<typeof templateRecordSchema>

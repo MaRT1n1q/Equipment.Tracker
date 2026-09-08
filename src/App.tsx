@@ -23,6 +23,9 @@ const TemplatesView = lazy(() =>
 const InstructionsView = lazy(() =>
   import('./components/InstructionsView').then((m) => ({ default: m.InstructionsView }))
 )
+const AnalyticsView = lazy(() =>
+  import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView }))
+)
 
 // Lazy-loading модалок — загружаются только при открытии.
 const AddRequestModal = lazy(() =>
@@ -43,7 +46,13 @@ import { LoginScreen } from './components/LoginScreen'
 import { MigrationBanner } from './components/MigrationBanner'
 import { clearAuthSession, getAuthSession, loginByUserLogin, type AuthSession } from './lib/auth'
 
-type AppView = 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
+type AppView =
+  | 'dashboard'
+  | 'requests'
+  | 'employee-exit'
+  | 'templates'
+  | 'instructions'
+  | 'analytics'
 
 const VIEW_STORAGE_KEY = 'equipment-tracker:current-view'
 const SIDEBAR_STORAGE_KEY = 'equipment-tracker:sidebar-collapsed'
@@ -53,7 +62,8 @@ const isAppView = (value: string): value is AppView =>
   value === 'requests' ||
   value === 'employee-exit' ||
   value === 'templates' ||
-  value === 'instructions'
+  value === 'instructions' ||
+  value === 'analytics'
 
 function App() {
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => getAuthSession())
@@ -250,6 +260,10 @@ function App() {
               ) : currentView === 'instructions' ? (
                 <div className="animate-fade-in">
                   <InstructionsView />
+                </div>
+              ) : currentView === 'analytics' ? (
+                <div className="animate-fade-in">
+                  <AnalyticsView />
                 </div>
               ) : (
                 <div className="animate-fade-in">

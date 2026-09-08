@@ -12,6 +12,7 @@ import {
   Info,
   FileText,
   BookOpen,
+  BarChart3,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useEffect, useMemo, useState } from 'react'
@@ -21,9 +22,15 @@ import { ThemeToggle } from './ThemeToggle'
 import type { AuthSession } from '../lib/auth'
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
+  currentView:
+    | 'dashboard'
+    | 'requests'
+    | 'employee-exit'
+    | 'templates'
+    | 'instructions'
+    | 'analytics'
   onViewChange: (
-    view: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions'
+    view: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions' | 'analytics'
   ) => void
   isCollapsed: boolean
   onToggleCollapse: () => void
@@ -260,6 +267,11 @@ export function Sidebar({
       id: 'instructions' as const,
       label: 'Инструкции',
       icon: BookOpen,
+    },
+    {
+      id: 'analytics' as const,
+      label: 'Аналитика',
+      icon: BarChart3,
     },
   ]
 
