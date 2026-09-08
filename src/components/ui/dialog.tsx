@@ -28,7 +28,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         onClick={() => onOpenChange(false)}
       />
       <div
-        className="relative z-50 w-full mx-4 flex justify-center"
+        className="relative z-50 w-full mx-3 sm:mx-4 flex justify-center"
         onClick={() => onOpenChange(false)}
       >
         {children}
@@ -48,9 +48,9 @@ export function DialogContent({ children, className, style }: DialogContentProps
     <div
       onClick={(e) => e.stopPropagation()}
       className={cn(
-        'w-full max-w-lg bg-card text-card-foreground rounded-lg shadow-lg border p-6',
+        'w-full max-w-lg bg-card text-card-foreground rounded-lg shadow-lg border p-4 sm:p-6',
         'animate-in fade-in-0 zoom-in-95',
-        'max-h-[calc(100vh-3rem)] overflow-y-auto',
+        'max-h-[calc(100vh-2rem)] overflow-y-auto',
         className
       )}
       style={style}

@@ -277,12 +277,12 @@ export function EmployeeExitCalendar({
 
   return (
     <div className="space-y-6">
-      <div className="surface-card p-6 rounded-xl shadow-sm">
+      <div className="surface-card rounded-xl shadow-sm p-4 sm:p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <BriefcaseBusiness className="w-5 h-5 text-[hsl(var(--primary))]" />
-              <h2 className="text-xl font-semibold">Календарь выходов сотрудников</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">Календарь выходов сотрудников</h2>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -293,7 +293,7 @@ export function EmployeeExitCalendar({
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <div className="surface-section px-4 py-2 rounded-lg text-sm font-medium capitalize">
+              <div className="surface-section px-3 sm:px-4 py-2 rounded-lg text-sm font-medium capitalize">
                 {getMonthLabel(currentMonth)}
               </div>
               <button
@@ -307,90 +307,95 @@ export function EmployeeExitCalendar({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground">
-            {WEEKDAY_LABELS.map((label) => (
-              <div key={label} className="uppercase tracking-wide">
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {calendarDays.map((day) => {
-              const key = day.key
-              const eventsForDay = eventsByDay.get(key) ?? []
-              const isToday = key === todayKey
-              const isSelected = key === selectedKey
-
-              return (
-                <button
-                  type="button"
-                  key={key}
-                  onClick={() => {
-                    setSelectedDate(new Date(day.date))
-                    if (!day.inCurrentMonth) {
-                      setCurrentMonth(getMonthStart(day.date))
-                    }
-                  }}
-                  className={cn(
-                    'relative p-3 rounded-lg text-left transition-all duration-200 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--primary))] hover:border-[hsl(var(--primary)/0.4)] flex flex-col gap-2 min-h-[140px] overflow-hidden',
-                    !day.inCurrentMonth && 'text-muted-foreground/60 bg-muted/40',
-                    day.inCurrentMonth && 'bg-muted/20',
-                    isToday && 'border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.08)]',
-                    isSelected && 'ring-2 ring-[hsl(var(--primary))] ring-offset-2'
-                  )}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-medium">{day.date.getDate()}</span>
-                      <span className="text-[10px] uppercase text-muted-foreground tracking-wide">
-                        {MONTH_SHORT_LABELS[day.date.getMonth()]}
-                      </span>
-                    </div>
-                    {isToday && (
-                      <span className="text-[10px] uppercase text-[hsl(var(--primary))]">
-                        Сегодня
-                      </span>
-                    )}
+          {/* Календарная сетка: на мобилке прокручивается по горизонтали */}
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+            <div className="min-w-[640px] sm:min-w-0">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-xs font-semibold text-muted-foreground">
+                {WEEKDAY_LABELS.map((label) => (
+                  <div key={label} className="uppercase tracking-wide">
+                    {label}
                   </div>
-                  <div className="mt-2 flex-1">
-                    {eventsForDay.length > 0 ? (
-                      <div className="space-y-1 max-h-20 overflow-hidden">
-                        {eventsForDay.slice(0, 2).map((event) => {
-                          const tone = getEventTone(event)
+                ))}
+              </div>
 
-                          return (
-                            <div
-                              key={event.id}
-                              className={cn(
-                                'flex items-center gap-2 text-xs rounded-md px-2 py-1 truncate',
-                                toneBadgeClasses[tone]
-                              )}
-                            >
-                              <span className="truncate">{event.employeeName}</span>
-                            </div>
-                          )
-                        })}
-                        {eventsForDay.length > 2 && (
-                          <div className="text-[10px] text-muted-foreground">
-                            + ещё {eventsForDay.length - 2}
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                {calendarDays.map((day) => {
+                  const key = day.key
+                  const eventsForDay = eventsByDay.get(key) ?? []
+                  const isToday = key === todayKey
+                  const isSelected = key === selectedKey
+
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => {
+                        setSelectedDate(new Date(day.date))
+                        if (!day.inCurrentMonth) {
+                          setCurrentMonth(getMonthStart(day.date))
+                        }
+                      }}
+                      className={cn(
+                        'relative rounded-lg text-left transition-all duration-200 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--primary))] hover:border-[hsl(var(--primary)/0.4)] flex flex-col gap-1 p-2 sm:gap-2 sm:p-3 min-h-[76px] sm:min-h-[140px] overflow-hidden',
+                        !day.inCurrentMonth && 'text-muted-foreground/60 bg-muted/40',
+                        day.inCurrentMonth && 'bg-muted/20',
+                        isToday && 'border-[hsl(var(--primary)/0.6)] bg-[hsl(var(--primary)/0.08)]',
+                        isSelected && 'ring-2 ring-[hsl(var(--primary))] ring-offset-2'
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-medium">{day.date.getDate()}</span>
+                          <span className="hidden sm:inline text-[10px] uppercase text-muted-foreground tracking-wide">
+                            {MONTH_SHORT_LABELS[day.date.getMonth()]}
+                          </span>
+                        </div>
+                        {isToday && (
+                          <span className="text-[10px] uppercase text-[hsl(var(--primary))]">
+                            Сегодня
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 sm:mt-2 flex-1">
+                        {eventsForDay.length > 0 ? (
+                          <div className="space-y-1 max-h-10 sm:max-h-20 overflow-hidden">
+                            {eventsForDay.slice(0, 2).map((event) => {
+                              const tone = getEventTone(event)
+
+                              return (
+                                <div
+                                  key={event.id}
+                                  className={cn(
+                                    'flex items-center gap-2 text-xs rounded-md px-2 py-1 truncate',
+                                    toneBadgeClasses[tone]
+                                  )}
+                                >
+                                  <span className="truncate">{event.employeeName}</span>
+                                </div>
+                              )
+                            })}
+                            {eventsForDay.length > 2 && (
+                              <div className="text-[10px] text-muted-foreground">
+                                + ещё {eventsForDay.length - 2}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="h-full rounded-md border border-dashed border-border/40 text-[10px] text-muted-foreground hidden sm:flex items-center justify-center">
+                            Нет событий
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="h-full rounded-md border border-dashed border-border/40 text-[10px] text-muted-foreground flex items-center justify-center">
-                        Нет событий
-                      </div>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="surface-card p-6 rounded-xl shadow-sm space-y-4">
+      <div className="surface-card rounded-xl shadow-sm space-y-4 p-4 sm:p-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h3 className="text-lg font-semibold">События</h3>

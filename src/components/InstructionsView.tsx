@@ -29,11 +29,13 @@ import {
 import {
   useInstructions,
   useInstructionAttachments,
+  useInstructionTags,
   getAllFolderIds,
   getInstructionPath,
 } from '../hooks/useInstructions'
 import { useDebounce } from '../hooks/useDebounce'
 import { usePersistentState } from '../hooks/usePersistentState'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { cn } from '../lib/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -779,6 +781,9 @@ export function InstructionsView() {
 
   const [searchInput, setSearchInput] = useState('')
   const searchTerm = useDebounce(searchInput, 300)
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const { tags: allTags } = useInstructionTags()
 
   // Сохранение состояния в localStorage
   const [expandedIds, setExpandedIds] = usePersistentState<number[]>(
@@ -814,13 +819,36 @@ export function InstructionsView() {
   // Конвертация в Set для работы с TreeNode
   const expandedIdsSet = useMemo(() => new Set(expandedIds), [expandedIds])
 
+  // Фильтрация дерева по тегу (клиентская)
+  const tagFilteredTree = useMemo(() => {
+    if (!activeTag) return tree
+
+    const filterByTag = (nodes: InstructionTreeNode[]): InstructionTreeNode[] => {
+      return nodes
+        .map((node) => {
+          const matchesTag = node.tags.includes(activeTag)
+          const filteredChildren = filterByTag(node.children)
+          if (matchesTag || filteredChildren.length > 0) {
+            return { ...node, children: filteredChildren }
+          }
+          return null
+        })
+        .filter((n): n is InstructionTreeNode => n !== null)
+    }
+
+    return filterByTag(tree)
+  }, [tree, activeTag])
+
   // Фильтрация дерева по поиску
-  const filteredTree = useMemo(() => filterTree(tree, searchTerm), [tree, searchTerm])
+  const filteredTree = useMemo(
+    () => filterTree(tagFilteredTree, searchTerm),
+    [tagFilteredTree, searchTerm]
+  )
 
   // Автоматически раскрываем папки при поиске
   const searchExpandedIds = useMemo(
-    () => getExpandedIdsForSearch(tree, searchTerm),
-    [tree, searchTerm]
+    () => getExpandedIdsForSearch(tagFilteredTree, searchTerm),
+    [tagFilteredTree, searchTerm]
   )
 
   const effectiveExpandedIds = useMemo(() => {
@@ -1108,12 +1136,12 @@ export function InstructionsView() {
         }
       />
 
-      {/* Two-panel layout */}
-      <div className="flex-1 flex min-h-0 mt-4">
+      {/* Two-panel layout: на мобилке — вертикальный стек */}
+      <div className="flex-1 flex min-h-0 mt-4 flex-col md:flex-row">
         {/* Left panel - Tree */}
         <div
-          className="flex-shrink-0 flex flex-col min-h-0 rounded-lg border border-border bg-card/50"
-          style={{ width: panelWidth }}
+          className="flex-shrink-0 flex flex-col min-h-0 rounded-lg border border-border bg-card/50 md:h-auto h-64"
+          style={{ width: isMobile ? undefined : panelWidth }}
         >
           {/* Search and controls */}
           <div className="flex-shrink-0 p-3 border-b border-border space-y-2">
@@ -1157,6 +1185,40 @@ export function InstructionsView() {
                 Развернуть
               </Button>
             </div>
+
+            {/* Tag filter */}
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTag(null)}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border transition-colors',
+                    activeTag === null
+                      ? 'bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] border-[hsl(var(--primary)/0.3)]'
+                      : 'text-muted-foreground border-border hover:text-foreground'
+                  )}
+                >
+                  Все
+                </button>
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setActiveTag((prev) => (prev === tag ? null : tag))}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border transition-colors',
+                      activeTag === tag
+                        ? 'bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] border-[hsl(var(--primary)/0.3)]'
+                        : 'text-muted-foreground border-border hover:text-foreground'
+                    )}
+                  >
+                    <Tag className="w-2.5 h-2.5" />
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Tree */}
@@ -1213,17 +1275,19 @@ export function InstructionsView() {
           </div>
         </div>
 
-        {/* Resizer */}
-        <div
-          className={cn(
-            'w-1 mx-1 cursor-col-resize hover:bg-primary/30 transition-colors rounded',
-            isResizing && 'bg-primary/50'
-          )}
-          onMouseDown={() => setIsResizing(true)}
-        />
+        {/* Resizer (только desktop) */}
+        {!isMobile && (
+          <div
+            className={cn(
+              'w-1 mx-1 cursor-col-resize hover:bg-primary/30 transition-colors rounded',
+              isResizing && 'bg-primary/50'
+            )}
+            onMouseDown={() => setIsResizing(true)}
+          />
+        )}
 
         {/* Right panel - Content */}
-        <div className="flex-1 min-w-0 rounded-lg border border-border bg-card/50 flex flex-col">
+        <div className="flex-1 min-w-0 rounded-lg border border-border bg-card/50 flex flex-col mt-4 md:mt-0">
           <InstructionPanel
             instruction={selectedInstruction}
             breadcrumbs={breadcrumbs}

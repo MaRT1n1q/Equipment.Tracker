@@ -325,7 +325,7 @@ export function TemplatesView() {
     <>
       <div className="space-y-6">
         {/* Шапка с поиском */}
-        <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+        <div className="rounded-3xl border border-border/60 bg-card/90 px-4 py-5 sm:px-6 sm:py-6 shadow-sm">
           <PageHeader
             className="border-0 bg-transparent px-0 py-0 shadow-none"
             title="Шаблоны"

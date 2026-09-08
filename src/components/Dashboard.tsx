@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import {
   Package,
   PackageCheck,
@@ -8,6 +7,8 @@ import {
   BriefcaseBusiness,
   Users,
   Search,
+  FileText,
+  BookOpen,
 } from 'lucide-react'
 import { EmployeeExitCalendar } from './EmployeeExitCalendar'
 import { Input } from './ui/input'
@@ -15,12 +16,11 @@ import { cn } from '../lib/utils'
 import { useDebounce } from '../hooks/useDebounce'
 import { useEmployeeExitSummaryQuery } from '../hooks/useEmployeeExits'
 import { useRequestSummaryQuery } from '../hooks/useRequests'
+import { useGlobalSearchQuery } from '../hooks/useGlobalSearch'
 import { PageHeader } from './PageHeader'
 import { ErrorState } from './ErrorState'
 import { LoadingState } from './LoadingState'
 import { DashboardSkeleton } from './DashboardSkeleton'
-import { fetchRequests } from '../lib/api/requests'
-import { fetchEmployeeExits } from '../lib/api/employeeExits'
 
 export type DashboardSelection = {
   id: number
@@ -30,27 +30,41 @@ export type DashboardSelection = {
 interface DashboardProps {
   onSelectRequest?: (target: DashboardSelection) => void
   onSelectEmployeeExit?: (target: DashboardSelection) => void
+  onSelectInstruction?: (target: DashboardSelection) => void
+  onSelectTemplate?: (target: DashboardSelection) => void
 }
 
-type SearchResult =
-  | {
-      type: 'request'
-      id: number
-      title: string
-      description: string
-      meta?: string
-      searchHint?: string
-    }
-  | {
-      type: 'employeeExit'
-      id: number
-      title: string
-      description: string
-      meta?: string
-      searchHint?: string
-    }
+type SearchResultType = 'request' | 'employee_exit' | 'instruction' | 'template'
 
-export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardProps) {
+type SearchResult = {
+  type: SearchResultType
+  id: number
+  title: string
+  description: string
+  meta?: string
+  searchHint?: string
+}
+
+const SEARCH_TYPE_ICONS: Record<SearchResultType, typeof Package> = {
+  request: Package,
+  employee_exit: BriefcaseBusiness,
+  instruction: BookOpen,
+  template: FileText,
+}
+
+const SEARCH_TYPE_LABELS: Record<SearchResultType, string> = {
+  request: 'Заявка',
+  employee_exit: 'Выход',
+  instruction: 'Инструкция',
+  template: 'Шаблон',
+}
+
+export function Dashboard({
+  onSelectRequest,
+  onSelectEmployeeExit,
+  onSelectInstruction,
+  onSelectTemplate,
+}: DashboardProps) {
   const {
     data: requestSummary,
     isLoading: isRequestSummaryLoading,
@@ -68,40 +82,16 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const debouncedQuery = useDebounce(searchQuery, 200)
   const trimmedQuery = debouncedQuery.trim()
-  const isSearchEnabled = trimmedQuery.length > 0
 
   const {
-    data: requestSearchResults,
-    isFetching: isRequestSearchFetching,
-    isError: isRequestSearchError,
-    error: requestSearchError,
-    refetch: refetchRequestSearch,
-  } = useQuery({
-    queryKey: ['dashboard', 'requestSearch', trimmedQuery],
-    queryFn: async () => {
-      const response = await fetchRequests({ search: trimmedQuery, page: 1, pageSize: 50 })
-      return response.items
-    },
-    enabled: isSearchEnabled,
-  })
+    data: globalResults,
+    isFetching: isSearchFetching,
+    isError: isSearchError,
+    error: searchError,
+    refetch: refetchSearch,
+  } = useGlobalSearchQuery(trimmedQuery)
 
-  const {
-    data: employeeExitSearchResults,
-    isFetching: isEmployeeExitSearchFetching,
-    isError: isEmployeeExitSearchError,
-    error: employeeExitSearchError,
-    refetch: refetchEmployeeExitSearch,
-  } = useQuery({
-    queryKey: ['dashboard', 'exitSearch', trimmedQuery],
-    queryFn: async () => {
-      const response = await fetchEmployeeExits({ search: trimmedQuery, page: 1, pageSize: 50 })
-      return response.items
-    },
-    enabled: isSearchEnabled,
-  })
-
-  const isSearchLoading = isRequestSearchFetching || isEmployeeExitSearchFetching
-  const isSearchError = isRequestSearchError || isEmployeeExitSearchError
+  const isSearchLoading = isSearchFetching && trimmedQuery.length >= 2
 
   const returnEvents = useMemo(() => {
     if (!requestSummary) {
@@ -207,48 +197,19 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   ]
 
   const searchResults = useMemo<SearchResult[]>(() => {
-    const query = trimmedQuery.toLowerCase()
-
-    if (!query) {
+    if (!globalResults) {
       return []
     }
 
-    const requestMatches = (requestSearchResults ?? []).map<SearchResult>((request) => {
-      const status =
-        request.return_required === 1 ? 'На сдачу' : request.is_issued ? 'Выдано' : 'В ожидании'
-
-      return {
-        type: 'request',
-        id: request.id,
-        title: request.employee_name,
-        description: request.sd_number ? `Заявка • SD ${request.sd_number}` : 'Заявка',
-        meta: `${status} • ${request.login}`,
-        searchHint: request.employee_name,
-      }
-    })
-
-    const exitMatches = (employeeExitSearchResults ?? []).map<SearchResult>((exit) => {
-      const formattedDate = new Date(exit.exit_date).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      })
-      const status = exit.is_completed === 1 ? 'Завершено' : 'Ожидает'
-
-      return {
-        type: 'employeeExit',
-        id: exit.id,
-        title: exit.employee_name,
-        description: exit.sd_number
-          ? `Выход сотрудника • SD ${exit.sd_number}`
-          : 'Выход сотрудника',
-        meta: `${status} • ${formattedDate}`,
-        searchHint: exit.employee_name,
-      }
-    })
-
-    return [...requestMatches, ...exitMatches].slice(0, 15)
-  }, [trimmedQuery, requestSearchResults, employeeExitSearchResults])
+    return globalResults.map<SearchResult>((result) => ({
+      type: result.type,
+      id: result.id,
+      title: result.title,
+      description: result.subtitle || SEARCH_TYPE_LABELS[result.type],
+      meta: undefined,
+      searchHint: result.title,
+    }))
+  }, [globalResults])
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -268,8 +229,12 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   const handleSelectResult = (result: SearchResult) => {
     if (result.type === 'request') {
       onSelectRequest?.({ id: result.id, searchHint: result.searchHint })
-    } else {
+    } else if (result.type === 'employee_exit') {
       onSelectEmployeeExit?.({ id: result.id, searchHint: result.searchHint })
+    } else if (result.type === 'instruction') {
+      onSelectInstruction?.({ id: result.id, searchHint: result.searchHint })
+    } else if (result.type === 'template') {
+      onSelectTemplate?.({ id: result.id, searchHint: result.searchHint })
     }
 
     setIsSearchOpen(false)
@@ -298,8 +263,8 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
   }
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-6 shadow-sm">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="rounded-3xl border border-border/60 bg-card/90 px-4 py-5 sm:px-6 sm:py-6 shadow-sm">
         <PageHeader
           className="border-0 bg-transparent px-0 py-0 shadow-none"
           title="Дашборд"
@@ -328,7 +293,7 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
                   handleSelectResult(searchResults[0])
                 }
               }}
-              placeholder="Быстрый поиск по заявкам и выходам…"
+              placeholder="Поиск по всему приложению: заявки, выходы, инструкции, шаблоны…"
               className="h-12 rounded-xl bg-muted/40 pl-9 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition focus:border-[hsl(var(--primary)/0.35)] focus:bg-background"
             />
           </div>
@@ -342,57 +307,47 @@ export function Dashboard({ onSelectRequest, onSelectEmployeeExit }: DashboardPr
                   className="border-0 bg-transparent p-4"
                   title="Не удалось выполнить поиск"
                   description={
-                    (requestSearchError instanceof Error && requestSearchError.message) ||
-                    (employeeExitSearchError instanceof Error && employeeExitSearchError.message) ||
+                    (searchError instanceof Error && searchError.message) ||
                     'Повторите попытку. Если ошибка сохраняется, проверьте журнал приложения.'
                   }
-                  onRetry={() => {
-                    refetchRequestSearch()
-                    refetchEmployeeExitSearch()
-                  }}
+                  onRetry={() => refetchSearch()}
                   retryLabel="Повторить"
                 />
               ) : searchResults.length === 0 ? (
                 <div className="px-4 py-5 text-sm text-muted-foreground">Ничего не найдено</div>
               ) : (
                 <ul className="max-h-72 overflow-y-auto py-2">
-                  {searchResults.map((result, index) => (
-                    <li
-                      key={`${result.type}-${result.id}`}
-                      className={cn(
-                        'cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-muted/40',
-                        index % 2 === 1 && 'bg-muted/10'
-                      )}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => handleSelectResult(result)}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-                            {result.type === 'request' ? (
-                              <Package className="h-4 w-4" />
-                            ) : (
-                              <BriefcaseBusiness className="h-4 w-4" />
-                            )}
-                          </span>
-                          <div className="min-w-0 space-y-1">
-                            <p className="truncate font-medium text-foreground">{result.title}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {result.description}
-                            </p>
-                            {result.meta && (
-                              <p className="truncate text-xs text-muted-foreground/80">
-                                {result.meta}
+                  {searchResults.map((result, index) => {
+                    const Icon = SEARCH_TYPE_ICONS[result.type]
+                    return (
+                      <li
+                        key={`${result.type}-${result.id}`}
+                        className={cn(
+                          'cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-muted/40',
+                          index % 2 === 1 && 'bg-muted/10'
+                        )}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleSelectResult(result)}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0 space-y-1">
+                              <p className="truncate font-medium text-foreground">{result.title}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {result.description}
                               </p>
-                            )}
+                            </div>
                           </div>
+                          <span className="text-xs text-muted-foreground/80 whitespace-nowrap">
+                            {SEARCH_TYPE_LABELS[result.type]}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground/80 whitespace-nowrap">
-                          {result.type === 'request' ? 'Заявка' : 'Выход'}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </div>

@@ -1,18 +1,13 @@
 import {
-  LayoutDashboard,
-  Package,
   Settings,
   ChevronLeft,
   ChevronRight,
-  BriefcaseBusiness,
+  Package,
   Download,
   RefreshCw,
   CheckCircle2,
   AlertTriangle,
   Info,
-  FileText,
-  BookOpen,
-  BarChart3,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useEffect, useMemo, useState } from 'react'
@@ -20,18 +15,11 @@ import { SettingsModal } from './SettingsModal'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { ThemeToggle } from './ThemeToggle'
 import type { AuthSession } from '../lib/auth'
+import { NAV_ITEMS, type AppView } from '../lib/navigation'
 
 interface SidebarProps {
-  currentView:
-    | 'dashboard'
-    | 'requests'
-    | 'employee-exit'
-    | 'templates'
-    | 'instructions'
-    | 'analytics'
-  onViewChange: (
-    view: 'dashboard' | 'requests' | 'employee-exit' | 'templates' | 'instructions' | 'analytics'
-  ) => void
+  currentView: AppView
+  onViewChange: (view: AppView) => void
   isCollapsed: boolean
   onToggleCollapse: () => void
   authSession: AuthSession
@@ -242,38 +230,7 @@ export function Sidebar({
   const BannerIconComponent = bannerIcon
   const showUpdateBanner = Boolean(updateBanner && bannerTone)
 
-  const menuItems = [
-    {
-      id: 'dashboard' as const,
-      label: 'Дашборд',
-      icon: LayoutDashboard,
-    },
-    {
-      id: 'requests' as const,
-      label: 'Заявки',
-      icon: Package,
-    },
-    {
-      id: 'employee-exit' as const,
-      label: 'Выход сотрудников',
-      icon: BriefcaseBusiness,
-    },
-    {
-      id: 'templates' as const,
-      label: 'Шаблоны',
-      icon: FileText,
-    },
-    {
-      id: 'instructions' as const,
-      label: 'Инструкции',
-      icon: BookOpen,
-    },
-    {
-      id: 'analytics' as const,
-      label: 'Аналитика',
-      icon: BarChart3,
-    },
-  ]
+  const menuItems = NAV_ITEMS
 
   return (
     <div

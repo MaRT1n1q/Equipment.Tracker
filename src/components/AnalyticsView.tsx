@@ -222,7 +222,7 @@ export function AnalyticsView() {
       />
 
       {/* Фильтр по датам */}
-      <div className="rounded-3xl border border-border/60 bg-card/90 px-6 py-5 shadow-sm">
+      <div className="rounded-3xl border border-border/60 bg-card/90 px-4 py-5 sm:px-6 shadow-sm">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Calendar className="h-4 w-4" />
@@ -236,7 +236,7 @@ export function AnalyticsView() {
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-44"
+                className="w-40 sm:w-44"
               />
             </div>
             <div className="space-y-1">
@@ -245,11 +245,11 @@ export function AnalyticsView() {
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-44"
+                className="w-40 sm:w-44"
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {PRESETS.map((preset) => (
                 <Button
                   key={preset.label}
@@ -318,12 +318,16 @@ export function AnalyticsView() {
           {/* Графики */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div
-              className={cn('rounded-3xl border border-border/60 bg-card/90 px-6 py-5 shadow-sm')}
+              className={cn(
+                'rounded-3xl border border-border/60 bg-card/90 px-4 py-5 sm:px-6 shadow-sm'
+              )}
             >
               <TrendChart title="Заявки" icon={Package} data={data?.request_trend ?? []} />
             </div>
             <div
-              className={cn('rounded-3xl border border-border/60 bg-card/90 px-6 py-5 shadow-sm')}
+              className={cn(
+                'rounded-3xl border border-border/60 bg-card/90 px-4 py-5 sm:px-6 shadow-sm'
+              )}
             >
               <TrendChart
                 title="Выходы сотрудников"

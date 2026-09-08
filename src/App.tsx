@@ -3,11 +3,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { onQuerySync } from './lib/querySync'
 import { Dashboard } from './components/Dashboard'
 import { Sidebar } from './components/Sidebar'
+import { MobileBottomNav } from './components/MobileBottomNav'
 import { ChangelogModal } from './components/ChangelogModal'
 import { Toaster, toast } from 'sonner'
 import type { Request } from './types/ipc'
 import { usePersistentState } from './hooks/usePersistentState'
+import { useMediaQuery } from './hooks/useMediaQuery'
 import { useRealtimeEvents } from './lib/useRealtimeEvents'
+import type { AppView } from './lib/navigation'
 
 // Lazy-loading тяжёлых view — каждый загружается отдельным чанком при первом открытии.
 // Dashboard импортируется статически (дефолтный экран).
@@ -46,14 +49,6 @@ import { LoginScreen } from './components/LoginScreen'
 import { MigrationBanner } from './components/MigrationBanner'
 import { clearAuthSession, getAuthSession, loginByUserLogin, type AuthSession } from './lib/auth'
 
-type AppView =
-  | 'dashboard'
-  | 'requests'
-  | 'employee-exit'
-  | 'templates'
-  | 'instructions'
-  | 'analytics'
-
 const VIEW_STORAGE_KEY = 'equipment-tracker:current-view'
 const SIDEBAR_STORAGE_KEY = 'equipment-tracker:sidebar-collapsed'
 
@@ -67,6 +62,7 @@ const isAppView = (value: string): value is AppView =>
 
 function App() {
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => getAuthSession())
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [isAuthLoading, setIsAuthLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -160,6 +156,14 @@ function App() {
     }, 0)
   }
 
+  const handleNavigateToInstruction = () => {
+    setCurrentView('instructions')
+  }
+
+  const handleNavigateToTemplate = () => {
+    setCurrentView('templates')
+  }
+
   useKeyboardShortcut(
     { key: 'n', ctrlKey: true },
     () => {
@@ -207,24 +211,29 @@ function App() {
       <WindowTitleBar />
       <Toaster position="top-right" richColors />
 
-      <Sidebar
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
-        authSession={authSession}
-        onLogout={handleLogout}
-      />
+      {!isMobile && (
+        <Sidebar
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+          authSession={authSession}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {isMobile && <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} />}
 
       <div
         className={cn(
           'mt-10 flex flex-col h-[calc(100vh-2.5rem)] transition-all duration-300',
-          isSidebarCollapsed ? 'ml-20' : 'ml-64'
+          !isMobile && (isSidebarCollapsed ? 'ml-20' : 'ml-64'),
+          isMobile && 'pb-16'
         )}
       >
         <main className="custom-scrollbar flex-1 overflow-auto">
           <MigrationBanner />
-          <div className="px-8 py-8">
+          <div className={cn('py-6', isMobile ? 'px-4' : 'px-8 py-8')}>
             <Suspense
               fallback={
                 <div className="flex items-center justify-center py-20">
@@ -237,6 +246,8 @@ function App() {
                   <Dashboard
                     onSelectRequest={handleNavigateToRequest}
                     onSelectEmployeeExit={handleNavigateToEmployeeExit}
+                    onSelectInstruction={handleNavigateToInstruction}
+                    onSelectTemplate={handleNavigateToTemplate}
                   />
                 </div>
               ) : currentView === 'requests' ? (
