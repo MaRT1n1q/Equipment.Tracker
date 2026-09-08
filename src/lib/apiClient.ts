@@ -10,7 +10,7 @@
 import { clearAuthSession, getAuthSession, saveAuthSession, type AuthSession } from './auth'
 
 // Base URL для API.
-// - VITE_API_BASE_URL задан → используем его (абсолютный URL, напр. https://api.koltakin.pro)
+// - VITE_API_BASE_URL задан → используем его (абсолютный URL, напр. https://api.koltakin.ru)
 // - VITE_API_BASE_URL = "" (пустая строка) → same-origin, относительные пути (web-деплой за nginx proxy)
 // - VITE_API_BASE_URL не задан (undefined) → fallback на localhost для dev
 const VITE_API_BASE = import.meta.env.VITE_API_BASE_URL

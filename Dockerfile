@@ -12,7 +12,7 @@ COPY . .
 
 # WEB_ONLY=1 исключает electron плагин из vite
 # VITE_API_BASE_URL задаётся при сборке через --build-arg
-ARG VITE_API_BASE_URL=https://api.koltakin.pro
+ARG VITE_API_BASE_URL=https://api.koltakin.ru
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 RUN WEB_ONLY=1 npx tsc --noEmit && WEB_ONLY=1 npx vite build
