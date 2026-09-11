@@ -230,7 +230,8 @@ export function Sidebar({
   const BannerIconComponent = bannerIcon
   const showUpdateBanner = Boolean(updateBanner && bannerTone)
 
-  const menuItems = NAV_ITEMS
+  const isAdmin = authSession.role === 'admin'
+  const menuItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
 
   return (
     <div

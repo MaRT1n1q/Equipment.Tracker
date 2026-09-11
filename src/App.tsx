@@ -29,6 +29,9 @@ const InstructionsView = lazy(() =>
 const AnalyticsView = lazy(() =>
   import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView }))
 )
+const AdminView = lazy(() =>
+  import('./components/AdminView').then((m) => ({ default: m.AdminView }))
+)
 
 // Lazy-loading модалок — загружаются только при открытии.
 const AddRequestModal = lazy(() =>
@@ -58,7 +61,8 @@ const isAppView = (value: string): value is AppView =>
   value === 'employee-exit' ||
   value === 'templates' ||
   value === 'instructions' ||
-  value === 'analytics'
+  value === 'analytics' ||
+  value === 'admin'
 
 function App() {
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => getAuthSession())
@@ -222,7 +226,13 @@ function App() {
         />
       )}
 
-      {isMobile && <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} />}
+      {isMobile && (
+        <MobileBottomNav
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          role={authSession.role}
+        />
+      )}
 
       <div
         className={cn(
@@ -276,6 +286,21 @@ function App() {
                 <div className="animate-fade-in">
                   <AnalyticsView />
                 </div>
+              ) : currentView === 'admin' ? (
+                authSession.role === 'admin' ? (
+                  <div className="animate-fade-in">
+                    <AdminView />
+                  </div>
+                ) : (
+                  <div className="animate-fade-in">
+                    <Dashboard
+                      onSelectRequest={handleNavigateToRequest}
+                      onSelectEmployeeExit={handleNavigateToEmployeeExit}
+                      onSelectInstruction={handleNavigateToInstruction}
+                      onSelectTemplate={handleNavigateToTemplate}
+                    />
+                  </div>
+                )
               ) : (
                 <div className="animate-fade-in">
                   <EmployeeExitView

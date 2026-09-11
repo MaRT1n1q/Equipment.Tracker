@@ -4,20 +4,24 @@ import { cn } from '../lib/utils'
 interface MobileBottomNavProps {
   currentView: AppView
   onViewChange: (view: AppView) => void
+  role?: string
 }
 
 /**
  * Нижняя панель навигации для мобильных устройств.
  * Показывается только на маленьких экранах (см. App.tsx).
  */
-export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavProps) {
+export function MobileBottomNav({ currentView, onViewChange, role }: MobileBottomNavProps) {
+  const isAdmin = role === 'admin'
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]"
       aria-label="Основная навигация"
     >
       <div className="flex w-full items-stretch justify-around">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive = currentView === item.id
           const Icon = item.icon
 
